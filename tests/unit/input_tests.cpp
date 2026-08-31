@@ -61,6 +61,19 @@ void test_render_mode_transition() {
     expect(!held.cycle_render_pacing.pressed, "Held render pacing action must not cycle repeatedly.");
 }
 
+void test_post_process_toggle_transition() {
+    ic2d::InputTracker tracker;
+    const auto first = tracker.update(ic2d::InputSample{.toggle_post_process = true});
+    const auto held = tracker.update(ic2d::InputSample{.toggle_post_process = true});
+    const auto released = tracker.update(ic2d::InputSample{});
+    expect(first.toggle_post_process.pressed,
+           "Post-process action must emit one pressed edge.");
+    expect(!held.toggle_post_process.pressed,
+           "Held post-process action must not repeat the pressed edge.");
+    expect(released.toggle_post_process.released,
+           "Post-process action must emit a release edge.");
+}
+
 } // namespace
 
 int main() {
@@ -68,6 +81,7 @@ int main() {
     test_axis_is_normalized();
     test_reset_clears_transition_history();
     test_render_mode_transition();
+    test_post_process_toggle_transition();
 
     if (failures == 0) {
         std::cout << "All input tests passed.\n";

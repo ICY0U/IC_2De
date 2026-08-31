@@ -47,7 +47,9 @@ struct RenderDiagnostics2D {
     std::size_t visible_sprites{0};
     std::size_t culled_sprites{0};
     std::size_t estimated_batches{0};
+    std::size_t estimated_draw_calls{0};
     std::size_t texture_switches{0};
+    std::size_t visible_vertices{0};
 };
 
 class RenderFrame2D final {

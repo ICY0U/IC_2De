@@ -366,6 +366,18 @@ struct EditorShell::Impl {
                     stats.physics_body_count, stats.loaded_texture_count);
         ImGui::Text("sprites %zu visible | %zu culled | %zu batches", stats.visible_sprites,
                     stats.culled_sprites, stats.estimated_batches);
+        ImGui::Text("draws %zu estimated | vertices %zu", stats.estimated_draw_calls,
+                    stats.visible_vertices);
+        ImGui::Text("frame ms p50 %.2f | p95 %.2f | p99 %.2f", stats.frame_time_p50_ms,
+                    stats.frame_time_p95_ms, stats.frame_time_p99_ms);
+        ImGui::Text("GPU passes %u estimated | target switches %u | shader passes %u",
+                    stats.estimated_gpu_passes, stats.render_target_switches,
+                    stats.shader_passes);
+        ImGui::TextColored(stats.post_process_active
+                               ? ImVec4{0.45F, 0.87F, 0.75F, 1.0F}
+                               : ImVec4{0.65F, 0.68F, 0.75F, 1.0F},
+                           "Post process: %s%s", stats.post_process_active ? "ACTIVE" : "BYPASSED",
+                           stats.post_process_available ? "" : " (shader unavailable)");
         const bool gameplay_has_keys =
             !backend.wants_text_input() && !backend.item_active();
         ImGui::TextColored(gameplay_has_keys ? ImVec4{0.45F, 0.87F, 0.75F, 1.0F}

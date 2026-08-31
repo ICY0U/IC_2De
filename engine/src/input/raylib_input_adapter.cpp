@@ -44,6 +44,7 @@ InputSample RaylibInputAdapter::sample() const noexcept {
         .reset = IsKeyDown(KEY_R),
         .cycle_render_pacing = IsKeyDown(KEY_F6),
         .toggle_gpu_background = IsKeyDown(KEY_G),
+        .toggle_post_process = IsKeyDown(KEY_F7),
         .toggle_debug_visuals = IsKeyDown(KEY_F1),
         .toggle_editor = IsKeyDown(KEY_F2),
     };

@@ -17,6 +17,13 @@ struct RenderPacingConfig {
     int fixed_hz{0};
 };
 
+struct PostProcessConfig {
+    bool enabled{true};
+    float exposure{1.0F};
+    float saturation{1.0F};
+    float vignette_strength{0.16F};
+};
+
 struct ApplicationConfig {
     std::string title{"IC_2DE 2.5D World Testbed"};
     int window_width{1280};
@@ -24,6 +31,7 @@ struct ApplicationConfig {
     int canvas_width{640};
     int canvas_height{360};
     RenderPacingConfig render_pacing{};
+    PostProcessConfig post_process{};
     double fixed_update_hz{60.0};
     int max_frames{0};
     int capture_frame{0};

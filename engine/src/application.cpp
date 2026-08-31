@@ -2,6 +2,7 @@
 
 #include "ic2d/assets.hpp"
 #include "ic2d/core/fixed_step_clock.hpp"
+#include "ic2d/core/frame_telemetry.hpp"
 #include "ic2d/core/log.hpp"
 #include "ic2d/input.hpp"
 #include "ic2d/debug_visuals.hpp"
@@ -14,6 +15,7 @@
 #include "ic2d/runtime_project.hpp"
 #include "ic2d/scene.hpp"
 #include "input/raylib_input_adapter.hpp"
+#include "render/frame_pipeline.hpp"
 #include "render/gpu_backdrop.hpp"
 #include "render/raylib_renderer2d.hpp"
 
@@ -304,13 +306,15 @@ void draw_overlay(
     const bool dynamic_prop_moved,
     const Camera25DState& camera,
     const RenderDiagnostics2D& diagnostics,
+    const FramePipelineDiagnostics2D& pipeline_diagnostics,
+    const FrameTimingSummary& frame_timing,
     const DebugVisuals& debug_visuals,
     const bool editor_open
 ) {
     DrawText("IC_2DE", 18, 16, 18, Color{74, 222, 190, 255});
     DrawText("2.5D WORLD + ORTHOGRAPHIC BILLBOARDS", 19, 38, 9, Color{166, 178, 198, 255});
     DrawText("Move X/Z: W/A/S/D or arrows", 19, 58, 10, RAYWHITE);
-    DrawText("P Pause | O Step | R Reset | F1 Debug | F2 Editor | F6 Hz | G GPU | Esc Quit",
+    DrawText("P Pause | O Step | R Reset | F1 Debug | F2 Editor | F6 Hz | F7 Post | G GPU",
              19, 74, 9, RAYWHITE);
     DrawText(TextFormat("Fixed: %.0f Hz  |  Ticks: %llu", config.fixed_update_hz,
                         static_cast<unsigned long long>(simulated_ticks)),
@@ -322,6 +326,10 @@ void draw_overlay(
                         static_cast<unsigned int>(cpu_worker_count),
                         gpu_backdrop_active ? "ON" : "CPU FALLBACK"),
              config.canvas_width - 208, 34, 9, Color{166, 178, 198, 255});
+    DrawText(TextFormat("Frame ms p50 %.2f | p95 %.2f | p99 %.2f",
+                        frame_timing.p50_milliseconds, frame_timing.p95_milliseconds,
+                        frame_timing.p99_milliseconds),
+             config.canvas_width - 250, 50, 9, Color{166, 178, 198, 255});
     DrawText(TextFormat("Ground %u/%u | Sprites %u/%u | Culled %u",
                         static_cast<unsigned int>(diagnostics.visible_ground_quads),
                         static_cast<unsigned int>(diagnostics.submitted_ground_quads),
@@ -354,6 +362,13 @@ void draw_overlay(
                         static_cast<unsigned int>(debug_channel_count),
                         editor_open ? "OPEN" : "CLOSED"),
              19, 198, 9, Color{74, 222, 190, 255});
+    DrawText(TextFormat("Post FX %s%s | GPU passes %u | draws %u | vertices %u",
+                        pipeline_diagnostics.post_process_active ? "ON" : "OFF",
+                        pipeline_diagnostics.post_process_available ? "" : " (UNAVAILABLE)",
+                        pipeline_diagnostics.estimated_gpu_passes,
+                        static_cast<unsigned int>(diagnostics.estimated_draw_calls),
+                        static_cast<unsigned int>(diagnostics.visible_vertices)),
+             19, 213, 9, Color{74, 222, 190, 255});
 
     if (paused) {
         DrawRectangle(0, 0, config.canvas_width, config.canvas_height, Fade(BLACK, 0.42F));
@@ -363,7 +378,7 @@ void draw_overlay(
     }
 
     if (dropped_time) {
-        DrawText("FRAME STALL CLAMPED", config.canvas_width - 142, 50, 9, ORANGE);
+        DrawText("FRAME STALL CLAMPED", config.canvas_width - 142, 66, 9, ORANGE);
     }
 
     DrawText("HAZEL IDENTITY + EIGHT-WAY LOCOMOTION", 18, config.canvas_height - 25,
@@ -382,6 +397,7 @@ int run_application(const ApplicationConfig& requested_config) {
     ApplicationConfig config = requested_config;
     std::optional<RuntimeProject> runtime_project;
     std::optional<SceneDefinition> scene_definition;
+    std::filesystem::path post_process_shader_path;
     try {
         std::filesystem::path scene_path = config.development_scene_path;
         if (!config.runtime_project_manifest.empty()) {
@@ -394,6 +410,14 @@ int run_application(const ApplicationConfig& requested_config) {
             throw std::invalid_argument{"No development or packaged scene path was provided."};
         }
         scene_definition = SceneDefinition::load(scene_path);
+        post_process_shader_path = runtime_project
+                                       ? runtime_project->resolve_asset("shaders/post_process.fs")
+                                       : scene_definition->source_path().parent_path() /
+                                             "shaders/post_process.fs";
+        if (!std::filesystem::is_regular_file(post_process_shader_path)) {
+            throw std::runtime_error{"Required post-process shader is missing: " +
+                                     post_process_shader_path.string()};
+        }
         log(LogLevel::info,
             "Authored scene validated: " + scene_definition->id() + " (schema " +
                 std::to_string(scene_definition->schema_version()) + ").");
@@ -421,13 +445,23 @@ int run_application(const ApplicationConfig& requested_config) {
     log(LogLevel::info, "Application window initialized with " +
                             render_pacing_description(config.render_pacing) + ".");
 
-    RenderTexture2D canvas = LoadRenderTexture(config.canvas_width, config.canvas_height);
-    if (canvas.texture.id == 0U) {
-        log(LogLevel::error, "Raylib could not create the virtual canvas.");
+    FramePipeline2D frame_pipeline{
+        config.canvas_width,
+        config.canvas_height,
+        post_process_shader_path,
+    };
+    if (!frame_pipeline.available()) {
+        log(LogLevel::error, "Raylib could not create the off-screen frame pipeline.");
+        frame_pipeline.release();
         CloseWindow();
         return 4;
     }
-    SetTextureFilter(canvas.texture, TEXTURE_FILTER_POINT);
+    if (frame_pipeline.post_process_available()) {
+        log(LogLevel::info, "External post-process shader and ping-pong target initialized.");
+    } else {
+        log(LogLevel::warning,
+            "Post-process shader could not initialize; presentation will use the scene target.");
+    }
 
     const double fixed_step_seconds = 1.0 / config.fixed_update_hz;
     FixedStepClock clock{fixed_step_seconds};
@@ -435,6 +469,7 @@ int run_application(const ApplicationConfig& requested_config) {
     RaylibInputAdapter input_adapter;
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
     JobSystem jobs;
+    FrameTimeSeries frame_times{240U};
 #endif
     TextureAssets textures;
     std::unique_ptr<RuntimeScene> scene;
@@ -461,7 +496,7 @@ int run_application(const ApplicationConfig& requested_config) {
     } catch (const std::exception& error) {
         log(LogLevel::error, std::string{"Runtime scene construction failed: "} + error.what());
         textures.shutdown();
-        UnloadRenderTexture(canvas);
+        frame_pipeline.release();
         CloseWindow();
         return 5;
     }
@@ -524,6 +559,10 @@ int run_application(const ApplicationConfig& requested_config) {
            (config.max_frames == 0 || rendered_frames < config.max_frames) &&
            (config.max_fixed_ticks == 0 || simulated_ticks < config.max_fixed_ticks)) {
         const double frame_seconds = static_cast<double>(GetFrameTime());
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
+        static_cast<void>(frame_times.record_seconds(frame_seconds));
+        const FrameTimingSummary frame_timing = frame_times.summary();
+#endif
         InputSample input_sample = input_adapter.sample();
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         if (editor && editor->blocks_gameplay_input()) {
@@ -531,6 +570,7 @@ int run_application(const ApplicationConfig& requested_config) {
             // focus are away from the viewport; only the shell and debug
             // toggles still reach the application.
             input_sample = InputSample{
+                .toggle_post_process = input_sample.toggle_post_process,
                 .toggle_debug_visuals = input_sample.toggle_debug_visuals,
                 .toggle_editor = input_sample.toggle_editor,
             };
@@ -578,6 +618,11 @@ int run_application(const ApplicationConfig& requested_config) {
         }
         if (input.toggle_gpu_background.pressed) {
             gpu_background_enabled = !gpu_background_enabled;
+        }
+        if (input.toggle_post_process.pressed) {
+            config.post_process.enabled = !config.post_process.enabled;
+            log(LogLevel::info, config.post_process.enabled ? "Post-processing enabled."
+                                                           : "Post-processing bypassed.");
         }
 #endif
 
@@ -706,7 +751,7 @@ int run_application(const ApplicationConfig& requested_config) {
         }
         const RenderFrame2D render_frame = render_queue.finish();
 
-        BeginTextureMode(canvas);
+        frame_pipeline.begin_scene();
         const bool gpu_backdrop_active = draw_background(config, gpu_background_enabled, gpu_backdrop);
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         if (debug_visuals.draws(DebugChannel::world_grid)) {
@@ -722,23 +767,23 @@ int run_application(const ApplicationConfig& requested_config) {
                          textures.loaded_texture_count(), scene_schema_version, stable_uuid_count,
                          current_player_position, movement_blocked, active_trigger,
                          observations.physics_contact_observed, dynamic_prop_moved, world_camera,
-                         render_diagnostics, debug_visuals, editor && editor->visible());
+                         render_diagnostics, frame_pipeline.diagnostics(), frame_timing,
+                         debug_visuals, editor && editor->visible());
         }
 #else
         static_cast<void>(gpu_backdrop_active);
         static_cast<void>(render_diagnostics);
 #endif
-        EndTextureMode();
+        frame_pipeline.finish_scene({
+            .enabled = config.post_process.enabled,
+            .exposure = config.post_process.exposure,
+            .saturation = config.post_process.saturation,
+            .vignette_strength = config.post_process.vignette_strength,
+        });
 
         const CanvasViewport viewport = compute_canvas_viewport(
             GetScreenWidth(), GetScreenHeight(), config.canvas_width, config.canvas_height);
-        const Rectangle source{
-            0.0F,
-            0.0F,
-            static_cast<float>(config.canvas_width),
-            -static_cast<float>(config.canvas_height),
-        };
-        const Rectangle destination{viewport.x, viewport.y, viewport.width, viewport.height};
+        const RectF destination{viewport.x, viewport.y, viewport.width, viewport.height};
 
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         const bool editor_visible = editor && editor->visible() && scene_editor;
@@ -750,7 +795,7 @@ int run_application(const ApplicationConfig& requested_config) {
         BeginDrawing();
         ClearBackground(BLACK);
         if (!editor_visible) {
-            DrawTexturePro(canvas.texture, source, destination, Vector2{0.0F, 0.0F}, 0.0F, WHITE);
+            frame_pipeline.present(destination);
         }
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         if (editor_visible) {
@@ -766,12 +811,22 @@ int run_application(const ApplicationConfig& requested_config) {
                     .visible_sprites = render_diagnostics.visible_sprites,
                     .culled_sprites = render_diagnostics.culled_sprites,
                     .estimated_batches = render_diagnostics.estimated_batches,
+                    .estimated_draw_calls = render_diagnostics.estimated_draw_calls,
+                    .visible_vertices = render_diagnostics.visible_vertices,
+                    .frame_time_p50_ms = frame_timing.p50_milliseconds,
+                    .frame_time_p95_ms = frame_timing.p95_milliseconds,
+                    .frame_time_p99_ms = frame_timing.p99_milliseconds,
+                    .estimated_gpu_passes = frame_pipeline.diagnostics().estimated_gpu_passes,
+                    .render_target_switches = frame_pipeline.diagnostics().render_target_switches,
+                    .shader_passes = frame_pipeline.diagnostics().shader_passes,
+                    .post_process_active = frame_pipeline.diagnostics().post_process_active,
+                    .post_process_available = frame_pipeline.diagnostics().post_process_available,
                     .paused = paused,
                 },
                 EditorCanvas{
-                    .texture_id = canvas.texture.id,
-                    .width = config.canvas_width,
-                    .height = config.canvas_height,
+                    .texture_id = frame_pipeline.output_texture_id(),
+                    .width = frame_pipeline.width(),
+                    .height = frame_pipeline.height(),
                 });
         }
 #endif
@@ -833,7 +888,7 @@ int run_application(const ApplicationConfig& requested_config) {
     scene.reset();
     const bool texture_lifetime_valid = textures.loaded_texture_count() == 0;
     textures.shutdown();
-    UnloadRenderTexture(canvas);
+    frame_pipeline.release();
     CloseWindow();
     log(LogLevel::info, "Completed " + std::to_string(simulated_ticks) + " fixed simulation ticks.");
     log(LogLevel::info, "Final camera X/Z: " + std::to_string(world_camera.focus.x) + "/" +

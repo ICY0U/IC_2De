@@ -39,6 +39,8 @@ int main(const int argc, const char* const argv[]) {
             config.capture_path = "shipping-smoke.png";
         } else if (argument == "--validate-content") {
             config.validate_content_only = true;
+        } else if (argument == "--no-post-process") {
+            config.post_process.enabled = false;
         } else if (argument == "--uncapped") {
             config.render_pacing = {.mode = ic2d::RenderPacingMode::uncapped, .fixed_hz = 0};
         } else if (argument == "--monitor-hz" || argument == "--vsync") {
@@ -60,6 +62,7 @@ int main(const int argc, const char* const argv[]) {
                          "  --uncapped        Disable presentation pacing.\n"
                          "  --fps=N           Apply an explicit presentation cap.\n"
                          "  --validate-content  Validate packaged content and exit.\n"
+                         "  --no-post-process  Bypass the external post-process shader.\n"
                          "  --shipping-smoke  Exercise the packaged test area and exit.\n";
             return 0;
         } else {

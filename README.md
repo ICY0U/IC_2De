@@ -4,7 +4,7 @@ IC_2DE is a Windows-first C++20, 2D-first 2.5D engine. Its gameplay World uses t
 
 ## Current checkpoint
 
-Typed events and owned layer-stack checkpoint:
+Framebuffer, post-processing, and telemetry checkpoint:
 
 - reproducible CMake build with raylib 6.0 pinned;
 - a small application interface that hides raylib;
@@ -13,6 +13,8 @@ Typed events and owned layer-stack checkpoint:
 - camera-relative X/Z keyboard and gamepad movement with normalized diagonals;
 - pause, single-step, and reset controls;
 - 640 x 360 virtual canvas with integer upscaling and letterboxing;
+- an engine-owned ping-pong framebuffer pipeline that hides render targets, texture orientation, shader uniforms, fallback, presentation, and GPU release order;
+- a packaged external post-process shader with exposure, saturation, and vignette controls plus F7 and command-line bypass;
 - uncapped, active-monitor VSync, and explicit-Hz presentation modes;
 - bounded CPU job workers with queued and parallel-range work;
 - a grid-free GPU gradient backdrop with a CPU clear fallback;
@@ -51,11 +53,12 @@ Typed events and owned layer-stack checkpoint:
 - animation kept presentation-only so it cannot modify physics or deterministic replay state;
 - identical 300-tick replay hashes at 30, 60, 120, monitor-synced, and uncapped presentation rates;
 - camera transforms, conservative sprite culling, and submission/batch diagnostics;
+- rolling 240-frame p50/p95/p99 frame-time telemetry plus estimated draw, batch, vertex, render-target, shader, and GPU-pass diagnostics in the overlay and editor;
 - generational texture handles, path/generated-asset caching, reference counts, and a fallback texture;
 - versioned runtime-project manifests with package-relative content paths;
 - separate development and shipping executables, a development-tools-off shipping preset, and static MSVC runtime linkage;
 - one-command minimal folder/ZIP packaging with a real GPU runtime smoke test;
-- headless clock, flow/layers, input, project, GroundMap, Physics2D, animation, Aseprite, scene, presentation, jobs, World, and Render2D tests through CTest;
+- headless clock, frame telemetry, flow/layers, input, project, GroundMap, Physics2D, animation, Aseprite, scene, presentation, jobs, World, and Render2D tests through CTest;
 - project warnings treated as errors.
 
 ## Build on Windows
@@ -93,13 +96,14 @@ Rendering is uncapped by default. Temporary caps are available for frame-rate ch
 .\build\windows-debug\ic2de_testbed.exe --monitor-hz
 ```
 
-Testbed controls: W/A/S/D or the arrow keys move across the X/Z ground plane, P pauses, O advances one fixed tick while paused, R resets, F1 toggles the debug visuals, F2 toggles the development editor, F6 cycles render pacing, G toggles the GPU backdrop/CPU fallback, and Escape quits. Development builds only: the shipping runtime compiles both tools out.
+Testbed controls: W/A/S/D or the arrow keys move across the X/Z ground plane, P pauses, O advances one fixed tick while paused, R resets, F1 toggles the debug visuals, F2 toggles the development editor, F6 cycles render pacing, F7 toggles post-processing, G toggles the GPU backdrop/CPU fallback, and Escape quits. Development builds only: the shipping runtime compiles the editor, debug overlay, and live toggles out.
 
 F1 is a master switch over independent debug channels - collision shapes, trigger volumes, the elevation map, the world grid, and the statistics overlay - so a development build can present exactly what ships. The `lights` channel is listed but unavailable until a lighting module exists. F2 opens the docked editor shell: hierarchy, inspector, command history, statistics, debug channels, and the game rendered into a viewport panel. The character stays drivable while the shell is open; movement keys are withheld only while an editor field is being typed in or dragged. Escape does not quit while the shell is visible, so cancelling a text edit cannot close the window - hide the editor with F2 first, or use the window close button. Every edit it makes goes through `SceneEditor`, so undo, validation, and atomic saving behave identically to any other caller, and "Apply to running scene" swaps in a validated runtime copy without touching the authored file.
 
 ```powershell
 .\build\windows-debug\ic2de_testbed.exe --editor
 .\build\windows-debug\ic2de_testbed.exe --no-debug-visuals
+.\build\windows-debug\ic2de_testbed.exe --no-post-process
 ```
 
 For a deterministic moving-camera and culling smoke run:
@@ -150,6 +154,8 @@ are written to that folder's `Content` copy, never back to the source checkout.
 - `docs/checkpoints/2026-08-31-prefabs-scene-commands.md` - schema 7 prefabs, stable instances, overrides, and undoable scene commands;
 - `docs/checkpoints/2026-08-31-debug-channels-editor-shell.md` - F1 debug channels and the F2 docked development editor;
 - `docs/checkpoints/2026-08-31-typed-events-layer-stack.md` - copied typed runtime events, owned layers, deferred transitions, and package evidence;
+- `docs/checkpoints/2026-08-31-frame-pipeline-telemetry.md` - ping-pong framebuffers, external post-processing, frame distributions, renderer diagnostics, and package evidence;
 - `docs/references/HAZEL_ADAPTATION.md` - explicit adopt, adapt, and defer decisions from the Hazel reference;
+- `docs/references/GAME_ENGINE_SYSTEMS_REPORT_ADAPTATION.md` - adopt, adapt, and defer decisions from the full-stack engine report;
 - `IC_2DE_EXECUTION_PLAN.md` - milestone roadmap and quality gates;
 - `2d-cpp-raylib-engine-plan.md` - original research and technology survey.

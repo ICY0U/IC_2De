@@ -21,6 +21,16 @@ struct EditorStats {
     std::size_t visible_sprites{0};
     std::size_t culled_sprites{0};
     std::size_t estimated_batches{0};
+    std::size_t estimated_draw_calls{0};
+    std::size_t visible_vertices{0};
+    double frame_time_p50_ms{0.0};
+    double frame_time_p95_ms{0.0};
+    double frame_time_p99_ms{0.0};
+    std::uint32_t estimated_gpu_passes{0};
+    std::uint32_t render_target_switches{0};
+    std::uint32_t shader_passes{0};
+    bool post_process_active{false};
+    bool post_process_available{false};
     bool paused{false};
 };
 

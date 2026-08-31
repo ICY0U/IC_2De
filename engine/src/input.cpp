@@ -33,6 +33,7 @@ InputFrame InputTracker::update(const InputSample& sample) noexcept {
         .reset = transition(previous_.reset, sample.reset),
         .cycle_render_pacing = transition(previous_.cycle_render_pacing, sample.cycle_render_pacing),
         .toggle_gpu_background = transition(previous_.toggle_gpu_background, sample.toggle_gpu_background),
+        .toggle_post_process = transition(previous_.toggle_post_process, sample.toggle_post_process),
         .toggle_debug_visuals = transition(previous_.toggle_debug_visuals, sample.toggle_debug_visuals),
         .toggle_editor = transition(previous_.toggle_editor, sample.toggle_editor),
     };

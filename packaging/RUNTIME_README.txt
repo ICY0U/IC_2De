@@ -10,6 +10,7 @@ Controls
 W/A/S/D or arrow keys: move
 F1: toggle debug visuals   (development builds only)
 F2: toggle the editor      (development builds only)
+F7: toggle post-processing (development builds only)
 Escape: quit (disabled while the editor shell is open)
 
 The character stays drivable with the editor open. Movement keys go to the
@@ -25,10 +26,11 @@ before the graphics window opens.
 Automated package check
 -----------------------
 IC_2DE.exe --shipping-smoke --uncapped
+IC_2DE.exe --no-post-process
 IC_2DE-Debug.exe --validate-content
 IC_2DE-Editor.exe --validate-content
 
 The check exercises authored elevation and collision, Box2D contact and sensor
 events, a dynamic crate, deterministic locomotion animation and frame events,
-resource shutdown, and writes shipping-smoke.png beside the executable before
-returning exit 0.
+external shader compilation, framebuffer and texture resource shutdown, and
+writes shipping-smoke.png beside the executable before returning exit 0.

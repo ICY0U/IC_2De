@@ -101,6 +101,7 @@ RenderDiagnostics2D RaylibRenderer2D::render(
         }
 
         ++diagnostics.visible_ground_quads;
+        diagnostics.visible_vertices += 4U;
         const Vector2 points[]{
             {ground_quad.points[0].x, ground_quad.points[0].y},
             {ground_quad.points[3].x, ground_quad.points[3].y},
@@ -117,6 +118,7 @@ RenderDiagnostics2D RaylibRenderer2D::render(
         }
 
         ++diagnostics.visible_sprites;
+        diagnostics.visible_vertices += 4U;
         const float width = sprite.size.x * sprite.scale.x;
         const float height = sprite.size.y * sprite.scale.y;
         const Rectangle destination{sprite.position.x, sprite.position.y, width, height};
@@ -155,6 +157,8 @@ RenderDiagnostics2D RaylibRenderer2D::render(
         }
     }
     EndMode2D();
+    diagnostics.estimated_draw_calls = diagnostics.estimated_batches +
+                                       (diagnostics.visible_ground_quads > 0U ? 1U : 0U);
     return diagnostics;
 }
 

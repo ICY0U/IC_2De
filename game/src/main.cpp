@@ -61,6 +61,8 @@ int main(const int argc, const char* const argv[]) {
             config.start_with_editor = true;
         } else if (argument == "--no-debug-visuals") {
             config.start_with_debug_visuals = false;
+        } else if (argument == "--no-post-process") {
+            config.post_process.enabled = false;
         } else if (argument == "--uncapped") {
             config.render_pacing = {.mode = ic2d::RenderPacingMode::uncapped, .fixed_hz = 0};
         } else if (argument == "--monitor-hz" || argument == "--vsync") {
@@ -84,6 +86,7 @@ int main(const int argc, const char* const argv[]) {
                          "  --validate-content  Validate adjacent/source content and exit.\n"
                          "  --editor        Open the development editor shell at startup (F2 toggles).\n"
                          "  --no-debug-visuals  Start with debug channels hidden (F1 toggles).\n"
+                         "  --no-post-process  Bypass the external post-process shader (F7 toggles).\n"
                          "  --smoke-window  Capture a frame and close after 120 fixed ticks.\n"
                          "  --smoke-movement  Move diagonally for 300 ticks to verify XYZ projection and camera.\n";
             return 0;

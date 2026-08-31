@@ -70,6 +70,7 @@ endfunction()
 
 add_library(ic2de_core STATIC
     engine/src/core/fixed_step_clock.cpp
+    engine/src/core/frame_telemetry.cpp
     engine/src/core/log.cpp
 )
 add_library(IC2DE::Core ALIAS ic2de_core)
@@ -251,6 +252,7 @@ endif()
 add_library(ic2de_runtime STATIC
     engine/src/application.cpp
     engine/src/input/raylib_input_adapter.cpp
+    engine/src/render/frame_pipeline.cpp
     engine/src/render/gpu_backdrop.cpp
     engine/src/render/raylib_renderer2d.cpp
 )
@@ -292,8 +294,10 @@ if(IC2DE_BUILD_TESTBED)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "${CMAKE_SOURCE_DIR}/game/runtime/IC_2DE.runtime"
                 "${CMAKE_CURRENT_BINARY_DIR}/IC_2DE.runtime"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${IC2DE_TESTBED_RUNTIME_CONTENT}
+        # Preserve content subdirectories: shader and future streaming paths
+        # are part of runtime identity rather than flattenable filenames.
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_SOURCE_DIR}/game/assets/runtime"
                 "${CMAKE_CURRENT_BINARY_DIR}/Content"
         COMMAND ${CMAKE_COMMAND} -E touch "${IC2DE_TESTBED_CONTENT_STAMP}"
         DEPENDS
@@ -350,6 +354,14 @@ if(IC2DE_BUILD_TESTS)
     ic2de_set_project_warnings(ic2de_core_tests)
 
     add_test(NAME ic2de.core COMMAND ic2de_core_tests)
+
+    add_executable(ic2de_frame_telemetry_tests
+        tests/unit/frame_telemetry_tests.cpp
+    )
+    target_link_libraries(ic2de_frame_telemetry_tests PRIVATE IC2DE::Core)
+    target_compile_features(ic2de_frame_telemetry_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_frame_telemetry_tests)
+    add_test(NAME ic2de.frame_telemetry COMMAND ic2de_frame_telemetry_tests)
 
     add_executable(ic2de_flow_tests
         tests/unit/layer_stack_tests.cpp

@@ -10,6 +10,7 @@ struct InputSample {
     bool reset{false};
     bool cycle_render_pacing{false};
     bool toggle_gpu_background{false};
+    bool toggle_post_process{false};
     bool toggle_debug_visuals{false};
     bool toggle_editor{false};
 };
@@ -28,6 +29,7 @@ struct InputFrame {
     ButtonState reset{};
     ButtonState cycle_render_pacing{};
     ButtonState toggle_gpu_background{};
+    ButtonState toggle_post_process{};
     ButtonState toggle_debug_visuals{};
     ButtonState toggle_editor{};
 };

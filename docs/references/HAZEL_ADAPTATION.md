@@ -27,6 +27,8 @@ No Hazel implementation has been copied. The work below adapts architectural ide
 | Debug rendering | `DebugVisuals` master switch plus independent channels, toggled with F1 | A development build must be able to present exactly what ships, and each channel must be verifiable on its own. |
 | Typed event routing | `RuntimeSceneTickResult` carries a batch of `EngineEvent` variants for contacts, triggers, and animation | Producers return copied engine data after a fixed tick; consumers never run inside Box2D or animation internals. |
 | Owned layer stack | `LayerStack` owns regular layers and overlays, routes events top-down, and defers callback-requested structural changes | Layer lifetime and traversal safety belong in one module rather than in every application caller. |
+| Framebuffer and post process | `FramePipeline2D` owns two raylib render targets, external shader loading, uniforms, texture orientation, fallback presentation, diagnostics, and release order | The application describes a frame; it no longer manages backend framebuffer state. |
+| Renderer statistics | Rolling frame-time p50/p95/p99 plus estimated draws, batches, vertices, render-target switches, shader passes, and GPU passes are exposed as engine-owned values | Development needs actionable distributions and honest estimates before a lower-level profiler is justified. |
 
 ## Adapt differently
 
@@ -50,13 +52,13 @@ No Hazel implementation has been copied. The work below adapts architectural ide
 | UUID, entities, components, scene copy | UUID, World snapshot/restore, and UUID-addressed mutable scene documents are present; component expansion follows real editor needs. |
 | Layer stack and application events | Typed copied simulation events and an owned regular/overlay stack with deferred structural changes are present; window/input remain action-oriented until they have a second consumer. |
 | Project files and serializers | Runtime project schema plus atomic scene writing and explicit migration exist; development project settings remain. |
-| Renderer2D, camera, textures, shaders, framebuffer, fonts | Sprite submission, camera, texture handles, render target, one shader, and toggleable debug channels exist; add asset-managed shaders/framebuffers/fonts, post-processing, lighting, text, and richer statistics. The debug `lights` channel stays unavailable until a lighting module exists. |
+| Renderer2D, camera, textures, shaders, framebuffer, fonts | Sprite submission, camera, texture handles, engine-owned ping-pong framebuffers, a packaged external post shader, post-processing, frame distributions, and richer submission/pass statistics exist; add a general shader registry only when a second material path needs it, then lighting, text, and fonts. The debug `lights` channel stays unavailable until a lighting module exists. |
 | Physics2D | Present behind `PhysicsWorld`; continue with scene reconstruction, query/cast interfaces, joints only when gameplay requires them. |
 | Scene cameras and editor camera | Runtime 2.5D camera exists; add an editor camera independent of the playable camera. |
 | Scene serialization and prefabs | Mutable schema 7 documents, atomic save, migration, runtime copy, prefab identity/overrides, and round-trip fixtures exist; save-game snapshots remain. |
 | Scripting | Planned after the scene/editor model stabilizes, behind an engine-owned interface rather than Hazel's Mono-specific surface. |
 | ImGui layer and Hazelnut editor | Dockspace, docked viewport, hierarchy, inspector, command history, statistics, and debug channels exist; content browser, console log, profiler, and isolated play mode remain. |
-| Instrumentation | Add CPU/GPU frame markers, rolling p50/p95/p99 metrics, capture controls, and optional Tracy integration. |
+| Instrumentation | Rolling p50/p95/p99 frame metrics and renderer/pass counters exist. Add true GPU timestamp queries, scoped CPU markers, capture controls, and optional Tracy integration when profiling needs exceed the live panel. |
 | UI utilities and platform dialogs | Add native development file dialogs and a separate lightweight shipped-game UI module. |
 | Particles and renderer examples | Add pooled 2.5D particles driven by gameplay/animation events. |
 | Audio | Explicitly skipped for now. |
@@ -67,7 +69,7 @@ No Hazel implementation has been copied. The work below adapts architectural ide
 2. Mutable scene document, round-trip serialization, schema migration, and runtime-copy lifecycle - complete.
 3. Prefab definitions/instances and command-based scene edits - complete.
 4. Typed event routing plus owned layer stack - complete.
-5. Renderer resources, post-processing, lighting, text, statistics, and editor camera.
+5. Renderer resources, post-processing, lighting, text, statistics, and editor camera - framebuffer/post-process resources, external shader, and baseline statistics complete.
 6. Development editor with hierarchy, inspector, content browsing, and isolated play mode - dockspace, viewport, hierarchy, inspector, history, statistics, and debug channels complete.
 7. Project/content tools, file watching, hot reload, saves, profiling, particles, and game UI.
 8. Scripting interface and adapter after the data model is stable.

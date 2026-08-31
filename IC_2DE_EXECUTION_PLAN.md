@@ -364,10 +364,12 @@ The first four expanded Hazel adaptation checkpoints are complete. Schema 7 give
 
 Development builds now carry an F1 debug-visual master switch over independent collision, trigger, elevation-map, world-grid, and statistics channels, plus an F2 docked editor shell with a viewport, hierarchy, inspector, command history, statistics, and channel panels. Dear ImGui is pinned and development-only behind an engine-owned raylib backend; the shipping runtime compiles the whole surface out.
 
+The application now renders through an engine-owned two-target frame pipeline. A packaged external fragment shader provides the first explicit post-process pass and can fall back to the scene target without exposing raylib resources. Development telemetry reports a 240-frame p50/p95/p99 distribution and honest estimated draw, batch, vertex, target-switch, shader-pass, and GPU-pass counts. Nested content directories are preserved during development staging and validated through the relocatable runtime manifest.
+
 Audio is explicitly deferred by owner direction. Continue the non-audio Hazel adaptation in dependency order:
 
-1. Add framebuffer/post-process resources, shader assets, editor camera controls, 2D lighting, and renderer statistics through raylib-backed adapters.
-2. Close the remaining development-editor gaps: content browser, console, profiler, viewport picking, live-World inspection, and isolated play/stop mode.
+1. Add an editor camera with viewport picking, then 2D lighting and its debug channel. Framebuffer/post-process resources, the first external shader asset, and baseline renderer statistics are complete.
+2. Close the remaining development-editor gaps: content browser, console, profiler, live-World inspection, and isolated play/stop mode.
 3. Add asset watching/reload, project settings, save-game snapshots, profiling instrumentation, particles, and native game UI.
 4. Adapt Hazel scripting behind an engine-owned gameplay interface after the scene/editor data model is stable; do not expose EnTT, Box2D, raylib, or a scripting runtime directly.
 5. Re-run Debug/Release, five-mode replay, resource-lifetime checks, editor/runtime-copy tests, event/layer tests, and packaged GPU smoke at every checkpoint.
