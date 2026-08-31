@@ -1,0 +1,102 @@
+# IC_2DE authored runtime scene
+schema=7
+id=test_area
+world_space=x_y_z
+ground_plane=x_z
+elevation_axis=y
+
+walkable_bounds=-640|-460|1280|920
+max_step_height=24
+camera=-18|50|1|1
+physics=32|4|0|0|false|32
+ground_filter=1|22
+trigger_filter=8|22
+player_speed=130
+
+# texture=id|kind|... and aseprite=texture-id|metadata-json|sampling|fixed-hz
+texture=test-crate|checker|8|8|2|48|92|145|255|74|145|205|255|pixel
+texture=soft-shadow|radial|16|16|4|8|12|145|4|8|12|0|smooth
+aseprite=player-atlas|player-atlas.json|smooth|60
+aseprite=player-diagonal-atlas|player-diagonal-atlas.json|smooth|60
+texture=enemy-atlas|checker|32|16|4|118|38|72|255|218|92|122|255|pixel
+
+# id|uuid|name|sprite-width|sprite-height|origin-x|origin-y|RGBA|layer|texture-id
+prefab=tree|9001|Tree|38|68|0.5|1|68|170|104|255|0|-
+prefab=ground-shadow|9002|Ground shadow|30|9|0.5|0.5|5|8|12|135|0|-
+
+# kind|x|z|width|depth|elevation|tag
+ground_area=elevation|-40|120|200|150|24|0
+ground_area=solid|-123|-60|36|30|0|0
+ground_area=solid|20|285|75|35|0|0
+ground_area=trigger|20|340|120|90|0|1
+
+# id|role|motion|x|z|half-width|half-depth|category|mask|tag|sensor|fixed-rotation|linear-damping|angular-damping|density|friction
+physics_box=player|player|kinematic|-220|-170|9|5|2|29|10|false|true|0|0|1|0.6
+physics_box=dynamic-crate|primary_prop|dynamic|-174|-80|11|8|4|27|20|false|false|1.2|2|0.8|0.7
+physics_box=enemy|enemy|dynamic|150|30|10|6|16|15|30|false|true|4|4|2|0.9
+
+# entity=id|uuid|name|physics-binding|x|y|z|sprite-width|sprite-height|origin-x|origin-y|RGBA|layer|texture-id
+# prefab_instance=id|uuid|prefab-id|name|physics-binding|x|y|z
+entity=player-shadow|1001|Player shadow|player|-220|0|-170|20|7|0.5|0.5|255|255|255|255|0|soft-shadow
+entity=player|1002|Player|player|-220|0|-170|24|34|0.5|1|255|255|255|255|0|player-atlas
+prefab_instance=near-tree-shadow|1003|ground-shadow|Near tree shadow|-|-105|0|-45
+prefab_instance=near-tree|1004|tree|Near tree|-|-105|0|-45
+entity=elevated-crate-shadow|1005|Elevated crate shadow|-|78|24|245|32|10|0.5|0.5|5|8|12|135|0|-
+entity=elevated-crate|1006|Elevated crate|-|78|68|245|34|28|0.5|1|255|255|255|255|0|test-crate
+prefab_instance=far-tree-shadow|1007|ground-shadow|Far tree shadow|-|135|24|205
+prefab_instance=far-tree|1008|tree|Far tree|-|135|24|205
+# instance-id|field|comma-separated-value
+prefab_override=far-tree-shadow|sprite_size|32,9
+prefab_override=far-tree|sprite_size|42,74
+prefab_override=far-tree|tint|43,137,91,255
+
+entity=wall-shadow|1009|Wall shadow|-|57.5|0|302.5|76|14|0.5|0.5|5|8|12|135|0|-
+entity=wall|1010|Solid wall|-|57.5|0|302.5|72|42|0.5|1|190|92|72|255|0|-
+entity=dynamic-crate-shadow|1011|Dynamic crate shadow|dynamic-crate|-174|0|-80|28|8|0.5|0.5|5|8|12|135|0|-
+entity=dynamic-crate|1012|Dynamic crate|dynamic-crate|-174|0|-80|32|26|0.5|1|255|255|255|255|0|test-crate
+entity=enemy-shadow|1013|Enemy shadow|enemy|150|0|30|22|7|0.5|0.5|5|8|12|135|0|-
+entity=enemy|1014|Enemy|enemy|150|0|30|26|36|0.5|1|218|92|122|255|0|enemy-atlas
+
+# id|texture-id|loop-mode
+animation_clip=enemy-idle|enemy-atlas|ping_pong
+animation_clip=enemy-move|enemy-atlas|loop
+
+# clip-id|source-x|source-y|source-width|source-height|duration-ticks|events
+animation_frame=enemy-idle|0|0|16|16|22|-
+animation_frame=enemy-idle|16|0|16|16|22|-
+animation_frame=enemy-move|0|0|16|16|7|-
+animation_frame=enemy-move|16|0|16|16|7|enemy_step
+
+# entity-id|locomotion-state|clip-id|initial
+animation_binding=player|idle_south|player-idle-south|true
+animation_binding=player|idle_southwest|player-idle-southwest|false
+animation_binding=player|idle_northwest|player-idle-northwest|false
+animation_binding=player|idle_north|player-idle-north|false
+animation_binding=player|idle_northeast|player-idle-northeast|false
+animation_binding=player|idle_west|player-idle-west|false
+animation_binding=player|idle_east|player-idle-east|false
+animation_binding=player|idle_southeast|player-idle-southeast|false
+animation_binding=player|move_south|player-move-south|false
+animation_binding=player|move_southwest|player-move-southwest|false
+animation_binding=player|move_northwest|player-move-northwest|false
+animation_binding=player|move_north|player-move-north|false
+animation_binding=player|move_northeast|player-move-northeast|false
+animation_binding=player|move_west|player-move-west|false
+animation_binding=player|move_east|player-move-east|false
+animation_binding=player|move_southeast|player-move-southeast|false
+animation_binding=enemy|idle_south|enemy-idle|true
+animation_binding=enemy|idle_southwest|enemy-idle|false
+animation_binding=enemy|idle_northwest|enemy-idle|false
+animation_binding=enemy|idle_north|enemy-idle|false
+animation_binding=enemy|idle_northeast|enemy-idle|false
+animation_binding=enemy|idle_west|enemy-idle|false
+animation_binding=enemy|idle_east|enemy-idle|false
+animation_binding=enemy|idle_southeast|enemy-idle|false
+animation_binding=enemy|move_south|enemy-move|false
+animation_binding=enemy|move_southwest|enemy-move|false
+animation_binding=enemy|move_northwest|enemy-move|false
+animation_binding=enemy|move_north|enemy-move|false
+animation_binding=enemy|move_northeast|enemy-move|false
+animation_binding=enemy|move_west|enemy-move|false
+animation_binding=enemy|move_east|enemy-move|false
+animation_binding=enemy|move_southeast|enemy-move|false

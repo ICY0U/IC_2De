@@ -1,0 +1,82 @@
+# Independent authored fixture used to prove that schema 7 is not tied to the test area.
+schema=7
+id=compact_encounter
+world_space=x_y_z
+ground_plane=x_z
+elevation_axis=y
+
+walkable_bounds=-160|-120|320|240
+max_step_height=18
+camera=24|46|1.25|1
+physics=40|3|0|0|false|20
+ground_filter=1|22
+trigger_filter=8|22
+player_speed=105
+
+texture=fixture-prop|checker|12|12|3|72|82|132|255|113|130|192|255|pixel
+texture=fixture-player|checker|32|16|3|92|120|184|255|135|165|224|255|pixel
+texture=fixture-enemy|checker|32|16|4|116|45|72|255|198|78|112|255|pixel
+
+prefab=fixture-shadow|2101|Fixture shadow|25|7|0.5|0.5|5|8|12|135|0|-
+
+ground_area=elevation|-30|25|80|55|18|0
+ground_area=solid|-10|-5|20|10|0|0
+ground_area=trigger|95|60|35|30|0|42
+
+physics_box=player|player|kinematic|-90|-65|8|5|2|29|110|false|true|0|0|1|0.6
+physics_box=fixture-prop|primary_prop|dynamic|-35|5|10|7|4|27|120|false|false|1.5|2|0.9|0.65
+physics_box=fixture-enemy|enemy|dynamic|75|25|9|6|16|15|130|false|true|3|3|1.5|0.8
+
+entity=fixture-player|2001|Fixture player|player|-90|0|-65|22|32|0.5|1|240|196|92|255|0|fixture-player
+prefab_instance=fixture-prop-shadow|2002|fixture-shadow|Fixture prop shadow|fixture-prop|-35|0|5
+entity=fixture-prop|2003|Fixture prop|fixture-prop|-35|0|5|29|24|0.5|1|255|255|255|255|0|fixture-prop
+prefab_instance=fixture-enemy-shadow|2004|fixture-shadow|Fixture enemy shadow|fixture-enemy|75|0|25
+entity=fixture-enemy|2005|Fixture enemy|fixture-enemy|75|0|25|24|34|0.5|1|202|82|116|255|0|fixture-enemy
+
+prefab_override=fixture-enemy-shadow|sprite_size|20,6
+
+animation_clip=fixture-player-idle|fixture-player|ping_pong
+animation_clip=fixture-player-move|fixture-player|loop
+animation_clip=fixture-enemy-idle|fixture-enemy|ping_pong
+animation_clip=fixture-enemy-move|fixture-enemy|loop
+animation_frame=fixture-player-idle|0|0|16|16|15|-
+animation_frame=fixture-player-idle|16|0|16|16|15|-
+animation_frame=fixture-player-move|0|0|16|16|5|-
+animation_frame=fixture-player-move|16|0|16|16|5|footstep
+animation_frame=fixture-enemy-idle|0|0|16|16|18|-
+animation_frame=fixture-enemy-idle|16|0|16|16|18|-
+animation_frame=fixture-enemy-move|0|0|16|16|6|-
+animation_frame=fixture-enemy-move|16|0|16|16|6|enemy_step
+
+animation_binding=fixture-player|idle_south|fixture-player-idle|true
+animation_binding=fixture-player|idle_southwest|fixture-player-idle|false
+animation_binding=fixture-player|idle_northwest|fixture-player-idle|false
+animation_binding=fixture-player|idle_north|fixture-player-idle|false
+animation_binding=fixture-player|idle_northeast|fixture-player-idle|false
+animation_binding=fixture-player|idle_west|fixture-player-idle|false
+animation_binding=fixture-player|idle_east|fixture-player-idle|false
+animation_binding=fixture-player|idle_southeast|fixture-player-idle|false
+animation_binding=fixture-player|move_south|fixture-player-move|false
+animation_binding=fixture-player|move_southwest|fixture-player-move|false
+animation_binding=fixture-player|move_northwest|fixture-player-move|false
+animation_binding=fixture-player|move_north|fixture-player-move|false
+animation_binding=fixture-player|move_northeast|fixture-player-move|false
+animation_binding=fixture-player|move_west|fixture-player-move|false
+animation_binding=fixture-player|move_east|fixture-player-move|false
+animation_binding=fixture-player|move_southeast|fixture-player-move|false
+animation_binding=fixture-enemy|idle_south|fixture-enemy-idle|true
+animation_binding=fixture-enemy|idle_southwest|fixture-enemy-idle|false
+animation_binding=fixture-enemy|idle_northwest|fixture-enemy-idle|false
+animation_binding=fixture-enemy|idle_north|fixture-enemy-idle|false
+animation_binding=fixture-enemy|idle_northeast|fixture-enemy-idle|false
+animation_binding=fixture-enemy|idle_west|fixture-enemy-idle|false
+animation_binding=fixture-enemy|idle_east|fixture-enemy-idle|false
+animation_binding=fixture-enemy|idle_southeast|fixture-enemy-idle|false
+animation_binding=fixture-enemy|move_south|fixture-enemy-move|false
+animation_binding=fixture-enemy|move_southwest|fixture-enemy-move|false
+animation_binding=fixture-enemy|move_northwest|fixture-enemy-move|false
+animation_binding=fixture-enemy|move_north|fixture-enemy-move|false
+animation_binding=fixture-enemy|move_northeast|fixture-enemy-move|false
+animation_binding=fixture-enemy|move_west|fixture-enemy-move|false
+animation_binding=fixture-enemy|move_east|fixture-enemy-move|false
+animation_binding=fixture-enemy|move_southeast|fixture-enemy-move|false

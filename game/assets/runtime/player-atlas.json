@@ -1,0 +1,82 @@
+{
+  "frames": [
+    {
+      "filename": "player idle south",
+      "frame": { "x": 0, "y": 0, "w": 384, "h": 512 },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 100
+    },
+    {
+      "filename": "player move south",
+      "frame": { "x": 0, "y": 512, "w": 384, "h": 512 },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 100,
+      "ic2d_events": ["footstep"]
+    },
+    {
+      "filename": "player idle north",
+      "frame": { "x": 384, "y": 0, "w": 384, "h": 512 },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 100
+    },
+    {
+      "filename": "player move north",
+      "frame": { "x": 384, "y": 512, "w": 384, "h": 512 },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 100,
+      "ic2d_events": ["footstep"]
+    },
+    {
+      "filename": "player idle west",
+      "frame": { "x": 768, "y": 0, "w": 384, "h": 512 },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 100
+    },
+    {
+      "filename": "player move west",
+      "frame": { "x": 768, "y": 512, "w": 384, "h": 512 },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 100,
+      "ic2d_events": ["footstep"]
+    },
+    {
+      "filename": "player idle east",
+      "frame": { "x": 1152, "y": 0, "w": 384, "h": 512 },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 100
+    },
+    {
+      "filename": "player move east",
+      "frame": { "x": 1152, "y": 512, "w": 384, "h": 512 },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 100,
+      "ic2d_events": ["footstep"]
+    }
+  ],
+  "meta": {
+    "app": "IC_2DE Aseprite-compatible content pipeline",
+    "version": "1",
+    "image": "player-atlas.png",
+    "format": "RGBA8888",
+    "size": { "w": 1536, "h": 1024 },
+    "scale": "1",
+    "frameTags": [
+      { "name": "player-idle-south", "from": 0, "to": 0, "direction": "pingpong" },
+      { "name": "player-move-south", "from": 0, "to": 1, "direction": "forward" },
+      { "name": "player-idle-north", "from": 2, "to": 2, "direction": "pingpong" },
+      { "name": "player-move-north", "from": 2, "to": 3, "direction": "forward" },
+      { "name": "player-idle-west", "from": 4, "to": 4, "direction": "pingpong" },
+      { "name": "player-move-west", "from": 4, "to": 5, "direction": "forward" },
+      { "name": "player-idle-east", "from": 6, "to": 6, "direction": "pingpong" },
+      { "name": "player-move-east", "from": 6, "to": 7, "direction": "forward" }
+    ]
+  }
+}

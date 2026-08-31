@@ -1,0 +1,5 @@
+# IC_2DE package manifest
+schema=1
+name=IC_2DE Shipped Test
+asset_directory=Content
+start_scene=test_area.scene

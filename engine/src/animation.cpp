@@ -1,0 +1,178 @@
+#include "ic2d/animation.hpp"
+
+#include <cmath>
+#include <stdexcept>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+
+namespace ic2d {
+namespace {
+
+[[nodiscard]] bool valid_source(const RectF& source) noexcept {
+    return std::isfinite(source.x) && std::isfinite(source.y) &&
+           std::isfinite(source.width) && std::isfinite(source.height) &&
+           source.width > 0.0F && source.height > 0.0F;
+}
+
+} // namespace
+
+struct AnimationPlayer::Impl {
+    Impl(std::vector<AnimationClip> authored_clips, std::string authored_initial_clip)
+        : clips{std::move(authored_clips)}, initial_clip{std::move(authored_initial_clip)} {
+        if (clips.empty()) {
+            throw std::invalid_argument{"Animation players require at least one clip."};
+        }
+        for (std::size_t clip_index = 0; clip_index < clips.size(); ++clip_index) {
+            const AnimationClip& clip = clips[clip_index];
+            if (clip.id.empty() || !clip_indices.emplace(clip.id, clip_index).second) {
+                throw std::invalid_argument{"Animation clip ids must be non-empty and unique."};
+            }
+            if (clip.frames.empty()) {
+                throw std::invalid_argument{"Animation clips require at least one frame."};
+            }
+            for (const AnimationFrame& frame : clip.frames) {
+                if (!valid_source(frame.source) || frame.duration_ticks == 0) {
+                    throw std::invalid_argument{
+                        "Animation frames require a finite positive source and duration."};
+                }
+                std::unordered_set<std::string> event_names;
+                for (const std::string& event : frame.events) {
+                    if (event.empty() || !event_names.insert(event).second) {
+                        throw std::invalid_argument{
+                            "Animation frame events must be non-empty and unique per frame."};
+                    }
+                }
+            }
+        }
+        const auto initial = clip_indices.find(initial_clip);
+        if (initial == clip_indices.end()) {
+            throw std::invalid_argument{"The initial animation clip is not in the clip set."};
+        }
+        current_clip = initial->second;
+    }
+
+    void enter_frame(std::vector<AnimationFrameEvent>& output) const {
+        const AnimationClip& clip = clips[current_clip];
+        for (const std::string& event : clip.frames[current_frame].events) {
+            output.push_back({
+                .clip_id = clip.id,
+                .name = event,
+                .frame_index = current_frame,
+            });
+        }
+    }
+
+    void transition(std::vector<AnimationFrameEvent>& output) {
+        const AnimationClip& clip = clips[current_clip];
+        const std::size_t frame_count = clip.frames.size();
+        if (clip.loop_mode == AnimationLoopMode::once) {
+            if (current_frame + 1 >= frame_count) {
+                finished = true;
+                return;
+            }
+            ++current_frame;
+        } else if (clip.loop_mode == AnimationLoopMode::loop) {
+            current_frame = (current_frame + 1) % frame_count;
+        } else if (frame_count == 1) {
+            current_frame = 0;
+        } else if (direction > 0) {
+            if (current_frame + 1 < frame_count) {
+                ++current_frame;
+            } else {
+                direction = -1;
+                --current_frame;
+            }
+        } else if (current_frame > 0) {
+            --current_frame;
+        } else {
+            direction = 1;
+            ++current_frame;
+        }
+        enter_frame(output);
+    }
+
+    void rewind(const std::size_t clip_index) noexcept {
+        current_clip = clip_index;
+        current_frame = 0;
+        ticks_in_frame = 0;
+        direction = 1;
+        finished = false;
+    }
+
+    std::vector<AnimationClip> clips;
+    std::unordered_map<std::string, std::size_t> clip_indices;
+    std::string initial_clip;
+    std::size_t current_clip{0};
+    std::size_t current_frame{0};
+    std::uint32_t ticks_in_frame{0};
+    int direction{1};
+    bool paused{false};
+    bool finished{false};
+};
+
+AnimationPlayer::AnimationPlayer(
+    std::vector<AnimationClip> clips,
+    std::string initial_clip
+)
+    : impl_{std::make_unique<Impl>(std::move(clips), std::move(initial_clip))} {}
+
+AnimationPlayer::~AnimationPlayer() = default;
+AnimationPlayer::AnimationPlayer(AnimationPlayer&&) noexcept = default;
+AnimationPlayer& AnimationPlayer::operator=(AnimationPlayer&&) noexcept = default;
+
+bool AnimationPlayer::play(const std::string_view clip_id, const bool restart) {
+    const auto found = impl_->clip_indices.find(std::string{clip_id});
+    if (found == impl_->clip_indices.end()) {
+        throw std::out_of_range{"Unknown animation clip: " + std::string{clip_id}};
+    }
+    if (found->second == impl_->current_clip && !restart) {
+        return false;
+    }
+    impl_->rewind(found->second);
+    return true;
+}
+
+void AnimationPlayer::set_paused(const bool paused) noexcept { impl_->paused = paused; }
+
+void AnimationPlayer::reset() noexcept {
+    const auto initial = impl_->clip_indices.find(impl_->initial_clip);
+    impl_->rewind(initial->second);
+    impl_->paused = false;
+}
+
+std::vector<AnimationFrameEvent> AnimationPlayer::advance(std::uint32_t ticks) {
+    std::vector<AnimationFrameEvent> events;
+    if (impl_->paused || impl_->finished || ticks == 0) {
+        return events;
+    }
+
+    while (ticks > 0 && !impl_->finished) {
+        const AnimationFrame& frame =
+            impl_->clips[impl_->current_clip].frames[impl_->current_frame];
+        const std::uint32_t ticks_to_boundary = frame.duration_ticks - impl_->ticks_in_frame;
+        if (ticks < ticks_to_boundary) {
+            impl_->ticks_in_frame += ticks;
+            break;
+        }
+        ticks -= ticks_to_boundary;
+        impl_->ticks_in_frame = 0;
+        impl_->transition(events);
+    }
+    return events;
+}
+
+AnimationSample AnimationPlayer::sample() const {
+    const AnimationClip& clip = impl_->clips[impl_->current_clip];
+    return {
+        .clip_id = clip.id,
+        .source = clip.frames[impl_->current_frame].source,
+        .frame_index = impl_->current_frame,
+        .paused = impl_->paused,
+        .finished = impl_->finished,
+    };
+}
+
+std::size_t AnimationPlayer::clip_count() const noexcept { return impl_->clips.size(); }
+
+} // namespace ic2d
