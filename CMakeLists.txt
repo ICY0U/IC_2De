@@ -325,6 +325,7 @@ if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
     target_compile_features(ic2de_imgui PUBLIC cxx_std_20)
 
     add_library(ic2de_editor STATIC
+        engine/src/editor/editor_camera.cpp
         engine/src/editor/editor_layout.cpp
         engine/src/editor/editor_shell.cpp
         engine/src/editor/editor_ui.cpp
@@ -334,7 +335,7 @@ if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
     target_include_directories(ic2de_editor PUBLIC engine/include)
     target_include_directories(ic2de_editor PRIVATE engine/src)
     target_link_libraries(ic2de_editor
-        PUBLIC IC2DE::Debug IC2DE::Scene
+        PUBLIC IC2DE::Debug IC2DE::Render IC2DE::Scene
         PRIVATE IC2DE::Combat IC2DE::Core IC2DE::EnemyIntent IC2DE::Health IC2DE::Input IC2DE::NavAgent IC2DE::NavPathfinding IC2DE::Projectiles ic2de_imgui raylib
     )
     target_compile_features(ic2de_editor PUBLIC cxx_std_20)
@@ -475,6 +476,7 @@ if(IC2DE_BUILD_TESTS)
 
     if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
         add_executable(ic2de_editor_input_tests
+            tests/unit/editor_camera_tests.cpp
             tests/unit/editor_input_tests.cpp
         )
         target_link_libraries(ic2de_editor_input_tests PRIVATE IC2DE::Editor)

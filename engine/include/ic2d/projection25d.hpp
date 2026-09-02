@@ -82,6 +82,17 @@ struct DepthSlicePlan {
     float pitch_degrees
 ) noexcept;
 
+// Converts an offset measured on the canvas into the world X/Z offset that
+// produced it. This is the inverse of the ground projection: screen X is the
+// camera's right axis at the current scale and screen Y is its forward axis
+// foreshortened by pitch, so the same pixel count covers more world depth than
+// width. Exact on the ground plane, which is where placements are dragged and
+// where the view is panned. An unusable camera returns a zero offset.
+[[nodiscard]] Vec3 canvas_ground_offset_to_world(
+    Vec2 canvas_offset,
+    const Camera25DState& camera
+) noexcept;
+
 // Keeps screen-relative facing separate from the camera-rotated world vector
 // used by simulation.
 [[nodiscard]] GroundMovement25D camera_ground_movement(

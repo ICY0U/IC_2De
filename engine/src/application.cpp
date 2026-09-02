@@ -51,11 +51,15 @@
 #define IC2DE_ENABLE_DEVELOPMENT_TOOLS 1
 #endif
 
-#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
-#include "ic2d/editor.hpp"
-#include "ic2d/scene_document.hpp"
+// Crowd separation and the flow field are gameplay, not tooling: the shipping
+// runtime steers its actors with them, so they are included unconditionally.
 #include "ic2d/crowd_separation.hpp"
 #include "ic2d/flow_field.hpp"
+
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
+#include "ic2d/editor.hpp"
+#include "ic2d/editor_camera.hpp"
+#include "ic2d/scene_document.hpp"
 #include "ic2d/scene_editor.hpp"
 #endif
 
@@ -1475,6 +1479,30 @@ void draw_selection_outline(
     }
 }
 
+// The viewport shows the running scene, but the gizmo edits the authored
+// document, so a drag has nothing to move on screen until it is applied. The
+// preview is what closes that gap: the selection's own outline, drawn again at
+// the offset the drag has accumulated.
+void draw_selection_drag_preview(
+    const WorldSnapshot& snapshot,
+    const Camera25DState& camera,
+    const ApplicationConfig& config,
+    const EntityUuid selection,
+    const Vec2 canvas_offset
+) {
+    for (const EntityBlueprint& entity : snapshot.entities) {
+        if (entity.uuid != selection || !entity.sprite) {
+            continue;
+        }
+        const CanvasRect rect = sprite_canvas_rect(entity, camera, config);
+        DrawRectangleLinesEx(
+            Rectangle{rect.left + canvas_offset.x, rect.top + canvas_offset.y, rect.width,
+                      rect.height},
+            1.0F, Color{117, 238, 211, 245});
+        return;
+    }
+}
+
 void draw_projected_ground_grid(
     const ApplicationConfig& config,
     const Camera25DState& camera,
@@ -1695,61 +1723,6 @@ void submit_projectile_sprites(
                 .layer = 51,
             });
         }
-    }
-}
-
-void submit_target_health_bars(
-    RenderQueue2D& queue,
-    const HealthSnapshot& snapshot,
-    const RuntimeScene& scene,
-    const Camera25DState& camera,
-    const EntityUuid excluded_target
-) {
-    constexpr std::uint64_t health_bar_stable_id_base = std::uint64_t{1} << 62U;
-    for (const HealthTargetSnapshot& target : snapshot.targets) {
-        if (target.target == excluded_target) {
-            continue;
-        }
-        const std::optional<Vec3> actor_position = scene.actor_position(target.target);
-        if (!target.alive || !actor_position || !(target.maximum_health > 0.0F)) {
-            continue;
-        }
-
-        Vec3 anchor = *actor_position;
-        constexpr float health_bar_world_height = 39.0F;
-        anchor.y += health_bar_world_height;
-        const ProjectedPoint25D projected = project_world_point(anchor, camera);
-        const float health_ratio =
-            std::clamp(target.current_health / target.maximum_health, 0.0F, 1.0F);
-        const std::uint64_t stable_id =
-            health_bar_stable_id_base + target.target.value * 3U;
-        queue.submit(SpriteSubmission2D{
-            .stable_id = stable_id,
-            .position = projected.position,
-            .size = {30.0F, 6.0F},
-            .normalized_origin = {0.5F, 0.5F},
-            .sort_depth = projected.depth,
-            .tint = {13, 30, 29, 235},
-            .layer = 60,
-        });
-        queue.submit(SpriteSubmission2D{
-            .stable_id = stable_id + 1U,
-            .position = projected.position,
-            .size = {26.0F, 2.0F},
-            .normalized_origin = {0.5F, 0.5F},
-            .sort_depth = projected.depth,
-            .tint = {105, 41, 52, 255},
-            .layer = 61,
-        });
-        queue.submit(SpriteSubmission2D{
-            .stable_id = stable_id + 2U,
-            .position = {projected.position.x - 13.0F, projected.position.y},
-            .size = {26.0F * health_ratio, 2.0F},
-            .normalized_origin = {0.0F, 0.5F},
-            .sort_depth = projected.depth,
-            .tint = {117, 238, 211, 255},
-            .layer = 62,
-        });
     }
 }
 
@@ -2031,7 +2004,6 @@ int run_application(const ApplicationConfig& requested_config) {
     bool enemy_attack_damage_enabled = true;
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
     std::filesystem::path authored_scene_path = scene_definition->source_path();
-    bool enemy_health_bars_visible = true;
     // Every .scene beside the loaded one is offered in the editor Debug menu,
     // so adding a scene file needs no shell or application change.
     std::vector<std::filesystem::path> selectable_scenes;
@@ -2113,6 +2085,17 @@ int run_application(const ApplicationConfig& requested_config) {
     GpuBackdrop gpu_backdrop;
     RenderQueue2D render_queue;
     Camera25DState world_camera = scene->initial_camera();
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
+    // Presentation and pointer work go through the editor view, which is the
+    // gameplay camera itself until someone moves it. Simulation always keeps
+    // using world_camera, so looking around never changes what the game does.
+    EditorCamera editor_camera;
+    // Captured when a gizmo drag begins, so the committed move is one command
+    // from the authored start rather than a chain of per-frame nudges.
+    std::optional<Vec3> gizmo_drag_origin;
+    std::optional<Vec2> gizmo_preview_offset;
+    constexpr float gizmo_snap_step = 8.0F;
+#endif
     const Camera2DState render_camera{
         .center = {0.0F, 0.0F},
         .rotation_degrees = 0.0F,
@@ -2267,6 +2250,9 @@ int run_application(const ApplicationConfig& requested_config) {
         if (input.reset.pressed) {
             scene->reset();
             world_camera = scene->initial_camera();
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
+            editor_camera.attach();
+#endif
             forget_observations();
         }
         if (input.toggle_debug_visuals.pressed) {
@@ -2305,12 +2291,17 @@ int run_application(const ApplicationConfig& requested_config) {
             editor_canvas_pointer = editor->viewport_pointer_canvas();
         }
 #endif
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
+        const Camera25DState view_camera = editor_camera.resolve(world_camera);
+#else
+        const Camera25DState& view_camera = world_camera;
+#endif
         const std::optional<Vec2> combat_canvas_pointer = pointer_canvas_point(
             input.gameplay.aim, combat_editor_visible, editor_canvas_pointer,
             config.canvas_width, config.canvas_height);
         const std::optional<Vec2> combat_aim = resolve_combat_aim(
             input.gameplay.aim, combat_canvas_pointer, scene->player_position(),
-            config.canvas_width, config.canvas_height, world_camera);
+            config.canvas_width, config.canvas_height, view_camera);
         const Vec2 camera_movement{
             config.automated_movement ? config.automated_movement_direction.x
                                       : input.move_horizontal,
@@ -2416,25 +2407,31 @@ int run_application(const ApplicationConfig& requested_config) {
         const Vec3 current_player_position = scene->player_position();
         const std::optional<Vec2> crosshair_position = crosshair_canvas_position(
             input.gameplay.aim, combat_canvas_pointer, combat_command_adapter.aim_direction(),
-            current_player_position, config.canvas_width, config.canvas_height, world_camera);
+            current_player_position, config.canvas_width, config.canvas_height, view_camera);
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         const std::string pacing_description = render_pacing_description(config.render_pacing);
 #endif
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         const auto render_items_started = phase_now();
+#endif
         // Generous enough that the tallest authored sprite, an elevated one and
         // a tick of movement all stay inside it.
         constexpr float visible_region_margin = 256.0F;
         const std::vector<RenderItem2D> render_items = scene->collect_render_items(
             interpolation_alpha,
-            visible_world_region(world_camera, config.canvas_width, config.canvas_height,
+            visible_world_region(view_camera, config.canvas_width, config.canvas_height,
                                  visible_region_margin));
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         phase_totals.render_items += phase_seconds(render_items_started);
         const auto frame_snapshots_started = phase_now();
+#endif
         const ProjectileSimulationSnapshot projectile_snapshot = projectiles.snapshot();
         const HealthSnapshot health_snapshot = health.snapshot();
         const EnemyIntentSnapshot enemy_snapshot = enemy_intent.snapshot();
         const NavAgentSnapshot navigation_agent_snapshot = navigation_agents.snapshot();
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         phase_totals.frame_snapshots += phase_seconds(frame_snapshots_started);
+#endif
         const NavPathResult visible_navigation_path =
             displayed_navigation_path(navigation_path, navigation_agent_snapshot);
 
@@ -2445,25 +2442,18 @@ int run_application(const ApplicationConfig& requested_config) {
         const auto submission_started = phase_now();
 #endif
         render_queue.begin(render_camera, config.canvas_width, config.canvas_height);
-        submit_world_ground(render_queue, ground_definition, world_camera);
+        submit_world_ground(render_queue, ground_definition, view_camera);
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
-        submit_navigation_grid(render_queue, navigation_grid_snapshot, world_camera,
+        submit_navigation_grid(render_queue, navigation_grid_snapshot, view_camera,
                                debug_visuals);
         submit_navigation_path(render_queue, navigation_grid_snapshot, visible_navigation_path,
-                               world_camera, debug_visuals);
-        submit_debug_ground(render_queue, ground_definition, world_camera, debug_visuals,
+                               view_camera, debug_visuals);
+        submit_debug_ground(render_queue, ground_definition, view_camera, debug_visuals,
                             scene->debug_footprints());
 #endif
-        submit_scene_sprites(render_queue, render_items, world_camera);
-        submit_projectile_sprites(render_queue, projectile_snapshot, world_camera,
+        submit_scene_sprites(render_queue, render_items, view_camera);
+        submit_projectile_sprites(render_queue, projectile_snapshot, view_camera,
                                   interpolation_alpha);
-#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
-        if (enemy_health_bars_visible)
-#endif
-        {
-            submit_target_health_bars(render_queue, health_snapshot, *scene, world_camera,
-                                      scene->player_uuid());
-        }
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         phase_totals.submission += phase_seconds(submission_started);
         const auto queue_finish_started = phase_now();
@@ -2479,7 +2469,7 @@ int run_application(const ApplicationConfig& requested_config) {
         static_cast<void>(gpu_backdrop_active);
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         if (debug_visuals.draws(DebugChannel::world_grid)) {
-            draw_projected_ground_grid(config, world_camera, ground_definition.walkable_bounds);
+            draw_projected_ground_grid(config, view_camera, ground_definition.walkable_bounds);
         }
 #endif
         const RenderDiagnostics2D render_diagnostics =
@@ -2501,8 +2491,12 @@ int run_application(const ApplicationConfig& requested_config) {
                 config, paused, tick_plan.dropped_time, pacing_description);
         }
         if (editor && editor->visible() && editor->selection()) {
-            draw_selection_outline(scene->world_snapshot(), world_camera, config,
+            draw_selection_outline(scene->world_snapshot(), view_camera, config,
                                    editor->selection());
+            if (gizmo_preview_offset) {
+                draw_selection_drag_preview(scene->world_snapshot(), view_camera, config,
+                                            editor->selection(), *gizmo_preview_offset);
+            }
         }
 #else
         static_cast<void>(gpu_backdrop_active);
@@ -2538,6 +2532,39 @@ int run_application(const ApplicationConfig& requested_config) {
         }
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         const auto editor_ui_started = phase_now();
+        // Projecting the selection here keeps every camera detail on this side
+        // of the seam; the panel receives canvas pixels and nothing else.
+        struct GizmoAnchor {
+            std::optional<Vec2> canvas_point;
+            Vec2 axis_x_canvas{1.0F, 0.0F};
+            Vec2 axis_z_canvas{0.0F, 1.0F};
+            bool movable{false};
+        } gizmo_anchor;
+        if (editor_visible && editor->selection()) {
+            const WorldSnapshot selection_snapshot = scene->world_snapshot();
+            const auto found = std::ranges::find(
+                selection_snapshot.entities, editor->selection(), &EntityBlueprint::uuid);
+            if (found != selection_snapshot.entities.end()) {
+                const Vec3 anchored = found->transform.position;
+                const Vector2 centre =
+                    canvas_point(project_world_point(anchored, view_camera), config);
+                const Vector2 along_x = canvas_point(
+                    project_world_point({anchored.x + 1.0F, anchored.y, anchored.z}, view_camera),
+                    config);
+                const Vector2 along_z = canvas_point(
+                    project_world_point({anchored.x, anchored.y, anchored.z + 1.0F}, view_camera),
+                    config);
+                gizmo_anchor.canvas_point = Vec2{centre.x, centre.y};
+                gizmo_anchor.axis_x_canvas = {along_x.x - centre.x, along_x.y - centre.y};
+                gizmo_anchor.axis_z_canvas = {along_z.x - centre.x, along_z.y - centre.y};
+                const std::vector<SceneDocumentEntity> authored = scene_editor->entities();
+                const auto record = std::ranges::find(
+                    authored, editor->selection(), &SceneDocumentEntity::uuid);
+                gizmo_anchor.movable =
+                    record != authored.end() && !record->physics_bound;
+            }
+        }
+
         if (editor_visible) {
             editor_actions = editor->draw(
                 *scene_editor, debug_visuals,
@@ -2595,7 +2622,12 @@ int run_application(const ApplicationConfig& requested_config) {
                     .post_process_available = frame_pipeline.diagnostics().post_process_available,
                     .texture_hot_reload_enabled = config.enable_editor_texture_hot_reload,
                     .paused = paused,
-                    .enemy_health_bars_visible = enemy_health_bars_visible,
+                    .camera_detached = editor_camera.detached(),
+                    .selection_canvas_point = gizmo_anchor.canvas_point,
+                    .selection_axis_x_canvas = gizmo_anchor.axis_x_canvas,
+                    .selection_axis_z_canvas = gizmo_anchor.axis_z_canvas,
+                    .selection_movable = gizmo_anchor.movable,
+                    .grid_snap_step = gizmo_snap_step,
                     .selectable_scenes = selectable_scenes,
                     .loaded_scene = authored_scene_path,
                 },
@@ -2606,10 +2638,14 @@ int run_application(const ApplicationConfig& requested_config) {
                 });
         }
 #endif
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         phase_totals.editor_ui += phase_seconds(editor_ui_started);
         const auto present_started = phase_now();
+#endif
         EndDrawing();
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         phase_totals.present += phase_seconds(present_started);
+#endif
         ++rendered_frames;
 
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
@@ -2627,6 +2663,7 @@ int run_application(const ApplicationConfig& requested_config) {
             // the old topology is meaningless and must not be consulted.
             crowd_flow_field = FlowField{};
             world_camera = scene->initial_camera();
+            editor_camera.attach();
             forget_observations();
         };
         if (editor_actions.toggle_pause) {
@@ -2636,13 +2673,14 @@ int run_application(const ApplicationConfig& requested_config) {
         if (editor_actions.reset_running_scene) {
             scene->reset();
             world_camera = scene->initial_camera();
+            editor_camera.attach();
             forget_observations();
         }
         if (editor_actions.viewport_picked && editor) {
             // Clicking empty ground clears the selection rather than keeping a
             // stale one the pointer is no longer over.
             const std::optional<EntityUuid> picked =
-                pick_entity(scene->world_snapshot(), world_camera, config,
+                pick_entity(scene->world_snapshot(), view_camera, config,
                             editor_actions.viewport_pick_canvas_point);
             editor->select_entity(picked.value_or(EntityUuid{}));
         }
@@ -2662,8 +2700,67 @@ int run_application(const ApplicationConfig& requested_config) {
                     std::string{"Applying the edited scene document failed: "} + error.what());
             }
         }
-        if (editor_actions.enemy_health_bars_visible) {
-            enemy_health_bars_visible = *editor_actions.enemy_health_bars_visible;
+        // A drag reports its total canvas offset every frame. The offset is
+        // previewed as it moves and committed once, on release, so one drag is
+        // one undo step.
+        gizmo_preview_offset.reset();
+        if (editor_actions.gizmo_drag && scene_editor && editor && editor->selection()) {
+            const EditorActions::GizmoDrag drag = *editor_actions.gizmo_drag;
+            if (!gizmo_drag_origin) {
+                const std::vector<SceneDocumentEntity> authored = scene_editor->entities();
+                const auto record = std::ranges::find(
+                    authored, editor->selection(), &SceneDocumentEntity::uuid);
+                if (record != authored.end() && !record->physics_bound) {
+                    gizmo_drag_origin = record->position;
+                }
+            }
+            if (gizmo_drag_origin) {
+                const Vec3 offset =
+                    canvas_ground_offset_to_world(drag.canvas_offset, view_camera);
+                Vec3 moved{
+                    gizmo_drag_origin->x + offset.x,
+                    gizmo_drag_origin->y,
+                    gizmo_drag_origin->z + offset.z,
+                };
+                if (drag.snap && gizmo_snap_step > 0.0F) {
+                    moved.x = std::round(moved.x / gizmo_snap_step) * gizmo_snap_step;
+                    moved.z = std::round(moved.z / gizmo_snap_step) * gizmo_snap_step;
+                }
+                if (drag.finished) {
+                    try {
+                        static_cast<void>(
+                            scene_editor->move_unbound_entity(editor->selection(), moved));
+                    } catch (const std::exception& error) {
+                        log(LogLevel::error,
+                            std::string{"Gizmo move rejected: "} + error.what());
+                    }
+                    gizmo_drag_origin.reset();
+                } else {
+                    // Preview in canvas space, which is where the outline is
+                    // drawn, so a snapped position visibly snaps.
+                    const Vector2 from = canvas_point(
+                        project_world_point(*gizmo_drag_origin, view_camera), config);
+                    const Vector2 to =
+                        canvas_point(project_world_point(moved, view_camera), config);
+                    gizmo_preview_offset = Vec2{to.x - from.x, to.y - from.y};
+                }
+            }
+        } else {
+            gizmo_drag_origin.reset();
+        }
+
+        editor_camera.pan(editor_actions.camera_pan_canvas, world_camera);
+        editor_camera.zoom(editor_actions.camera_zoom_notches, world_camera);
+        if (editor_actions.camera_follow_player) {
+            editor_camera.attach();
+        }
+        if (editor_actions.camera_frame_selection && editor && editor->selection()) {
+            const WorldSnapshot snapshot = scene->world_snapshot();
+            const auto found = std::ranges::find(
+                snapshot.entities, editor->selection(), &EntityBlueprint::uuid);
+            if (found != snapshot.entities.end()) {
+                editor_camera.frame(found->transform.position, world_camera);
+            }
         }
         if (editor_actions.load_scene_path) {
             const std::filesystem::path requested = *editor_actions.load_scene_path;

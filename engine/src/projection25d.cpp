@@ -47,6 +47,22 @@ ProjectedPoint25D project_world_point(
     };
 }
 
+Vec3 canvas_ground_offset_to_world(
+    const Vec2 canvas_offset,
+    const Camera25DState& camera
+) noexcept {
+    if (!valid(camera) || !std::isfinite(canvas_offset.x) || !std::isfinite(canvas_offset.y)) {
+        return {};
+    }
+    const float scale = camera.pixels_per_world_unit * camera.zoom;
+    const float pitch_sine = std::sin(radians(camera.pitch_degrees));
+    if (!(scale > 0.0F) || !(pitch_sine > 0.0F)) {
+        return {};
+    }
+    return camera_ground_direction_to_world(
+        Vec2{canvas_offset.x / scale, canvas_offset.y / (scale * pitch_sine)}, camera);
+}
+
 DepthSlicePlan plan_depth_slices(
     const float center_z,
     const float depth_span,

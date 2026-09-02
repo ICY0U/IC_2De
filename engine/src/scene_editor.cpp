@@ -81,6 +81,58 @@ bool SceneEditor::move_unbound_entity(const EntityUuid uuid, const Vec3 position
     return true;
 }
 
+bool SceneEditor::set_entity_sprite(
+    const EntityUuid uuid,
+    const SceneDocumentSprite& sprite
+) {
+    SceneDocument candidate = document_;
+    if (!candidate.set_entity_sprite(uuid, sprite)) {
+        return false;
+    }
+    commit(std::move(candidate), {
+        .kind = SceneEditKind::edit_entity_sprite,
+        .uuid = uuid,
+        .label = "Edit sprite of " + quoted_text(instance_id_of(document_.entities(), uuid)),
+    });
+    return true;
+}
+
+void SceneEditor::require_valid(const SceneDocument& candidate) {
+    // runtime_copy runs the full scene loader over the candidate, which is the
+    // same validation a save performs.
+    static_cast<void>(candidate.runtime_copy());
+}
+
+EntityUuid SceneEditor::create_entity(const SceneEntityPlacement& placement) {
+    SceneDocument candidate = document_;
+    const EntityUuid created = candidate.create_entity(placement);
+    if (!created) {
+        return {};
+    }
+    require_valid(candidate);
+    commit(std::move(candidate), {
+        .kind = SceneEditKind::create_entity,
+        .uuid = created,
+        .label = "Create entity " + quoted_text(placement.id),
+    });
+    return created;
+}
+
+bool SceneEditor::destroy_entity(const EntityUuid uuid) {
+    const std::string removed = instance_id_of(document_.entities(), uuid);
+    SceneDocument candidate = document_;
+    if (!candidate.destroy_entity(uuid)) {
+        return false;
+    }
+    require_valid(candidate);
+    commit(std::move(candidate), {
+        .kind = SceneEditKind::destroy_entity,
+        .uuid = uuid,
+        .label = "Destroy entity " + quoted_text(removed),
+    });
+    return true;
+}
+
 EntityUuid SceneEditor::create_prefab_instance(const ScenePrefabPlacement& placement) {
     SceneDocument candidate = document_;
     const EntityUuid created = candidate.create_prefab_instance(placement);

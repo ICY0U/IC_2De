@@ -76,19 +76,30 @@ constexpr std::array<AxisStyle, 3> axis_styles{{
     return ImGui::GetIO().Fonts->AddFontFromFileTTF(bytes.c_str(), size, &config);
 }
 
-// Opens the row and leaves the cursor in the value cell. The item width is the
-// caller's choice, because axis controls subdivide the cell.
+// A docked panel can be narrower than a label and a field placed side by side.
+// Below that width the grid stacks the value under its label instead of letting
+// both shrink into unreadable stubs, so the same panel stays usable at any dock
+// size. The mode is decided once per grid and remembered for its rows.
+constexpr float stacked_layout_width = 250.0F;
+bool g_grid_is_stacked = false;
+
+// Opens the row and leaves the cursor where the value belongs. The item width
+// is the caller's choice, because axis controls subdivide the space.
 void begin_property_row(const char* label, const char* tooltip) {
     ImGui::TableNextRow();
     ImGui::TableSetColumnIndex(0);
-    ImGui::AlignTextToFramePadding();
+    if (!g_grid_is_stacked) {
+        ImGui::AlignTextToFramePadding();
+    }
     ImGui::PushStyleColor(ImGuiCol_Text, colors::text_dim);
     ImGui::TextUnformatted(label);
     ImGui::PopStyleColor();
     if (tooltip != nullptr && ImGui::IsItemHovered()) {
         ImGui::SetTooltip("%s", tooltip);
     }
-    ImGui::TableSetColumnIndex(1);
+    if (!g_grid_is_stacked) {
+        ImGui::TableSetColumnIndex(1);
+    }
 }
 
 void draw_badge(const ImU32 color, const char* label) {
@@ -313,15 +324,23 @@ bool begin_property_grid(const char* id, const float label_width) {
     // then a long value pushes the fields out of a narrow docked panel.
     constexpr ImGuiTableFlags flags =
         ImGuiTableFlags_PadOuterX | ImGuiTableFlags_NoSavedSettings;
-    if (!ImGui::BeginTable(id, 2, flags)) {
+    g_grid_is_stacked = ImGui::GetContentRegionAvail().x < stacked_layout_width;
+    if (!ImGui::BeginTable(id, g_grid_is_stacked ? 1 : 2, flags)) {
         return false;
+    }
+    if (g_grid_is_stacked) {
+        ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
+        return true;
     }
     ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, label_width);
     ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
     return true;
 }
 
-void end_property_grid() { ImGui::EndTable(); }
+void end_property_grid() {
+    ImGui::EndTable();
+    g_grid_is_stacked = false;
+}
 
 void property_label(const char* label, const char* tooltip) {
     begin_property_row(label, tooltip);

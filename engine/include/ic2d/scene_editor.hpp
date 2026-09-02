@@ -16,8 +16,11 @@ namespace ic2d {
 enum class SceneEditKind {
     rename_entity,
     move_entity,
+    edit_entity_sprite,
     create_prefab_instance,
     destroy_prefab_instance,
+    create_entity,
+    destroy_entity,
 };
 
 struct SceneEdit {
@@ -45,9 +48,12 @@ public:
 
     [[nodiscard]] bool rename_entity(EntityUuid uuid, std::string_view name);
     [[nodiscard]] bool move_unbound_entity(EntityUuid uuid, Vec3 position);
+    [[nodiscard]] bool set_entity_sprite(EntityUuid uuid, const SceneDocumentSprite& sprite);
     // Returns the allocated stable identity, or a zero UUID when the prefab is unknown.
     [[nodiscard]] EntityUuid create_prefab_instance(const ScenePrefabPlacement& placement);
     [[nodiscard]] bool destroy_prefab_instance(EntityUuid uuid);
+    [[nodiscard]] EntityUuid create_entity(const SceneEntityPlacement& placement);
+    [[nodiscard]] bool destroy_entity(EntityUuid uuid);
 
     [[nodiscard]] bool can_undo() const noexcept;
     [[nodiscard]] bool can_redo() const noexcept;
@@ -73,6 +79,10 @@ private:
     };
 
     void commit(SceneDocument candidate, SceneEdit edit);
+    // Commands that add or remove records validate the whole candidate before
+    // committing, so a broken reference is reported where it was made rather
+    // than surfacing later as a failed save.
+    static void require_valid(const SceneDocument& candidate);
 
     SceneDocument document_;
     std::vector<HistoryEntry> undo_;

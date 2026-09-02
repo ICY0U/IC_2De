@@ -7,8 +7,10 @@
 #include <iostream>
 #include <string>
 
+int run_editor_camera_tests();
+
 int main() {
-    int failures = 0;
+    int failures = run_editor_camera_tests();
     const auto expect = [&failures](const bool condition, const char* message) {
         if (!condition) {
             std::cerr << "FAIL: " << message << '\n';
@@ -16,12 +18,14 @@ int main() {
         }
     };
 
-    expect(ic2d::editor_blocks_gameplay_input(true, true),
+    expect(ic2d::editor_blocks_gameplay_input(true, true, false),
            "Typing in an editor field must keep gameplay input blocked.");
-    expect(!ic2d::editor_blocks_gameplay_input(false, true),
+    expect(!ic2d::editor_blocks_gameplay_input(false, true, false),
            "A mouse-active editor item must not block held movement keys.");
-    expect(!ic2d::editor_blocks_gameplay_input(false, false),
+    expect(!ic2d::editor_blocks_gameplay_input(false, false, false),
            "An idle editor must not block gameplay input.");
+    expect(ic2d::editor_blocks_gameplay_input(false, false, true),
+           "A held gizmo drag must own the frame so dragging cannot also fire.");
 
     const auto nonce = std::chrono::steady_clock::now().time_since_epoch().count();
     const std::filesystem::path test_root =

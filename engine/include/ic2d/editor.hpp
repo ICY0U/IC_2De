@@ -28,7 +28,8 @@ namespace ic2d {
 // routing regression can be exercised without creating a GPU window.
 [[nodiscard]] bool editor_blocks_gameplay_input(
     bool wants_text_input,
-    bool item_active
+    bool item_active,
+    bool gizmo_active
 ) noexcept;
 
 // Read-only runtime figures the shell reports. The editor never reaches into
@@ -86,9 +87,20 @@ struct EditorStats {
     bool post_process_available{false};
     bool texture_hot_reload_enabled{false};
     bool paused{false};
-    // Enemy health bars are a development readability aid, not gameplay
-    // state, so the shell toggles them without touching the running scene.
-    bool enemy_health_bars_visible{true};
+    // True while the editor view is looking somewhere other than the gameplay
+    // camera, so the shell can offer the way back.
+    bool camera_detached{false};
+
+    // Where the selected placement sits on the canvas, and which way one world
+    // unit along X and Z points from there. The viewport draws a gizmo from
+    // these, so the panel never learns the projection and the handles stay
+    // correct under camera yaw. Absent when nothing suitable is selected.
+    std::optional<Vec2> selection_canvas_point;
+    Vec2 selection_axis_x_canvas{1.0F, 0.0F};
+    Vec2 selection_axis_z_canvas{0.0F, 1.0F};
+    // False for physics-bound placements, whose X and Z the body owns.
+    bool selection_movable{false};
+    float grid_snap_step{8.0F};
     // Authored .scene files discovered beside the loaded one, so the Debug
     // menu can swap scenes without the shell knowing any content paths.
     std::vector<std::filesystem::path> selectable_scenes;
@@ -106,14 +118,30 @@ struct EditorActions {
     std::optional<std::size_t> enemy_stress_target_count;
     // Present means load this authored scene and restart the running copy.
     std::optional<std::filesystem::path> load_scene_path;
-    // Present means show or hide the non-player health bars.
-    std::optional<bool> enemy_health_bars_visible;
     // A Ctrl+left click inside the viewport, in canvas pixels. The application owns
     // the camera and the running scene, so it resolves the click and reports
     // the result back through select_entity(). The editor stays free of
     // projection and renderer knowledge.
     bool viewport_picked{false};
     Vec2 viewport_pick_canvas_point{};
+
+    // A translate-gizmo drag, reported as the total canvas offset from where
+    // the drag began. The application owns the camera, so it converts that into
+    // a world offset, previews it, and commits one move command on release.
+    struct GizmoDrag {
+        Vec2 canvas_offset{};
+        bool finished{false};
+        bool snap{false};
+    };
+    std::optional<GizmoDrag> gizmo_drag;
+
+    // Editor camera intents. They are expressed in canvas pixels and wheel
+    // notches so the shell never needs the world camera, and the application
+    // never needs panel geometry.
+    Vec2 camera_pan_canvas{};
+    float camera_zoom_notches{0.0F};
+    bool camera_frame_selection{false};
+    bool camera_follow_player{false};
 };
 
 // The identity of the canvas the viewport panel displays. The value is a

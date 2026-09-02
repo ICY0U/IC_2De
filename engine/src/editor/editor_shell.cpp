@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <exception>
@@ -75,6 +76,47 @@ void assign(TextField& field, const std::string& value) {
     return text;
 }
 
+// Which part of the translate gizmo a drag is constrained to.
+enum class GizmoHandle { none, axis_x, axis_z, plane };
+
+[[nodiscard]] ImVec2 add(const ImVec2 left, const ImVec2 right) noexcept {
+    return {left.x + right.x, left.y + right.y};
+}
+
+[[nodiscard]] ImVec2 scaled(const ImVec2 value, const float factor) noexcept {
+    return {value.x * factor, value.y * factor};
+}
+
+[[nodiscard]] ImVec2 normalized(const ImVec2 value) noexcept {
+    const float length = std::sqrt(value.x * value.x + value.y * value.y);
+    return length > 0.0001F ? ImVec2{value.x / length, value.y / length} : ImVec2{0.0F, 0.0F};
+}
+
+[[nodiscard]] float distance_between(const ImVec2 left, const ImVec2 right) noexcept {
+    const ImVec2 offset{left.x - right.x, left.y - right.y};
+    return std::sqrt(offset.x * offset.x + offset.y * offset.y);
+}
+
+// Distance from a point to a segment, used to hit-test the axis shafts. A
+// segment test rather than a bounding box keeps the two axes separable when
+// the camera yaw brings them close together on screen.
+[[nodiscard]] float distance_to_segment(
+    const ImVec2 point,
+    const ImVec2 from,
+    const ImVec2 to
+) noexcept {
+    const ImVec2 span{to.x - from.x, to.y - from.y};
+    const float length_squared = span.x * span.x + span.y * span.y;
+    float t = 0.0F;
+    if (length_squared > 0.0001F) {
+        t = ((point.x - from.x) * span.x + (point.y - from.y) * span.y) / length_squared;
+        t = std::clamp(t, 0.0F, 1.0F);
+    }
+    const ImVec2 closest{from.x + span.x * t, from.y + span.y * t};
+    const ImVec2 offset{point.x - closest.x, point.y - closest.y};
+    return std::sqrt(offset.x * offset.x + offset.y * offset.y);
+}
+
 // Right-aligns the next single-line text inside the current table cell.
 void align_text_right(const char* text) {
     const float offset = ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(text).x;
@@ -91,12 +133,17 @@ void push_entity_id(const EntityUuid uuid) {
 
 bool editor_blocks_gameplay_input(
     const bool wants_text_input,
-    const bool /*item_active*/
+    const bool /*item_active*/,
+    const bool gizmo_active
 ) noexcept {
     // Mouse interaction is routed separately using the actual gameplay
     // viewport rectangle. Treating every active ImGui item as keyboard capture
     // made a left-click on the viewport erase held WASD for the next frame.
-    return wants_text_input;
+    //
+    // A gizmo drag is the exception: it is a left-press inside the viewport
+    // that must not also fire the weapon, so while one is held the editor owns
+    // the frame's input outright.
+    return wants_text_input || gizmo_active;
 }
 
 struct EditorShell::Impl {
@@ -111,6 +158,16 @@ struct EditorShell::Impl {
     EntityUuid selection{};
     EntityUuid buffered_selection{};
     bool reveal_selection{false};
+
+    bool camera_panning{false};
+    bool detached_view{false};
+
+    // The gizmo reports its drag as a total offset from where it began, so a
+    // dropped frame cannot accumulate error and the application can commit one
+    // move command from the final value.
+    GizmoHandle gizmo_handle{GizmoHandle::none};
+    bool gizmo_dragging{false};
+    Vec2 gizmo_start_canvas{};
 
     bool pending_pick{false};
     Vec2 pending_pick_point{};
@@ -128,10 +185,28 @@ struct EditorShell::Impl {
     bool name_field_active{false};
     bool position_field_active{false};
 
+    // Sprite edits are buffered like the name and position: the widget owns the
+    // value while it is being dragged, and one command is committed on release
+    // so a drag becomes a single undo step rather than one per frame.
+    SceneDocumentSprite sprite_field{};
+    TextField texture_field{};
+    bool sprite_field_active{false};
+
     TextField new_instance_id{};
     TextField new_instance_name{};
     std::array<float, 3> new_instance_position{};
     int selected_prefab{0};
+
+    // The create-entity dialog keeps its own draft so a half-filled form
+    // survives clicking elsewhere in the editor.
+    TextField new_entity_id{};
+    TextField new_entity_name{};
+    TextField new_entity_texture{};
+    std::array<float, 3> new_entity_position{};
+    std::array<float, 2> new_entity_size{32.0F, 32.0F};
+    std::array<float, 4> new_entity_tint{1.0F, 1.0F, 1.0F, 1.0F};
+    float new_entity_depth_span{0.0F};
+    bool open_create_entity{false};
 
     std::string status{"Editor ready."};
 
@@ -248,12 +323,17 @@ struct EditorShell::Impl {
             buffered_selection = selection;
             name_field_active = false;
             position_field_active = false;
+            sprite_field_active = false;
         }
         if (!name_field_active) {
             assign(name_field, found->name);
         }
         if (!position_field_active) {
             position_field = {found->position.x, found->position.y, found->position.z};
+        }
+        if (!sprite_field_active) {
+            sprite_field = found->sprite;
+            assign(texture_field, found->sprite.texture_id);
         }
     }
 
@@ -305,6 +385,14 @@ struct EditorShell::Impl {
             if (ImGui::MenuItem("Hide editor", "F2")) {
                 visible = false;
             }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Frame selection", "F", false, selection != EntityUuid{})) {
+                actions.camera_frame_selection = true;
+            }
+            if (ImGui::MenuItem("Follow player", nullptr, false, stats.camera_detached)) {
+                actions.camera_follow_player = true;
+                set_status("View reattached to the gameplay camera.");
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Debug")) {
@@ -355,12 +443,6 @@ struct EditorShell::Impl {
                 ImGui::Separator();
                 ImGui::TextDisabled("Discards unsaved document edits.");
                 ImGui::EndMenu();
-            }
-            bool health_bars_visible = stats.enemy_health_bars_visible;
-            if (ImGui::MenuItem("Enemy health bars", nullptr, &health_bars_visible)) {
-                actions.enemy_health_bars_visible = health_bars_visible;
-                set_status(health_bars_visible ? "Enemy health bars shown."
-                                               : "Enemy health bars hidden.");
             }
             ImGui::EndMenu();
         }
@@ -428,6 +510,14 @@ struct EditorShell::Impl {
         if (editor_ui::tool_button("Restart", false, transport_button_width)) {
             actions.reset_running_scene = true;
             set_status("Reset the running scene.");
+        }
+
+        if (stats.camera_detached) {
+            ImGui::SameLine();
+            if (editor_ui::tool_button("Follow player", true)) {
+                actions.camera_follow_player = true;
+                set_status("View reattached to the gameplay camera.");
+            }
         }
 
         const std::string scene_name =
@@ -547,6 +637,9 @@ struct EditorShell::Impl {
         }
         ImGui::EndChild();
         ImGui::PopStyleColor();
+        if (editor_ui::tool_button("Create entity", false, -FLT_MIN)) {
+            open_create_entity = true;
+        }
         if (shown == entities.size()) {
             editor_ui::text_dim("%zu placements", entities.size());
         } else {
@@ -624,21 +717,128 @@ struct EditorShell::Impl {
             ImGui::PopStyleColor();
         }
 
-        if (!found->prefab_id.empty()) {
-            editor_ui::section_header("Instance");
-            ImGui::PushStyleColor(ImGuiCol_Button,
-                                  editor_ui::to_vec4(IM_COL32(96, 42, 42, 255)));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
-                                  editor_ui::to_vec4(IM_COL32(132, 56, 56, 255)));
-            if (ImGui::Button("Destroy instance", ImVec2{-FLT_MIN, 0.0F})) {
-                destroy_instance(editor, found->uuid);
-            }
-            ImGui::PopStyleColor(2);
+        if (found->has_own_sprite) {
+            draw_sprite_section(editor, found->uuid);
+        } else {
+            editor_ui::section_header("Sprite");
+            editor_ui::text_dim("Drawn from prefab \"%s\".", found->prefab_id.c_str());
         }
+
+        editor_ui::section_header(found->prefab_id.empty() ? "Placement" : "Instance");
+        ImGui::PushStyleColor(ImGuiCol_Button, editor_ui::to_vec4(IM_COL32(96, 42, 42, 255)));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+                              editor_ui::to_vec4(IM_COL32(132, 56, 56, 255)));
+        if (found->prefab_id.empty()) {
+            if (ImGui::Button("Delete entity", ImVec2{-FLT_MIN, 0.0F})) {
+                destroy_entity(editor, found->uuid);
+            }
+        } else if (ImGui::Button("Destroy instance", ImVec2{-FLT_MIN, 0.0F})) {
+            destroy_instance(editor, found->uuid);
+        }
+        ImGui::PopStyleColor(2);
+        editor_ui::text_dim("Records that still reference it will block removal.");
 
         ImGui::Spacing();
         draw_prefab_creation(editor);
         ImGui::End();
+    }
+
+    // Every widget reports whether it is still being held and whether it just
+    // finished, so the section commits exactly once per completed interaction.
+    struct FieldActivity {
+        bool active{false};
+        bool finished{false};
+
+        void observe() {
+            active = active || ImGui::IsItemActive();
+            finished = finished || ImGui::IsItemDeactivatedAfterEdit();
+        }
+    };
+
+    void draw_sprite_section(SceneEditor& editor, const EntityUuid uuid) {
+        editor_ui::section_header("Sprite");
+        if (!editor_ui::begin_property_grid("##sprite_properties")) {
+            return;
+        }
+        FieldActivity activity;
+
+        editor_ui::property_label("Size");
+        std::array<float, 2> size{sprite_field.size.x, sprite_field.size.y};
+        if (ImGui::DragFloat2("##size", size.data(), 0.5F, 1.0F, 8192.0F, "%.1f")) {
+            sprite_field.size = {size[0], size[1]};
+        }
+        activity.observe();
+
+        editor_ui::property_label("Origin", "Normalized: 0.5, 1 anchors the sprite's feet.");
+        std::array<float, 2> origin{sprite_field.normalized_origin.x,
+                                    sprite_field.normalized_origin.y};
+        if (ImGui::DragFloat2("##origin", origin.data(), 0.01F, -2.0F, 2.0F, "%.2f")) {
+            sprite_field.normalized_origin = {origin[0], origin[1]};
+        }
+        activity.observe();
+
+        editor_ui::property_label("Tint");
+        std::array<float, 4> tint{
+            static_cast<float>(sprite_field.tint.red) / 255.0F,
+            static_cast<float>(sprite_field.tint.green) / 255.0F,
+            static_cast<float>(sprite_field.tint.blue) / 255.0F,
+            static_cast<float>(sprite_field.tint.alpha) / 255.0F,
+        };
+        // Four numeric fields do not fit a docked inspector, so the row is the
+        // swatch alone and the picker popup carries the precision.
+        constexpr ImGuiColorEditFlags tint_flags = ImGuiColorEditFlags_AlphaBar |
+                                                   ImGuiColorEditFlags_AlphaPreviewHalf |
+                                                   ImGuiColorEditFlags_NoInputs;
+        if (ImGui::ColorEdit4("##tint", tint.data(), tint_flags)) {
+            sprite_field.tint = {
+                static_cast<std::uint8_t>(std::lround(tint[0] * 255.0F)),
+                static_cast<std::uint8_t>(std::lround(tint[1] * 255.0F)),
+                static_cast<std::uint8_t>(std::lround(tint[2] * 255.0F)),
+                static_cast<std::uint8_t>(std::lround(tint[3] * 255.0F)),
+            };
+        }
+        activity.observe();
+
+        editor_ui::property_label("Layer", "Higher layers draw over lower ones at equal depth.");
+        ImGui::DragInt("##layer", &sprite_field.layer, 0.2F, -1024, 1024);
+        activity.observe();
+
+        editor_ui::property_label("Texture", "Empty draws a flat quad in the tint.");
+        ImGui::InputTextWithHint("##texture", "untextured", texture_field.data(),
+                                 texture_field.size());
+        activity.observe();
+
+        editor_ui::property_label(
+            "Depth span",
+            "World units this sprite runs along depth. Zero is a flat billboard;\n"
+            "a positive span is a wall the renderer slices so actors sort against it.");
+        ImGui::DragFloat("##depth_span", &sprite_field.depth_span, 1.0F, 0.0F, 100000.0F,
+                         "%.1f");
+        activity.observe();
+
+        editor_ui::end_property_grid();
+
+        sprite_field_active = activity.active;
+        if (activity.finished) {
+            sprite_field.texture_id = texture_field.data();
+            apply_sprite(editor, uuid);
+        }
+        if (sprite_field.depth_span > 0.0F) {
+            editor_ui::text_dim("Rendered as a depth-sliced surface.");
+        }
+    }
+
+    void apply_sprite(SceneEditor& editor, const EntityUuid uuid) {
+        try {
+            if (editor.set_entity_sprite(uuid, sprite_field)) {
+                set_status("Edited sprite.");
+            } else {
+                set_status("Sprite target no longer exists.");
+            }
+        } catch (const std::exception& error) {
+            set_status(std::string{"Sprite edit rejected: "} + error.what());
+        }
+        sprite_field_active = false;
     }
 
     void apply_rename(SceneEditor& editor, const EntityUuid uuid) {
@@ -675,6 +875,117 @@ struct EditorShell::Impl {
                 set_status("Destroyed prefab instance.");
             } else {
                 set_status("Prefab instance no longer exists.");
+            }
+        } catch (const std::exception& error) {
+            set_status(std::string{"Destroy rejected: "} + error.what());
+        }
+    }
+
+    // A modal keeps the draft in one place and makes the identity fields
+    // explicit: an entity id is a cross-reference other records use, so it is
+    // chosen deliberately rather than generated.
+    void draw_create_entity_dialog(SceneEditor& editor) {
+        constexpr const char* title = "Create entity";
+        if (open_create_entity) {
+            ImGui::OpenPopup(title);
+            open_create_entity = false;
+        }
+        const ImVec2 centre = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(centre, ImGuiCond_Appearing, ImVec2{0.5F, 0.5F});
+        ImGui::SetNextWindowSize(ImVec2{420.0F, 0.0F}, ImGuiCond_Appearing);
+        if (!ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_NoSavedSettings)) {
+            return;
+        }
+
+        if (editor_ui::begin_property_grid("##create_entity")) {
+            editor_ui::property_label("Id", "Cross-reference other records use. Must be unique.");
+            ImGui::InputText("##entity_id", new_entity_id.data(), new_entity_id.size());
+            editor_ui::property_label("Name");
+            ImGui::InputText("##entity_name", new_entity_name.data(), new_entity_name.size());
+            static_cast<void>(editor_ui::vec3_control("Position", new_entity_position.data()));
+            editor_ui::property_label("Size");
+            ImGui::DragFloat2("##entity_size", new_entity_size.data(), 0.5F, 1.0F, 8192.0F,
+                              "%.1f");
+            editor_ui::property_label("Tint");
+            ImGui::ColorEdit4("##entity_tint", new_entity_tint.data(),
+                              ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_NoInputs);
+            editor_ui::property_label("Texture", "Empty draws a flat quad in the tint.");
+            ImGui::InputTextWithHint("##entity_texture", "untextured",
+                                     new_entity_texture.data(), new_entity_texture.size());
+            editor_ui::property_label(
+                "Depth span",
+                "World units along depth. Positive makes this a wall the renderer slices.");
+            ImGui::DragFloat("##entity_span", &new_entity_depth_span, 1.0F, 0.0F, 100000.0F,
+                             "%.1f");
+            editor_ui::end_property_grid();
+        }
+
+        ImGui::Spacing();
+        const bool named = new_entity_id[0] != '\0' && new_entity_name[0] != '\0';
+        const float half =
+            (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5F;
+        // Accent means "this is the action to take". A form that cannot be
+        // submitted yet must not wear it.
+        ImGui::BeginDisabled(!named);
+        const bool create = named ? editor_ui::accent_button("Create", half)
+                                  : editor_ui::tool_button("Create", false, half);
+        ImGui::EndDisabled();
+        if (!named) {
+            ImGui::SetItemTooltip("An id and a name are required.");
+        }
+        ImGui::SameLine();
+        if (editor_ui::tool_button("Cancel", false, half)) {
+            ImGui::CloseCurrentPopup();
+        }
+        if (create) {
+            create_entity(editor);
+        }
+        ImGui::EndPopup();
+    }
+
+    void create_entity(SceneEditor& editor) {
+        const auto channel = [](const float value) {
+            return static_cast<std::uint8_t>(std::lround(std::clamp(value, 0.0F, 1.0F) * 255.0F));
+        };
+        const SceneEntityPlacement placement{
+            .id = new_entity_id.data(),
+            .name = new_entity_name.data(),
+            .position = {new_entity_position[0], new_entity_position[1],
+                         new_entity_position[2]},
+            .sprite = {
+                .size = {new_entity_size[0], new_entity_size[1]},
+                .normalized_origin = {0.5F, 1.0F},
+                .tint = {channel(new_entity_tint[0]), channel(new_entity_tint[1]),
+                         channel(new_entity_tint[2]), channel(new_entity_tint[3])},
+                .layer = 0,
+                .texture_id = new_entity_texture.data(),
+                .depth_span = new_entity_depth_span,
+            },
+        };
+        try {
+            const EntityUuid created = editor.create_entity(placement);
+            if (created) {
+                selection = created;
+                reveal_selection = true;
+                set_status("Created entity " + placement.id + ".");
+                assign(new_entity_id, {});
+                assign(new_entity_name, {});
+                ImGui::CloseCurrentPopup();
+            } else {
+                set_status("Entity could not be created.");
+            }
+        } catch (const std::exception& error) {
+            set_status(std::string{"Create rejected: "} + error.what());
+        }
+    }
+
+    void destroy_entity(SceneEditor& editor, const EntityUuid uuid) {
+        try {
+            if (editor.destroy_entity(uuid)) {
+                selection = {};
+                set_status("Destroyed entity.");
+            } else {
+                set_status("Entity no longer exists.");
             }
         } catch (const std::exception& error) {
             set_status(std::string{"Destroy rejected: "} + error.what());
@@ -1265,7 +1576,8 @@ struct EditorShell::Impl {
     void draw_viewport_overlay(
         const EditorCanvas& canvas,
         const float scale,
-        const bool paused
+        const bool paused,
+        const bool detached
     ) {
         // The game's own debug overlay owns the top corners and the bottom
         // left of the canvas, so the panel readout takes the bottom right and
@@ -1285,14 +1597,129 @@ struct EditorShell::Impl {
             draw->AddText(ImVec2{box_min.x + pad.x, box_min.y + pad.y}, color, label);
             return box_min.y;
         };
-        const float readout_top =
+        float next_top =
             place_right(readout.data(), editor_ui::colors::text_dim, canvas_max.y - 10.0F);
         if (paused) {
-            place_right("PAUSED", editor_ui::colors::warning, readout_top - 6.0F);
+            next_top = place_right("PAUSED", editor_ui::colors::warning, next_top - 6.0F);
+        }
+        if (detached) {
+            place_right("FREE VIEW  -  F frames, MMB pans, wheel zooms",
+                        editor_ui::colors::accent, next_top - 6.0F);
         }
     }
 
-    void draw_viewport(const EditorCanvas& canvas, const bool paused) {
+    // Draws the translate gizmo over the canvas and turns a drag on one of its
+    // handles into a canvas offset. The panel deliberately knows nothing about
+    // the world: the application supplies the anchor and the two axis
+    // directions, and receives pixels back.
+    void draw_translate_gizmo(
+        const EditorStats& stats,
+        const float scale,
+        EditorActions& actions
+    ) {
+        if (!stats.selection_canvas_point) {
+            gizmo_dragging = false;
+            gizmo_handle = GizmoHandle::none;
+            return;
+        }
+
+        const ImVec2 image_origin = ImGui::GetItemRectMin();
+        const auto to_screen = [&](const Vec2 canvas_point) {
+            return ImVec2{image_origin.x + canvas_point.x * scale,
+                          image_origin.y + canvas_point.y * scale};
+        };
+        const ImVec2 centre = to_screen(*stats.selection_canvas_point);
+        const ImVec2 axis_x =
+            normalized({stats.selection_axis_x_canvas.x, stats.selection_axis_x_canvas.y});
+        const ImVec2 axis_z =
+            normalized({stats.selection_axis_z_canvas.x, stats.selection_axis_z_canvas.y});
+
+        constexpr float shaft_length = 52.0F;
+        constexpr float shaft_pick_radius = 7.0F;
+        constexpr float plane_radius = 9.0F;
+        const ImVec2 x_end = add(centre, scaled(axis_x, shaft_length));
+        const ImVec2 z_end = add(centre, scaled(axis_z, shaft_length));
+
+        const ImVec2 pointer = ImGui::GetIO().MousePos;
+        const bool viewport_hovered = ImGui::IsWindowHovered();
+        GizmoHandle hovered = GizmoHandle::none;
+        if (!gizmo_dragging && viewport_hovered && stats.selection_movable) {
+            if (distance_between(pointer, centre) <= plane_radius) {
+                hovered = GizmoHandle::plane;
+            } else if (distance_to_segment(pointer, centre, x_end) <= shaft_pick_radius) {
+                hovered = GizmoHandle::axis_x;
+            } else if (distance_to_segment(pointer, centre, z_end) <= shaft_pick_radius) {
+                hovered = GizmoHandle::axis_z;
+            }
+        }
+
+        if (hovered != GizmoHandle::none && viewport_pointer &&
+            ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            gizmo_dragging = true;
+            gizmo_handle = hovered;
+            gizmo_start_canvas = *viewport_pointer;
+        }
+        if (gizmo_dragging) {
+            const bool released = !ImGui::IsMouseDown(ImGuiMouseButton_Left);
+            Vec2 offset{};
+            if (viewport_pointer) {
+                offset = {viewport_pointer->x - gizmo_start_canvas.x,
+                          viewport_pointer->y - gizmo_start_canvas.y};
+            }
+            // An axis drag keeps only the component along that axis, so the
+            // placement slides on one world axis however the pointer wanders.
+            if (gizmo_handle == GizmoHandle::axis_x || gizmo_handle == GizmoHandle::axis_z) {
+                const ImVec2 axis = gizmo_handle == GizmoHandle::axis_x ? axis_x : axis_z;
+                const float along = offset.x * axis.x + offset.y * axis.y;
+                offset = {axis.x * along, axis.y * along};
+            }
+            actions.gizmo_drag = EditorActions::GizmoDrag{
+                .canvas_offset = offset,
+                .finished = released,
+                .snap = ImGui::GetIO().KeyCtrl,
+            };
+            if (released) {
+                gizmo_dragging = false;
+                gizmo_handle = GizmoHandle::none;
+            }
+        }
+
+        const GizmoHandle lit = gizmo_dragging ? gizmo_handle : hovered;
+        const ImU32 x_color = lit == GizmoHandle::axis_x ? editor_ui::colors::accent
+                                                         : IM_COL32(214, 96, 96, 235);
+        const ImU32 z_color = lit == GizmoHandle::axis_z ? editor_ui::colors::accent
+                                                         : IM_COL32(96, 140, 224, 235);
+        const ImU32 plane_color = lit == GizmoHandle::plane
+                                      ? editor_ui::colors::accent
+                                      : IM_COL32(226, 226, 232, 220);
+
+        ImDrawList* draw = ImGui::GetWindowDrawList();
+        if (!stats.selection_movable) {
+            // A bound placement still gets a marker, because the reader needs
+            // to see what is selected and why it cannot be dragged.
+            draw->AddCircle(centre, plane_radius, IM_COL32(150, 150, 158, 200), 0, 1.5F);
+            return;
+        }
+
+        const auto arrow = [&](const ImVec2 end, const ImVec2 axis, const ImU32 color) {
+            draw->AddLine(centre, end, color, 2.0F);
+            const ImVec2 side{-axis.y, axis.x};
+            const ImVec2 tip = add(end, scaled(axis, 9.0F));
+            draw->AddTriangleFilled(tip, add(end, scaled(side, 4.5F)),
+                                    add(end, scaled(side, -4.5F)), color);
+        };
+        arrow(x_end, axis_x, x_color);
+        arrow(z_end, axis_z, z_color);
+        draw->AddCircleFilled(centre, plane_radius * 0.55F, plane_color);
+        draw->AddCircle(centre, plane_radius, plane_color, 0, 1.5F);
+    }
+
+    void draw_viewport(
+        const EditorCanvas& canvas,
+        const bool paused,
+        const EditorStats& stats,
+        EditorActions& actions
+    ) {
         viewport_pointer.reset();
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0.0F, 0.0F});
         const bool open = ImGui::Begin("Viewport");
@@ -1320,18 +1747,40 @@ struct EditorShell::Impl {
             ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(),
                                                 ImGui::GetItemRectMax(),
                                                 editor_ui::colors::border);
-            draw_viewport_overlay(canvas, scale, paused);
+            const ImGuiIO& io = ImGui::GetIO();
             if (ImGui::IsItemHovered()) {
                 const ImVec2 image_origin = ImGui::GetItemRectMin();
-                const ImVec2 pointer = ImGui::GetIO().MousePos;
+                const ImVec2 pointer = io.MousePos;
                 viewport_pointer = Vec2{(pointer.x - image_origin.x) / scale,
                                         (pointer.y - image_origin.y) / scale};
-                if (ImGui::GetIO().KeyCtrl &&
-                    ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                if (io.KeyCtrl && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                     pending_pick = true;
                     pending_pick_point = *viewport_pointer;
                 }
+                // The wheel is a gameplay action, so it only drives the view
+                // while the pointer is over the panel that owns the view.
+                if (io.MouseWheel != 0.0F) {
+                    actions.camera_zoom_notches += io.MouseWheel;
+                }
             }
+            // Middle-drag pans. The drag is reported in screen pixels and the
+            // camera works in canvas pixels, so it is divided by the same
+            // scale the image was drawn at.
+            if (ImGui::IsItemHovered() || camera_panning) {
+                if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle)) {
+                    camera_panning = true;
+                    actions.camera_pan_canvas.x += io.MouseDelta.x / scale;
+                    actions.camera_pan_canvas.y += io.MouseDelta.y / scale;
+                } else {
+                    camera_panning = false;
+                }
+            }
+            if (ImGui::IsWindowHovered() && ImGui::IsKeyPressed(ImGuiKey_F, false) &&
+                !backend.wants_text_input()) {
+                actions.camera_frame_selection = true;
+            }
+            draw_translate_gizmo(stats, scale, actions);
+            draw_viewport_overlay(canvas, scale, paused, detached_view);
         }
         ImGui::End();
     }
@@ -1363,8 +1812,9 @@ void EditorShell::select_entity(const EntityUuid uuid) noexcept {
 }
 
 bool EditorShell::blocks_gameplay_input() const noexcept {
-    return visible() && editor_blocks_gameplay_input(
-                            impl_->backend.wants_text_input(), impl_->backend.item_active());
+    return visible() && editor_blocks_gameplay_input(impl_->backend.wants_text_input(),
+                                                     impl_->backend.item_active(),
+                                                     impl_->gizmo_dragging);
 }
 
 bool EditorShell::wants_mouse() const noexcept {
@@ -1417,7 +1867,9 @@ EditorActions EditorShell::draw(
     impl_->draw_history(scene_editor);
     impl_->draw_statistics(scene_editor, stats, actions);
     impl_->draw_debug_channels(debug_visuals);
-    impl_->draw_viewport(canvas, stats.paused);
+    impl_->draw_create_entity_dialog(scene_editor);
+    impl_->detached_view = stats.camera_detached;
+    impl_->draw_viewport(canvas, stats.paused, stats, actions);
     impl_->reveal_selection = false;
 
     actions.viewport_picked = impl_->pending_pick;

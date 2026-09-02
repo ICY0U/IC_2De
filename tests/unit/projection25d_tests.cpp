@@ -15,8 +15,8 @@ void projection_expect(const bool condition, const std::string_view message) {
     }
 }
 
-[[nodiscard]] bool near(const float left, const float right) {
-    return std::abs(left - right) < 0.001F;
+[[nodiscard]] bool near(const float left, const float right, const float tolerance = 0.001F) {
+    return std::abs(left - right) < tolerance;
 }
 
 } // namespace
@@ -141,6 +141,49 @@ int run_projection25d_tests() {
     const auto invalid = ic2d::plan_depth_slices(7.0F, 400.0F, 0.0F, 50.0F);
     projection_expect(invalid.count == 1 && near(invalid.first_center_z, 7.0F),
                       "An unusable sprite height must fall back to a single slice.");
+
+    // The canvas-to-ground inverse is what the editor camera pans with and what
+    // the translate gizmo drags with, so it is checked against the forward
+    // projection rather than against a hand-computed constant.
+    {
+        const ic2d::Camera25DState ground{
+            .focus = {0.0F, 0.0F, 0.0F},
+            .yaw_degrees = 0.0F,
+            .pitch_degrees = 50.0F,
+            .pixels_per_world_unit = 2.0F,
+            .zoom = 1.5F,
+        };
+        const ic2d::Vec3 origin{12.0F, 0.0F, -30.0F};
+        const ic2d::Vec3 moved{origin.x + 40.0F, 0.0F, origin.z - 17.0F};
+        const auto from = ic2d::project_world_point(origin, ground);
+        const auto to = ic2d::project_world_point(moved, ground);
+        const ic2d::Vec3 recovered = ic2d::canvas_ground_offset_to_world(
+            {to.position.x - from.position.x, to.position.y - from.position.y}, ground);
+        projection_expect(near(recovered.x, 40.0F, 0.01F) && near(recovered.z, -17.0F, 0.01F),
+                          "The canvas inverse must recover the world offset that produced it.");
+        projection_expect(near(recovered.y, 0.0F),
+                          "A ground offset must stay on the ground plane.");
+
+        // The same check through yaw, because a rotated scene must drag along
+        // the screen axes rather than along world X and Z.
+        ic2d::Camera25DState yawed_ground = ground;
+        yawed_ground.yaw_degrees = 37.0F;
+        const auto yawed_from = ic2d::project_world_point(origin, yawed_ground);
+        const auto yawed_to = ic2d::project_world_point(moved, yawed_ground);
+        const ic2d::Vec3 yawed_recovered = ic2d::canvas_ground_offset_to_world(
+            {yawed_to.position.x - yawed_from.position.x,
+             yawed_to.position.y - yawed_from.position.y},
+            yawed_ground);
+        projection_expect(
+            near(yawed_recovered.x, 40.0F, 0.01F) && near(yawed_recovered.z, -17.0F, 0.01F),
+            "The canvas inverse must round-trip through yaw.");
+
+        ic2d::Camera25DState unusable = ground;
+        unusable.pitch_degrees = 0.0F;
+        const ic2d::Vec3 rejected = ic2d::canvas_ground_offset_to_world({10.0F, 10.0F}, unusable);
+        projection_expect(near(rejected.x, 0.0F) && near(rejected.z, 0.0F),
+                          "An unusable camera must return a zero offset, not a guess.");
+    }
 
     return projection_failures;
 }

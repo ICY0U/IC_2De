@@ -100,7 +100,7 @@ def bindings(entity_id, clip_prefix):
 out = []
 w = out.append
 w("# IC_2DE performance test scene - regenerate with tools/generate-perf-scene.py")
-w("schema=9")
+w("schema=10")
 w("id=perf_test")
 w("world_space=x_y_z")
 w("ground_plane=x_z")
@@ -149,28 +149,22 @@ w("entity=dynamic-crate|1004|Dynamic crate|dynamic-crate|80|0|80|32|26|0.5|1|255
 w("entity=attacker-shadow|1005|Runner shadow|attacker|600|0|0|22|8|0.5|0.5|255|255|255|210|0|soft-shadow")
 w("entity=attacker|1006|Threadbound Runner|attacker|600|0|0|24|34|0.5|1|255|190|190|255|0|npc-patchwork-atlas")
 w("")
-w("# Static arena geometry. A wall running along X is one quad, which is exact")
-w("# at yaw zero. A wall running along Z is a stack of slices spaced closer")
-w("# than one sprite height, so the overlap reads as one unbroken wall.")
-# Screen Y advances by sin(pitch) world units per world Z unit at yaw zero.
-PITCH_SIN = 0.766
+w("# Static arena geometry, one entity per wall. A wall running along X sits at")
+w("# a single depth and is one billboard. A wall running along Z spans a range")
+w("# of depth, which one billboard cannot represent, so it carries a depth span")
+w("# and the renderer resolves that into overlapping depth-sorted slices.")
 uuid = 2000
 for name, x, z, width, depth, height, tint in solids:
     center_x = x + width / 2.0
+    center_z = z + depth / 2.0
+    record = "entity=%s|%d|%s|-|%s|0|%s|%s|%d|0.5|1|%d|%d|%d|%d|0|-" % (
+        name, uuid, name.replace("-", " ").capitalize(),
+        number(center_x), number(center_z), number(width), height,
+        tint[0], tint[1], tint[2], tint[3])
     if depth > width:
-        slice_depth = max(4.0, height * 0.6 / PITCH_SIN)
-        slices = max(1, int(math.ceil(depth / slice_depth)))
-    else:
-        slices = 1
-    slice_depth = depth / float(slices)
-    for index in range(slices):
-        center_z = z + slice_depth * (index + 0.5)
-        entity_id = name if slices == 1 else "%s-%02d" % (name, index)
-        w("entity=%s|%d|%s|-|%s|0|%s|%s|%d|0.5|1|%d|%d|%d|%d|0|-" % (
-            entity_id, uuid, entity_id.replace("-", " ").capitalize(),
-            number(center_x), number(center_z), number(width), height,
-            tint[0], tint[1], tint[2], tint[3]))
-        uuid += 1
+        record += "|%s" % number(depth)
+    w(record)
+    uuid += 1
 w("")
 w("# entity-id|locomotion-state|clip-id|initial")
 for line in bindings("player", "player"):

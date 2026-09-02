@@ -166,6 +166,34 @@ template <typename Number>
     return false;
 }
 
+// Field order of a plain entity record after its position triple.
+constexpr std::size_t entity_sprite_base = 7;
+
+[[nodiscard]] SceneDocumentSprite read_entity_sprite(const TextRecord& record) {
+    SceneDocumentSprite sprite;
+    const auto& f = record.fields;
+    sprite.size = {
+        parse_number<float>(f[entity_sprite_base], "sprite width"),
+        parse_number<float>(f[entity_sprite_base + 1], "sprite height"),
+    };
+    sprite.normalized_origin = {
+        parse_number<float>(f[entity_sprite_base + 2], "sprite origin X"),
+        parse_number<float>(f[entity_sprite_base + 3], "sprite origin Y"),
+    };
+    sprite.tint = {
+        static_cast<std::uint8_t>(parse_number<std::uint32_t>(f[entity_sprite_base + 4], "tint R")),
+        static_cast<std::uint8_t>(parse_number<std::uint32_t>(f[entity_sprite_base + 5], "tint G")),
+        static_cast<std::uint8_t>(parse_number<std::uint32_t>(f[entity_sprite_base + 6], "tint B")),
+        static_cast<std::uint8_t>(parse_number<std::uint32_t>(f[entity_sprite_base + 7], "tint A")),
+    };
+    sprite.layer = parse_number<std::int32_t>(f[entity_sprite_base + 8], "sprite layer");
+    sprite.texture_id = f[entity_sprite_base + 9] == "-" ? std::string{} : f[entity_sprite_base + 9];
+    if (f.size() > entity_sprite_base + 10) {
+        sprite.depth_span = parse_number<float>(f[entity_sprite_base + 10], "entity depth span");
+    }
+    return sprite;
+}
+
 [[nodiscard]] bool find_placement(
     const std::vector<std::string>& lines,
     const EntityUuid uuid,
@@ -363,6 +391,8 @@ std::vector<SceneDocumentEntity> SceneDocument::entities() const {
                 parse_number<float>(record.fields[layout.position + 1], "entity Y"),
                 parse_number<float>(record.fields[layout.position + 2], "entity Z"),
             },
+            .has_own_sprite = layout.prefab == 0,
+            .sprite = layout.prefab == 0 ? read_entity_sprite(record) : SceneDocumentSprite{},
         });
     }
     return result;
@@ -418,6 +448,60 @@ bool SceneDocument::set_unbound_entity_position(const EntityUuid uuid, const Vec
     record.fields[layout.position] = format_float(position.x);
     record.fields[layout.position + 1] = format_float(position.y);
     record.fields[layout.position + 2] = format_float(position.z);
+    lines_[index] = format_record(record);
+    return true;
+}
+
+bool SceneDocument::set_entity_sprite(
+    const EntityUuid uuid,
+    const SceneDocumentSprite& sprite
+) {
+    if (!uuid || !std::isfinite(sprite.size.x) || !std::isfinite(sprite.size.y) ||
+        !(sprite.size.x > 0.0F) || !(sprite.size.y > 0.0F) ||
+        !std::isfinite(sprite.normalized_origin.x) ||
+        !std::isfinite(sprite.normalized_origin.y) ||
+        !std::isfinite(sprite.depth_span) || sprite.depth_span < 0.0F) {
+        throw std::invalid_argument{
+            "Sprite edits require a non-zero UUID, a positive size, a finite origin, "
+            "and a non-negative depth span."};
+    }
+    std::size_t index = 0;
+    TextRecord record;
+    PlacementLayout layout;
+    if (!find_placement(lines_, uuid, index, record, layout)) {
+        return false;
+    }
+    if (layout.prefab != 0) {
+        throw std::invalid_argument{
+            "A prefab instance draws its template's sprite; edit the prefab instead."};
+    }
+
+    auto& f = record.fields;
+    f[entity_sprite_base] = format_float(sprite.size.x);
+    f[entity_sprite_base + 1] = format_float(sprite.size.y);
+    f[entity_sprite_base + 2] = format_float(sprite.normalized_origin.x);
+    f[entity_sprite_base + 3] = format_float(sprite.normalized_origin.y);
+    f[entity_sprite_base + 4] = std::to_string(static_cast<unsigned>(sprite.tint.red));
+    f[entity_sprite_base + 5] = std::to_string(static_cast<unsigned>(sprite.tint.green));
+    f[entity_sprite_base + 6] = std::to_string(static_cast<unsigned>(sprite.tint.blue));
+    f[entity_sprite_base + 7] = std::to_string(static_cast<unsigned>(sprite.tint.alpha));
+    f[entity_sprite_base + 8] = std::to_string(sprite.layer);
+    f[entity_sprite_base + 9] = sprite.texture_id.empty() ? "-" : sprite.texture_id;
+
+    // The span is a schema 10 addition, so the trailing field appears only when
+    // it carries something. A wall that loses its span becomes an ordinary
+    // record again rather than keeping a zero nobody reads.
+    if (sprite.depth_span > 0.0F) {
+        const std::string span = format_float(sprite.depth_span);
+        if (f.size() > entity_sprite_base + 10) {
+            f[entity_sprite_base + 10] = span;
+        } else {
+            f.push_back(span);
+        }
+    } else if (f.size() > entity_sprite_base + 10) {
+        f.resize(entity_sprite_base + 10);
+    }
+
     lines_[index] = format_record(record);
     return true;
 }
@@ -487,6 +571,124 @@ EntityUuid SceneDocument::create_prefab_instance(const ScenePrefabPlacement& pla
     const std::size_t insert_at = has_placement ? last_placement_line + 1 : lines_.size();
     lines_.insert(lines_.begin() + static_cast<std::ptrdiff_t>(insert_at), format_record(record));
     return {uuid};
+}
+
+EntityUuid SceneDocument::create_entity(const SceneEntityPlacement& placement) {
+    if (!valid_id(placement.id) || !valid_name(placement.name) ||
+        !std::isfinite(placement.position.x) || !std::isfinite(placement.position.y) ||
+        !std::isfinite(placement.position.z) || !(placement.sprite.size.x > 0.0F) ||
+        !(placement.sprite.size.y > 0.0F) || !std::isfinite(placement.sprite.size.x) ||
+        !std::isfinite(placement.sprite.size.y) ||
+        !std::isfinite(placement.sprite.normalized_origin.x) ||
+        !std::isfinite(placement.sprite.normalized_origin.y) ||
+        !std::isfinite(placement.sprite.depth_span) || placement.sprite.depth_span < 0.0F) {
+        throw std::invalid_argument{
+            "Entity creation requires a valid id, a non-empty plain name, a finite position, "
+            "a positive size, and a non-negative depth span."};
+    }
+    const std::string scene_id = scene_id_of(lines_);
+    if (scene_id.empty()) {
+        throw std::runtime_error{"Scene document has no id setting."};
+    }
+
+    std::unordered_set<std::string> placed_ids;
+    std::unordered_set<std::uint64_t> used_uuids;
+    std::size_t last_placement_line = 0;
+    bool has_placement = false;
+    for (std::size_t index = 0; index < lines_.size(); ++index) {
+        TextRecord record;
+        PlacementLayout layout;
+        if (!parse_record(lines_[index], record)) {
+            continue;
+        }
+        if (record.key == "prefab" && record.fields.size() == prefab_field_count) {
+            used_uuids.insert(parse_number<std::uint64_t>(record.fields[1], "prefab UUID"));
+        } else if (placement_layout(record, layout)) {
+            placed_ids.insert(record.fields[0]);
+            used_uuids.insert(
+                parse_number<std::uint64_t>(record.fields[layout.uuid], "entity UUID"));
+            has_placement = true;
+            last_placement_line = index;
+        }
+    }
+    if (placed_ids.contains(placement.id)) {
+        throw std::invalid_argument{"Entity ids must be unique within a scene: " + placement.id};
+    }
+
+    std::uint64_t uuid = stable_uuid(scene_id, placement.id);
+    while (!used_uuids.insert(uuid).second) {
+        ++uuid;
+        if (uuid == 0) {
+            uuid = 1;
+        }
+    }
+
+    const SceneDocumentSprite& sprite = placement.sprite;
+    TextRecord record{
+        .key = "entity",
+        .fields = {
+            placement.id,
+            std::to_string(uuid),
+            std::string{trim(placement.name)},
+            "-",
+            format_float(placement.position.x),
+            format_float(placement.position.y),
+            format_float(placement.position.z),
+            format_float(sprite.size.x),
+            format_float(sprite.size.y),
+            format_float(sprite.normalized_origin.x),
+            format_float(sprite.normalized_origin.y),
+            std::to_string(static_cast<unsigned>(sprite.tint.red)),
+            std::to_string(static_cast<unsigned>(sprite.tint.green)),
+            std::to_string(static_cast<unsigned>(sprite.tint.blue)),
+            std::to_string(static_cast<unsigned>(sprite.tint.alpha)),
+            std::to_string(sprite.layer),
+            sprite.texture_id.empty() ? "-" : sprite.texture_id,
+        },
+    };
+    if (sprite.depth_span > 0.0F) {
+        record.fields.push_back(format_float(sprite.depth_span));
+    }
+    const std::size_t insert_at = has_placement ? last_placement_line + 1 : lines_.size();
+    lines_.insert(lines_.begin() + static_cast<std::ptrdiff_t>(insert_at), format_record(record));
+    return {uuid};
+}
+
+bool SceneDocument::destroy_entity(const EntityUuid uuid) {
+    if (!uuid) {
+        throw std::invalid_argument{"Entity removal requires a non-zero UUID."};
+    }
+    std::size_t index = 0;
+    TextRecord record;
+    PlacementLayout layout;
+    if (!find_placement(lines_, uuid, index, record, layout)) {
+        return false;
+    }
+    if (layout.prefab != 0) {
+        throw std::invalid_argument{
+            "Prefab instances are removed with the prefab instance command."};
+    }
+    const std::string entity_id = record.fields[0];
+    for (const std::string& line : lines_) {
+        TextRecord referencing;
+        if (!parse_record(line, referencing)) {
+            continue;
+        }
+        if (referencing.key == "animation_binding" &&
+            referencing.fields.size() == animation_binding_field_count &&
+            referencing.fields[0] == entity_id) {
+            throw std::invalid_argument{
+                "Animation bindings still reference this entity: " + entity_id};
+        }
+        if (referencing.key == "animation_auto" &&
+            referencing.fields.size() == animation_auto_field_count &&
+            referencing.fields[0] == entity_id) {
+            throw std::invalid_argument{
+                "Automatic animations still reference this entity: " + entity_id};
+        }
+    }
+    lines_.erase(lines_.begin() + static_cast<std::ptrdiff_t>(index));
+    return true;
 }
 
 bool SceneDocument::destroy_prefab_instance(const EntityUuid uuid) {
