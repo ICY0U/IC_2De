@@ -360,7 +360,7 @@ IC_2DE v0.1 is complete when:
 
 ## 13. Immediate next step
 
-The first four expanded Hazel adaptation checkpoints are complete. Schema 7 gives every authored entity a persistent UUID, adds reusable prefab definitions with per-instance identity and field overrides, and expands instances into ordinary entities in authored order. RuntimeScene passes identity into the EnTT-backed World, and deterministic World snapshot/restore preserves UUID, name, transform, and sprite state while rebuilding transient handles. `SceneDocument` supplies UUID-addressed edits, prefab instantiation and removal, validated unsaved runtime copies, explicit schema 5-to-6 and 6-to-7 migration, and validation-before-replace atomic saving. `SceneEditor` puts every mutation behind bounded undo/redo with candidate-copy atomicity. `RuntimeSceneTickResult` now returns copied typed contact, trigger, and stable-identity animation events, while an owned `LayerStack` routes them with safe deferred structural changes. Duplicate or zero UUIDs, orphaned overrides, malformed save candidates, and invalid layer transitions fail safely.
+The expanded Hazel adaptation now reaches schema 8. Authored entities have persistent UUIDs, reusable prefabs, per-instance overrides, atomic mutable documents, explicit migrations through schema 8, deterministic runtime copies, typed events, and an owned layer stack. Automatic animation records bind looping clips and integer phase offsets to non-locomotion entities, while directional locomotion transitions preserve gait phase rather than rewinding. The test area proves both paths with eight-frame movement in every direction and two independently phased swaying trees.
 
 Development builds now carry an F1 debug-visual master switch over independent collision, trigger, elevation-map, world-grid, and statistics channels, plus an F2 docked editor shell with a viewport, hierarchy, inspector, command history, statistics, and channel panels. Dear ImGui is pinned and development-only behind an engine-owned raylib backend; the shipping runtime compiles the whole surface out.
 
@@ -368,10 +368,11 @@ The application now renders through an engine-owned two-target frame pipeline. A
 
 Audio is explicitly deferred by owner direction. Continue the non-audio Hazel adaptation in dependency order:
 
-1. Add an editor camera with viewport picking, then 2D lighting and its debug channel. Framebuffer/post-process resources, the first external shader asset, and baseline renderer statistics are complete.
-2. Close the remaining development-editor gaps: content browser, console, profiler, live-World inspection, and isolated play/stop mode.
-3. Add asset watching/reload, project settings, save-game snapshots, profiling instrumentation, particles, and native game UI.
-4. Adapt Hazel scripting behind an engine-owned gameplay interface after the scene/editor data model is stable; do not expose EnTT, Box2D, raylib, or a scripting runtime directly.
-5. Re-run Debug/Release, five-mode replay, resource-lifetime checks, editor/runtime-copy tests, event/layer tests, and packaged GPU smoke at every checkpoint.
+1. Give the editor viewport an independent pan/zoom camera and transform gizmos; click-to-select is complete. Then add 2D lighting and activate its debug channel.
+2. Extend the character state graph with interact, attack, hit, and death clips, and drive the enemy state machine from the same copied gameplay-event seam. Keep audio deferred.
+3. Close the remaining development-editor gaps: content browser, console, profiler, live-World inspection, and isolated play/stop mode.
+4. Add asset watching/reload, project settings, save-game snapshots, profiling instrumentation, particles, and native game UI.
+5. Adapt Hazel scripting behind an engine-owned gameplay interface after the scene/editor data model is stable; do not expose EnTT, Box2D, raylib, or a scripting runtime directly.
+6. Re-run Debug/Release, five-mode replay, resource-lifetime checks, editor/runtime-copy tests, event/layer tests, and packaged GPU smoke at every checkpoint.
 
 Continuous ramps and audio remain deferred until a real test-area requirement or owner direction brings them back into scope.

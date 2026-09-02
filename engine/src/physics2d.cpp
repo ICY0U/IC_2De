@@ -308,6 +308,66 @@ std::optional<PhysicsBodySnapshot> PhysicsWorld::snapshot(const PhysicsBodyId bo
     return impl_->make_snapshot(*record);
 }
 
+std::optional<PhysicsSegmentHit> PhysicsWorld::cast_segment(
+    const PhysicsSegmentQuery& query
+) const {
+    if (!finite(query.start) || !finite(query.end) || query.category_bits == 0 ||
+        query.mask_bits == 0) {
+        throw std::invalid_argument{"Physics segment queries require finite points and filters."};
+    }
+    const Vec2 translation_pixels{
+        query.end.x - query.start.x,
+        query.end.y - query.start.y,
+    };
+    if (std::abs(translation_pixels.x) <= 0.000001F &&
+        std::abs(translation_pixels.y) <= 0.000001F) {
+        throw std::invalid_argument{"Physics segment queries require distinct endpoints."};
+    }
+
+    struct CastContext {
+        const Impl* impl{nullptr};
+        PhysicsBodyId ignored_body{};
+        bool include_sensors{false};
+        std::optional<PhysicsSegmentHit> hit;
+    } context{
+        .impl = impl_.get(),
+        .ignored_body = query.ignored_body,
+        .include_sensors = query.include_sensors,
+    };
+    const auto accept_hit = [](const b2ShapeId shape_id, const b2Vec2 point,
+                               const b2Vec2 normal, const float fraction,
+                               void* raw_context) -> float {
+        auto& cast = *static_cast<CastContext*>(raw_context);
+        const auto* record = static_cast<const Impl::BodyRecord*>(
+            b2Shape_GetUserData(shape_id));
+        if (record == nullptr || cast.impl->find(record->public_id) != record ||
+            record->public_id == cast.ignored_body ||
+            (!cast.include_sensors && record->sensor)) {
+            return -1.0F;
+        }
+        cast.hit = PhysicsSegmentHit{
+            .body = record->public_id,
+            .point = cast.impl->to_pixels(point),
+            .normal = {normal.x, normal.y},
+            .fraction = fraction,
+            .tag = record->tag,
+        };
+        return fraction;
+    };
+
+    static_cast<void>(b2World_CastRay(
+        impl_->world_id,
+        impl_->to_metres(query.start),
+        impl_->to_metres(translation_pixels),
+        b2QueryFilter{
+            .categoryBits = query.category_bits,
+            .maskBits = query.mask_bits,
+        },
+        accept_hit,
+        &context));
+    return context.hit;
+}
+
 PhysicsStepResult PhysicsWorld::step(const float time_step_seconds) {
     if (!std::isfinite(time_step_seconds) || time_step_seconds <= 0.0F) {
         throw std::invalid_argument{"Physics stepping requires a finite positive time step."};

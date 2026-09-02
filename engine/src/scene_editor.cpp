@@ -155,6 +155,8 @@ std::vector<SceneEdit> SceneEditor::history() const {
 
 std::size_t SceneEditor::undone_count() const noexcept { return redo_.size(); }
 
+std::uint64_t SceneEditor::revision() const noexcept { return current_revision_; }
+
 bool SceneEditor::modified() const noexcept {
     return current_revision_ != saved_revision_;
 }

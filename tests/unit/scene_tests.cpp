@@ -35,7 +35,7 @@ void write_file(const std::filesystem::path& path, const std::string_view conten
 
 [[nodiscard]] std::string valid_scene(const std::string_view extra = {}) {
     return std::string{
-               "schema=7\n"
+               "schema=10\n"
                "id=fixture\n"
                "world_space=x_y_z\n"
                "ground_plane=x_z\n"
@@ -83,7 +83,7 @@ void test_loads_complete_scene(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "valid.scene";
     write_file(path, valid_scene());
     const ic2d::SceneDefinition scene = ic2d::SceneDefinition::load(path);
-    expect(scene.schema_version() == 7, "Scene schema version must be retained.");
+    expect(scene.schema_version() == 10, "Scene schema version must be retained.");
     expect(scene.id() == "fixture", "Scene id must be retained.");
     expect(scene.ground().areas.size() == 2, "Ground records must be loaded.");
     expect(scene.physics_bodies().size() == 2, "Physics body records must be loaded.");
@@ -95,8 +95,22 @@ void test_loads_complete_scene(const std::filesystem::path& root) {
     expect(scene.animation_clips().size() == 2, "Animation clips must be loaded.");
     expect(scene.animation_bindings().size() == 1,
            "Locomotion state bindings must be grouped by entity.");
+    expect(scene.auto_animations().empty(),
+           "Scenes without automatic animation records must retain an empty binding set.");
     expect(scene.camera().focus.x == -20.0F && scene.camera().focus.z == -20.0F,
            "Initial camera focus must be derived from the authored player.");
+}
+
+void test_loads_automatic_animation_with_phase_offset(const std::filesystem::path& root) {
+    const std::filesystem::path path = root / "automatic-animation.scene";
+    write_file(path, valid_scene("animation_auto=prop|player-idle|7\n"));
+
+    const ic2d::SceneDefinition scene = ic2d::SceneDefinition::load(path);
+    expect(scene.auto_animations().size() == 1 &&
+               scene.auto_animations().front().entity_id == "prop" &&
+               scene.auto_animations().front().clip_id == "player-idle" &&
+               scene.auto_animations().front().initial_tick_offset == 7,
+           "Automatic animation bindings must retain clip and deterministic phase offset.");
 }
 
 void test_loads_second_authored_fixture() {
@@ -122,31 +136,104 @@ void test_loads_aseprite_runtime_content() {
     const std::filesystem::path path =
         std::filesystem::path{IC2DE_RUNTIME_ASSET_DIRECTORY} / "test_area.scene";
     const ic2d::SceneDefinition scene = ic2d::SceneDefinition::load(path);
-    expect(scene.schema_version() == 7,
-           "The runtime scene must use stable entity UUIDs and eight-way locomotion.");
+    expect(scene.schema_version() == 10,
+           "The runtime scene must use the authored attacker role and eight-way locomotion.");
+    const bool found_attacker = std::ranges::any_of(
+        scene.physics_bodies(), [](const ic2d::ScenePhysicsBodyDefinition& body) {
+            return body.role == ic2d::ScenePhysicsRole::attacker &&
+                   body.box.motion == ic2d::PhysicsMotionType::kinematic_body;
+        });
+    expect(found_attacker,
+           "Schema 10 runtime content must retain one kinematic authored attacker.");
     expect(scene.prefabs().size() == 2,
            "The runtime scene must declare its reusable tree and shadow prefabs.");
     const ic2d::SceneTextureDefinition* player_texture = nullptr;
     for (const ic2d::SceneTextureDefinition& texture : scene.textures()) {
-        if (texture.id == "player-atlas") {
+        if (texture.id == "player-v2-walk-south") {
             player_texture = &texture;
             break;
         }
     }
-    expect(scene.textures().size() == 5 && player_texture != nullptr &&
+    expect(scene.textures().size() == 15 && player_texture != nullptr &&
                player_texture->kind == ic2d::SceneTextureKind::file &&
-               player_texture->relative_path == "player-atlas.png",
-           "The Aseprite record must provide the player file texture.");
-    expect(scene.animation_clips().size() == 18,
-           "The runtime scene must combine sixteen player and two authored enemy clips.");
-    expect(scene.animation_clips().front().clip.id == "player-idle-south" &&
-               scene.animation_clips()[1].clip.id == "player-move-south" &&
-               scene.animation_clips()[1].clip.frames.size() == 2,
+               player_texture->relative_path == "player-v2-walk-south.png",
+           "The Aseprite records must provide the replacement player texture set.");
+    expect(scene.animation_clips().size() == 41,
+           "The runtime scene must combine V2 player, dodge, NPC, and ambient clips.");
+    expect(scene.animation_clips().front().clip.id == "player-v2-idle-south" &&
+               scene.animation_clips()[1].clip.id == "player-v2-move-south" &&
+               scene.animation_clips()[1].clip.frames.size() == 8,
            "Imported tag order and inclusive ranges must reach scene-owned clips.");
-    expect(scene.animation_clips()[8].clip.id == "player-idle-southwest" &&
-               scene.animation_clips()[9].clip.id == "player-move-southwest" &&
-               scene.animation_clips()[9].clip.frames.size() == 2,
+    expect(scene.animation_clips()[10].clip.id == "player-v2-idle-southwest" &&
+               scene.animation_clips()[11].clip.id == "player-v2-move-southwest" &&
+               scene.animation_clips()[11].clip.frames.size() == 8,
            "The diagonal atlas must provide independent idle and move clips.");
+    expect(scene.auto_animations().size() == 2 &&
+               scene.auto_animations()[0].clip_id == "tree-sway" &&
+               scene.auto_animations()[1].initial_tick_offset != 0,
+           "Tree instances must use deterministic, phase-offset ambient animation.");
+    expect(scene.animation_clips()[25].clip.id == "npc-patchwork-idle-south" &&
+               scene.animation_clips()[26].clip.id == "npc-patchwork-move-south" &&
+               scene.animation_clips()[26].clip.frames.size() == 8,
+           "The second stitched character must remain available through the NPC bindings.");
+
+    const ic2d::SceneAnimationClipDefinition* player_move_west = nullptr;
+    const ic2d::SceneAnimationClipDefinition* player_idle_east = nullptr;
+    const ic2d::SceneAnimationClipDefinition* player_dodge_west = nullptr;
+    const ic2d::SceneAnimationClipDefinition* tree_sway = nullptr;
+    for (const ic2d::SceneAnimationClipDefinition& clip : scene.animation_clips()) {
+        if (clip.clip.id == "player-v2-move-west") {
+            player_move_west = &clip;
+        } else if (clip.clip.id == "player-v2-idle-east") {
+            player_idle_east = &clip;
+        } else if (clip.clip.id == "player-v2-dodge-west") {
+            player_dodge_west = &clip;
+        } else if (clip.clip.id == "tree-sway") {
+            tree_sway = &clip;
+        }
+    }
+    expect(player_move_west != nullptr &&
+               player_move_west->clip.frames.front().source.x <
+                   player_move_west->clip.frames.back().source.x &&
+               std::ranges::all_of(player_move_west->clip.frames,
+                                   [](const ic2d::AnimationFrame& frame) {
+                                       return frame.flip_x;
+                                   }),
+           "The west gait must play forward while horizontally presenting the east-facing source art.");
+    expect(player_idle_east != nullptr &&
+               std::ranges::all_of(player_idle_east->clip.frames,
+                                   [](const ic2d::AnimationFrame& frame) {
+                                       return !frame.flip_x;
+                                   }),
+           "The V2 east idle must use the authored east-facing source art.");
+    expect(player_move_west != nullptr &&
+               std::ranges::all_of(player_move_west->clip.frames, [](const ic2d::AnimationFrame& frame) {
+                   return frame.duration_ticks >= 5 && frame.duration_ticks <= 7;
+               }),
+           "Player V2 walk timing must preserve the authored 48-tick gait.");
+    std::uint32_t dodge_ticks = 0;
+    if (player_dodge_west != nullptr) {
+        for (const ic2d::AnimationFrame& frame : player_dodge_west->clip.frames) {
+            dodge_ticks += frame.duration_ticks;
+        }
+    }
+    expect(player_dodge_west != nullptr && player_dodge_west->clip.frames.size() == 8 &&
+               dodge_ticks == 12 &&
+               std::ranges::all_of(player_dodge_west->clip.frames,
+                                   [](const ic2d::AnimationFrame& frame) {
+                                       return frame.flip_x;
+                                   }),
+           "The mirrored west dodge must show all eight poses across exactly twelve ticks.");
+    expect(tree_sway != nullptr &&
+               std::ranges::all_of(tree_sway->clip.frames, [](const ic2d::AnimationFrame& frame) {
+                   return frame.duration_ticks >= 12;
+               }),
+           "Tree sway must remain slower than its original rapid loop.");
+
+    const auto tree_prefab = std::ranges::find(scene.prefabs(), "tree", &ic2d::ScenePrefabDefinition::id);
+    expect(tree_prefab != scene.prefabs().end() &&
+               tree_prefab->sprite.normalized_origin.y <= 0.96F,
+           "Tree sprites must sink their visible roots into the authored ground contact point.");
 
     const ic2d::SceneEntityDefinition* player_shadow = nullptr;
     for (const ic2d::SceneEntityDefinition& entity : scene.entities()) {
@@ -257,7 +344,7 @@ void test_rejects_unsafe_asset_path(const std::filesystem::path& root) {
 void test_rejects_unsupported_schema(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "old.scene";
     std::string contents = valid_scene();
-    contents.replace(contents.find("schema=7"), 8, "schema=5");
+    contents.replace(contents.find("schema=10"), 9, "schema=5");
     write_file(path, contents);
     bool rejected = false;
     try {
@@ -275,7 +362,7 @@ void test_scene_document_round_trip_edits_by_uuid(const std::filesystem::path& r
 
     ic2d::SceneDocument document = ic2d::SceneDocument::open(path);
     const auto before = document.entities();
-    expect(document.schema_version() == 7 && before.size() == 3,
+    expect(document.schema_version() == 10 && before.size() == 3,
            "SceneDocument must expose validated schema and entity inspection data.");
     expect(document.rename_entity({3002}, "Renamed prop"),
            "SceneDocument must rename an entity through its stable UUID.");
@@ -347,7 +434,7 @@ void test_scene_document_migrates_schema_five_deterministically(
 ) {
     const std::filesystem::path path = root / "schema-five.scene";
     std::string legacy = valid_scene();
-    legacy.replace(legacy.find("schema=7"), 8, "schema=5");
+    legacy.replace(legacy.find("schema=10"), 9, "schema=5");
     const std::string player_current = "entity=player|3001|";
     legacy.replace(legacy.find(player_current), player_current.size(), "entity=player|");
     const std::string prop_current = "entity=prop|3002|";
@@ -356,7 +443,7 @@ void test_scene_document_migrates_schema_five_deterministically(
 
     const ic2d::SceneDocument migrated = ic2d::SceneDocument::migrate_to_current(path);
     const auto entities = migrated.entities();
-    expect(migrated.schema_version() == 7 && entities.size() == 2,
+    expect(migrated.schema_version() == 10 && entities.size() == 2,
            "Explicit migration must produce a current, inspectable scene document.");
     expect(entities.size() == 2 && entities[0].uuid && entities[1].uuid &&
                entities[0].uuid != entities[1].uuid,
@@ -465,22 +552,84 @@ void test_rejects_repeated_prefab_override_field(const std::filesystem::path& ro
     expect(rejected, "One instance must not override the same field twice.");
 }
 
-void test_scene_document_migrates_schema_six_to_seven(const std::filesystem::path& root) {
+void test_scene_document_migrates_schema_six_to_ten(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "schema-six.scene";
     std::string legacy = valid_scene();
-    legacy.replace(legacy.find("schema=7"), 8, "schema=6");
+    legacy.replace(legacy.find("schema=10"), 9, "schema=6");
     write_file(path, legacy);
 
     const ic2d::SceneDocument migrated = ic2d::SceneDocument::migrate_to_current(path);
-    expect(migrated.schema_version() == 7 && migrated.entities().size() == 2 &&
+    expect(migrated.schema_version() == 10 && migrated.entities().size() == 2 &&
                migrated.prefabs().empty(),
-           "Schema 6 content must migrate to schema 7 without inventing prefab records.");
+           "Schema 6 content must migrate to schema 10 without inventing prefab records.");
     expect(migrated.entities().front().uuid.value == 3001,
            "Schema 6 migration must retain persistent identities that already exist.");
     const std::string first_result = read_file(path);
     static_cast<void>(ic2d::SceneDocument::migrate_to_current(path));
     expect(read_file(path) == first_result,
            "Repeating the schema 6 migration must be idempotent.");
+}
+
+void test_rejects_incomplete_dodge_binding(const std::filesystem::path& root) {
+    const std::filesystem::path path = root / "incomplete-dodge-animation.scene";
+    std::string contents = valid_scene(
+        "animation_binding=player|dodge_south|player-move|false\n");
+    write_file(path, contents);
+    bool rejected = false;
+    try {
+        static_cast<void>(ic2d::SceneDefinition::load(path));
+    } catch (const std::runtime_error& error) {
+        rejected = std::string_view{error.what()}.find("all eight compass") !=
+                   std::string_view::npos;
+    }
+    expect(rejected, "A player that opts into dodge art must bind every direction.");
+}
+
+void test_scene_document_migrates_schema_seven_to_ten(const std::filesystem::path& root) {
+    const std::filesystem::path path = root / "schema-seven.scene";
+    std::string legacy = valid_scene();
+    legacy.replace(legacy.find("schema=10"), 9, "schema=7");
+    write_file(path, legacy);
+
+    const ic2d::SceneDocument migrated = ic2d::SceneDocument::migrate_to_current(path);
+    const ic2d::SceneDefinition runtime_copy = migrated.runtime_copy();
+    expect(migrated.schema_version() == 10 && migrated.entities().size() == 2 &&
+               runtime_copy.auto_animations().empty(),
+           "Schema 7 content must migrate to schema 10 without inventing animation records.");
+    const std::string first_result = read_file(path);
+    static_cast<void>(ic2d::SceneDocument::migrate_to_current(path));
+    expect(read_file(path) == first_result,
+           "Repeating the schema 7 migration must be idempotent.");
+}
+
+void test_scene_document_migrates_schema_eight_to_ten(const std::filesystem::path& root) {
+    const std::filesystem::path path = root / "schema-eight.scene";
+    std::string legacy = valid_scene();
+    legacy.replace(legacy.find("schema=10"), 9, "schema=8");
+    write_file(path, legacy);
+
+    const ic2d::SceneDocument migrated = ic2d::SceneDocument::migrate_to_current(path);
+    expect(migrated.schema_version() == 10 && migrated.entities().size() == 2,
+           "Schema 8 content must migrate to schema 10 without inventing attacker records.");
+    const std::string first_result = read_file(path);
+    static_cast<void>(ic2d::SceneDocument::migrate_to_current(path));
+    expect(read_file(path) == first_result,
+           "Repeating the schema 8 migration must be idempotent.");
+}
+
+void test_scene_document_migrates_schema_nine_to_ten(const std::filesystem::path& root) {
+    const std::filesystem::path path = root / "schema-nine.scene";
+    std::string legacy = valid_scene();
+    legacy.replace(legacy.find("schema=10"), 9, "schema=9");
+    write_file(path, legacy);
+
+    const ic2d::SceneDocument migrated = ic2d::SceneDocument::migrate_to_current(path);
+    expect(migrated.schema_version() == 10 && migrated.entities().size() == 2,
+           "Schema 9 content must migrate to schema 10 without inventing depth spans.");
+    const std::string first_result = read_file(path);
+    static_cast<void>(ic2d::SceneDocument::migrate_to_current(path));
+    expect(read_file(path) == first_result,
+           "Repeating the schema 9 migration must be idempotent.");
 }
 
 } // namespace
@@ -493,26 +642,37 @@ int main() {
     std::filesystem::remove_all(root);
     std::filesystem::create_directories(root);
 
+    std::cerr << "[DEBUG-scene-hang] load fixtures\n";
     test_loads_complete_scene(root);
+    test_loads_automatic_animation_with_phase_offset(root);
     test_loads_second_authored_fixture();
+    std::cerr << "[DEBUG-scene-hang] load runtime content\n";
     test_loads_aseprite_runtime_content();
+    std::cerr << "[DEBUG-scene-hang] rejection cases\n";
     test_rejects_incomplete_locomotion_binding(root);
+    test_rejects_incomplete_dodge_binding(root);
     test_rejects_unknown_binding(root);
     test_rejects_duplicate_ids(root);
     test_rejects_duplicate_entity_uuids(root);
     test_rejects_zero_entity_uuid(root);
     test_rejects_unsafe_asset_path(root);
     test_rejects_unsupported_schema(root);
+    std::cerr << "[DEBUG-scene-hang] document and migration cases\n";
     test_scene_document_round_trip_edits_by_uuid(root);
     test_scene_document_failed_save_preserves_destination(root);
     test_scene_document_migrates_schema_five_deterministically(root);
-    test_scene_document_migrates_schema_six_to_seven(root);
+    test_scene_document_migrates_schema_six_to_ten(root);
+    test_scene_document_migrates_schema_seven_to_ten(root);
+    test_scene_document_migrates_schema_eight_to_ten(root);
+    test_scene_document_migrates_schema_nine_to_ten(root);
     test_expands_prefab_instances_in_authored_order(root);
     test_rejects_unknown_prefab_reference(root);
     test_rejects_prefab_identity_collision(root);
     test_rejects_unknown_prefab_override_target(root);
     test_rejects_repeated_prefab_override_field(root);
+    std::cerr << "[DEBUG-scene-hang] scene editor cases\n";
     failures += run_scene_editor_tests();
+    std::cerr << "[DEBUG-scene-hang] complete\n";
 
     std::filesystem::remove_all(root);
     if (failures == 0) {

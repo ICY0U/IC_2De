@@ -10,7 +10,7 @@ struct CanvasViewport {
     float scale{0.0F};
 };
 
-// Fits a virtual canvas inside an output while preferring integer upscaling.
+// Fits a virtual canvas continuously inside an output while preserving aspect ratio.
 [[nodiscard]] CanvasViewport compute_canvas_viewport(
     int output_width,
     int output_height,

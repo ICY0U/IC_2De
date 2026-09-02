@@ -1,13 +1,35 @@
 #pragma once
 
 #include "ic2d/debug_visuals.hpp"
+#include "ic2d/combat.hpp"
+#include "ic2d/enemy_intent.hpp"
+#include "ic2d/gameplay_state.hpp"
+#include "ic2d/health.hpp"
+#include "ic2d/identity.hpp"
+#include "ic2d/input.hpp"
+#include "ic2d/nav_grid.hpp"
+#include "ic2d/nav_agent.hpp"
+#include "ic2d/nav_pathfinding.hpp"
+#include "ic2d/projectiles.hpp"
 #include "ic2d/scene_editor.hpp"
+#include "ic2d/types.hpp"
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
+#include <optional>
+#include <string>
+#include <vector>
 
 namespace ic2d {
+
+// Backend-independent editor focus policy, kept public so the exact input
+// routing regression can be exercised without creating a GPU window.
+[[nodiscard]] bool editor_blocks_gameplay_input(
+    bool wants_text_input,
+    bool item_active
+) noexcept;
 
 // Read-only runtime figures the shell reports. The editor never reaches into
 // the running scene for them, so it cannot disturb simulation state.
@@ -17,6 +39,7 @@ struct EditorStats {
     std::uint64_t simulated_ticks{0};
     std::size_t entity_count{0};
     std::size_t physics_body_count{0};
+    std::size_t cpu_worker_count{0};
     std::size_t loaded_texture_count{0};
     std::size_t visible_sprites{0};
     std::size_t culled_sprites{0};
@@ -29,9 +52,47 @@ struct EditorStats {
     std::uint32_t estimated_gpu_passes{0};
     std::uint32_t render_target_switches{0};
     std::uint32_t shader_passes{0};
+    std::size_t watched_texture_count{0};
+    std::size_t successful_texture_reloads{0};
+    std::size_t failed_texture_reloads{0};
+    std::optional<GameplayStateDigest> gameplay_digest;
+    NavGridSnapshot navigation_grid{};
+    NavPathResult navigation_path{};
+    NavAgentSnapshot navigation_agents{};
+    InputFrame input{};
+    CombatSnapshot combat{};
+    std::uint64_t observed_combat_intents{0};
+    std::optional<CombatIntentEvent> last_combat_intent;
+    std::optional<DodgeStartedEvent> last_dodge;
+    float dodge_distance_travelled{0.0F};
+    bool dodge_movement_blocked{false};
+    std::uint64_t observed_projectiles{0};
+    std::optional<ProjectileSpawnedEvent> last_projectile;
+    ProjectileSimulationSnapshot projectiles{};
+    std::optional<ProjectileExpiredEvent> last_expired_projectile;
+    std::optional<ProjectileImpactEvent> last_projectile_impact;
+    EnemyIntentSnapshot enemy_intent{};
+    std::optional<EnemyAcquiredTargetEvent> last_enemy_acquisition;
+    std::optional<EnemyAttackRequestedEvent> last_enemy_attack;
+    float enemy_distance_travelled{0.0F};
+    float enemy_damage_applied_to_player{0.0F};
+    bool enemy_attack_damage_enabled{true};
+    bool enemy_movement_blocked{false};
+    std::uint64_t invulnerable_enemy_attacks_rejected{0};
+    HealthSnapshot health{};
+    std::optional<DamageAppliedEvent> last_damage;
+    std::optional<ActorDiedEvent> last_death;
     bool post_process_active{false};
     bool post_process_available{false};
+    bool texture_hot_reload_enabled{false};
     bool paused{false};
+    // Enemy health bars are a development readability aid, not gameplay
+    // state, so the shell toggles them without touching the running scene.
+    bool enemy_health_bars_visible{true};
+    // Authored .scene files discovered beside the loaded one, so the Debug
+    // menu can swap scenes without the shell knowing any content paths.
+    std::vector<std::filesystem::path> selectable_scenes;
+    std::filesystem::path loaded_scene;
 };
 
 // What the shell asks the application to do after a frame of panels. Anything
@@ -40,6 +101,19 @@ struct EditorActions {
     bool apply_document_to_running_scene{false};
     bool reset_running_scene{false};
     bool toggle_pause{false};
+    // Present means rebuild the unsaved running scene with this many total
+    // Runner actors. Zero restores only the authored actors.
+    std::optional<std::size_t> enemy_stress_target_count;
+    // Present means load this authored scene and restart the running copy.
+    std::optional<std::filesystem::path> load_scene_path;
+    // Present means show or hide the non-player health bars.
+    std::optional<bool> enemy_health_bars_visible;
+    // A Ctrl+left click inside the viewport, in canvas pixels. The application owns
+    // the camera and the running scene, so it resolves the click and reports
+    // the result back through select_entity(). The editor stays free of
+    // projection and renderer knowledge.
+    bool viewport_picked{false};
+    Vec2 viewport_pick_canvas_point{};
 };
 
 // The identity of the canvas the viewport panel displays. The value is a
@@ -56,7 +130,9 @@ struct EditorCanvas {
 // behave exactly as they do for any other caller.
 class EditorShell final {
 public:
-    EditorShell();
+    // Empty uses the per-user Local App Data workspace. Tests and portable
+    // tooling may provide an isolated override.
+    explicit EditorShell(std::filesystem::path layout_path = {});
     ~EditorShell();
 
     EditorShell(const EditorShell&) = delete;
@@ -75,10 +151,15 @@ public:
     //
     // The game keeps running behind the panels, so gameplay keys keep reaching
     // it exactly as they do with the shell hidden. They are withheld only while
-    // a panel field is actually collecting them: a text field being typed in, or
-    // a widget being dragged or held.
+    // a text field is collecting keyboard input; mouse ownership is resolved
+    // separately against the actual game viewport.
     [[nodiscard]] bool blocks_gameplay_input() const noexcept;
     [[nodiscard]] bool wants_mouse() const noexcept;
+    [[nodiscard]] std::optional<Vec2> viewport_pointer_canvas() const noexcept;
+
+    // The placement the panels are inspecting. A zero UUID means no selection.
+    [[nodiscard]] EntityUuid selection() const noexcept;
+    void select_entity(EntityUuid uuid) noexcept;
 
     // Call once per frame inside an active drawing pass. Does nothing and
     // returns no actions while the shell is hidden or unavailable.

@@ -1,0 +1,241 @@
+﻿{
+    "frames":  [
+                   {
+                       "filename":  "player-v2-dodge-southeast-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-2",
+                       "frame":  {
+                                     "x":  364,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_events":  [
+                                           "dodge_launch"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-3",
+                       "frame":  {
+                                     "x":  728,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-4",
+                       "frame":  {
+                                     "x":  1092,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-5",
+                       "frame":  {
+                                     "x":  1456,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-6",
+                       "frame":  {
+                                     "x":  1820,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_events":  [
+                                           "dodge_recover"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-7",
+                       "frame":  {
+                                     "x":  2184,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-8",
+                       "frame":  {
+                                     "x":  2548,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-southwest-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-southwest-2",
+                       "frame":  {
+                                     "x":  364,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "dodge_launch"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-southwest-3",
+                       "frame":  {
+                                     "x":  728,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-southwest-4",
+                       "frame":  {
+                                     "x":  1092,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-southwest-5",
+                       "frame":  {
+                                     "x":  1456,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-southwest-6",
+                       "frame":  {
+                                     "x":  1820,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "dodge_recover"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-southwest-7",
+                       "frame":  {
+                                     "x":  2184,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v2-dodge-southeast-southwest-8",
+                       "frame":  {
+                                     "x":  2548,
+                                     "y":  0,
+                                     "w":  364,
+                                     "h":  310
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true
+                   }
+               ],
+    "meta":  {
+                 "app":  "IC_2DE player V2 importer",
+                 "version":  "1.0",
+                 "image":  "player-v2-dodge-southeast.png",
+                 "format":  "RGBA8888",
+                 "size":  {
+                              "w":  2912,
+                              "h":  310
+                          },
+                 "scale":  "1",
+                 "frameTags":  [
+                                   {
+                                       "name":  "player-v2-dodge-southeast",
+                                       "from":  0,
+                                       "to":  7,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "player-v2-dodge-southwest",
+                                       "from":  8,
+                                       "to":  15,
+                                       "direction":  "forward"
+                                   }
+                               ]
+             }
+}

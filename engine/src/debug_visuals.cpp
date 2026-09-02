@@ -28,8 +28,12 @@ std::string_view debug_channel_name(const DebugChannel channel) noexcept {
         return "Elevation map";
     case DebugChannel::world_grid:
         return "World grid";
+    case DebugChannel::navigation_grid:
+        return "Navigation grid";
+    case DebugChannel::navigation_path:
+        return "Navigation path";
     case DebugChannel::stats_overlay:
-        return "Statistics overlay";
+        return "Compact HUD";
     case DebugChannel::lights:
         return "Lights";
     }
@@ -57,7 +61,10 @@ ColorRgba8 debug_elevation_tint(
 
 DebugVisuals::DebugVisuals() noexcept {
     for (std::size_t index = 0; index < debug_channel_count; ++index) {
-        selected_[index] = debug_channel_implemented(static_cast<DebugChannel>(index));
+        const auto channel = static_cast<DebugChannel>(index);
+        selected_[index] = debug_channel_implemented(channel) &&
+                           channel != DebugChannel::navigation_grid &&
+                           channel != DebugChannel::navigation_path;
     }
 }
 

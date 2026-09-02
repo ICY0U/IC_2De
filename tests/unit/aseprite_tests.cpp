@@ -49,6 +49,8 @@ void test_imports_golden_json_array() {
     expect(imported.clips[0].frames[1].events.size() == 1 &&
                imported.clips[0].frames[1].events.front() == "footstep",
            "The optional IC_2DE frame-event extension must survive import.");
+    expect(imported.clips[0].frames[1].flip_x && imported.clips[1].frames[0].flip_x,
+           "The optional horizontal-flip extension must follow a frame through tag ordering.");
 }
 
 void test_rejects_hash_format_and_unsafe_images(const std::filesystem::path& root) {

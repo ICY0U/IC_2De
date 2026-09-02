@@ -1,82 +1,873 @@
 {
   "frames": [
     {
-      "filename": "player idle south",
-      "frame": { "x": 0, "y": 0, "w": 384, "h": 512 },
+      "filename": "player idle south 1",
+      "frame": {
+        "x": 48,
+        "y": 32,
+        "w": 112,
+        "h": 160
+      },
       "rotated": false,
       "trimmed": false,
-      "duration": 100
+      "duration": 180
     },
     {
-      "filename": "player move south",
-      "frame": { "x": 0, "y": 512, "w": 384, "h": 512 },
+      "filename": "player idle south 2",
+      "frame": {
+        "x": 184,
+        "y": 32,
+        "w": 112,
+        "h": 160
+      },
       "rotated": false,
       "trimmed": false,
-      "duration": 100,
-      "ic2d_events": ["footstep"]
+      "duration": 180
     },
     {
-      "filename": "player idle north",
-      "frame": { "x": 384, "y": 0, "w": 384, "h": 512 },
+      "filename": "player idle south 3",
+      "frame": {
+        "x": 320,
+        "y": 33,
+        "w": 112,
+        "h": 160
+      },
       "rotated": false,
       "trimmed": false,
-      "duration": 100
+      "duration": 180
     },
     {
-      "filename": "player move north",
-      "frame": { "x": 384, "y": 512, "w": 384, "h": 512 },
+      "filename": "player idle south 4",
+      "frame": {
+        "x": 454,
+        "y": 33,
+        "w": 112,
+        "h": 160
+      },
       "rotated": false,
       "trimmed": false,
-      "duration": 100,
-      "ic2d_events": ["footstep"]
+      "duration": 180
     },
     {
-      "filename": "player idle west",
-      "frame": { "x": 768, "y": 0, "w": 384, "h": 512 },
+      "filename": "player idle south 5",
+      "frame": {
+        "x": 584,
+        "y": 32,
+        "w": 112,
+        "h": 160
+      },
       "rotated": false,
       "trimmed": false,
-      "duration": 100
+      "duration": 180
     },
     {
-      "filename": "player move west",
-      "frame": { "x": 768, "y": 512, "w": 384, "h": 512 },
+      "filename": "player idle south 6",
+      "frame": {
+        "x": 718,
+        "y": 32,
+        "w": 112,
+        "h": 160
+      },
       "rotated": false,
       "trimmed": false,
-      "duration": 100,
-      "ic2d_events": ["footstep"]
+      "duration": 180
     },
     {
-      "filename": "player idle east",
-      "frame": { "x": 1152, "y": 0, "w": 384, "h": 512 },
+      "filename": "player idle south 7",
+      "frame": {
+        "x": 851,
+        "y": 32,
+        "w": 112,
+        "h": 160
+      },
       "rotated": false,
       "trimmed": false,
-      "duration": 100
+      "duration": 180
     },
     {
-      "filename": "player move east",
-      "frame": { "x": 1152, "y": 512, "w": 384, "h": 512 },
+      "filename": "player idle south 8",
+      "frame": {
+        "x": 976,
+        "y": 33,
+        "w": 112,
+        "h": 160
+      },
       "rotated": false,
       "trimmed": false,
-      "duration": 100,
-      "ic2d_events": ["footstep"]
+      "duration": 180
+    },
+    {
+      "filename": "player move south 1",
+      "frame": {
+        "x": 49,
+        "y": 216,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_events": [
+        "footstep"
+      ]
+    },
+    {
+      "filename": "player move south 2",
+      "frame": {
+        "x": 186,
+        "y": 218,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move south 3",
+      "frame": {
+        "x": 320,
+        "y": 218,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move south 4",
+      "frame": {
+        "x": 452,
+        "y": 217,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move south 5",
+      "frame": {
+        "x": 584,
+        "y": 218,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_events": [
+        "footstep"
+      ]
+    },
+    {
+      "filename": "player move south 6",
+      "frame": {
+        "x": 718,
+        "y": 218,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move south 7",
+      "frame": {
+        "x": 848,
+        "y": 216,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move south 8",
+      "frame": {
+        "x": 976,
+        "y": 216,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player idle north 1",
+      "frame": {
+        "x": 50,
+        "y": 386,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle north 2",
+      "frame": {
+        "x": 186,
+        "y": 387,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle north 3",
+      "frame": {
+        "x": 322,
+        "y": 387,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle north 4",
+      "frame": {
+        "x": 452,
+        "y": 387,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle north 5",
+      "frame": {
+        "x": 584,
+        "y": 387,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle north 6",
+      "frame": {
+        "x": 718,
+        "y": 387,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle north 7",
+      "frame": {
+        "x": 851,
+        "y": 387,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle north 8",
+      "frame": {
+        "x": 978,
+        "y": 387,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player move north 1",
+      "frame": {
+        "x": 48,
+        "y": 554,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_events": [
+        "footstep"
+      ]
+    },
+    {
+      "filename": "player move north 2",
+      "frame": {
+        "x": 185,
+        "y": 556,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move north 3",
+      "frame": {
+        "x": 320,
+        "y": 556,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move north 4",
+      "frame": {
+        "x": 451,
+        "y": 556,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move north 5",
+      "frame": {
+        "x": 584,
+        "y": 556,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_events": [
+        "footstep"
+      ]
+    },
+    {
+      "filename": "player move north 6",
+      "frame": {
+        "x": 718,
+        "y": 556,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move north 7",
+      "frame": {
+        "x": 848,
+        "y": 556,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move north 8",
+      "frame": {
+        "x": 976,
+        "y": 556,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player idle west 1",
+      "frame": {
+        "x": 46,
+        "y": 720,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle west 2",
+      "frame": {
+        "x": 184,
+        "y": 720,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle west 3",
+      "frame": {
+        "x": 320,
+        "y": 720,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle west 4",
+      "frame": {
+        "x": 450,
+        "y": 721,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle west 5",
+      "frame": {
+        "x": 584,
+        "y": 721,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle west 6",
+      "frame": {
+        "x": 717,
+        "y": 721,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle west 7",
+      "frame": {
+        "x": 848,
+        "y": 721,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player idle west 8",
+      "frame": {
+        "x": 974,
+        "y": 721,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180
+    },
+    {
+      "filename": "player move west 1",
+      "frame": {
+        "x": 46,
+        "y": 882,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_events": [
+        "footstep"
+      ],
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player move west 2",
+      "frame": {
+        "x": 184,
+        "y": 882,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player move west 3",
+      "frame": {
+        "x": 320,
+        "y": 882,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player move west 4",
+      "frame": {
+        "x": 451,
+        "y": 882,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player move west 5",
+      "frame": {
+        "x": 585,
+        "y": 882,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_events": [
+        "footstep"
+      ],
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player move west 6",
+      "frame": {
+        "x": 718,
+        "y": 882,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player move west 7",
+      "frame": {
+        "x": 847,
+        "y": 882,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player move west 8",
+      "frame": {
+        "x": 974,
+        "y": 882,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player idle east 1",
+      "frame": {
+        "x": 44,
+        "y": 1047,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player idle east 2",
+      "frame": {
+        "x": 181,
+        "y": 1048,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player idle east 3",
+      "frame": {
+        "x": 318,
+        "y": 1048,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player idle east 4",
+      "frame": {
+        "x": 449,
+        "y": 1046,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player idle east 5",
+      "frame": {
+        "x": 582,
+        "y": 1048,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player idle east 6",
+      "frame": {
+        "x": 715,
+        "y": 1046,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player idle east 7",
+      "frame": {
+        "x": 846,
+        "y": 1048,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player idle east 8",
+      "frame": {
+        "x": 972,
+        "y": 1046,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 180,
+      "ic2d_flip_x": true
+    },
+    {
+      "filename": "player move east 1",
+      "frame": {
+        "x": 48,
+        "y": 1210,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_events": [
+        "footstep"
+      ]
+    },
+    {
+      "filename": "player move east 2",
+      "frame": {
+        "x": 185,
+        "y": 1210,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move east 3",
+      "frame": {
+        "x": 321,
+        "y": 1209,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move east 4",
+      "frame": {
+        "x": 451,
+        "y": 1210,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move east 5",
+      "frame": {
+        "x": 585,
+        "y": 1209,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150,
+      "ic2d_events": [
+        "footstep"
+      ]
+    },
+    {
+      "filename": "player move east 6",
+      "frame": {
+        "x": 718,
+        "y": 1210,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move east 7",
+      "frame": {
+        "x": 848,
+        "y": 1209,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
+    },
+    {
+      "filename": "player move east 8",
+      "frame": {
+        "x": 974,
+        "y": 1209,
+        "w": 112,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 150
     }
   ],
   "meta": {
-    "app": "IC_2DE Aseprite-compatible content pipeline",
-    "version": "1",
+    "app": "IC_2DE authored sprite pipeline",
+    "version": "3",
     "image": "player-atlas.png",
     "format": "RGBA8888",
-    "size": { "w": 1536, "h": 1024 },
+    "size": {
+      "w": 1122,
+      "h": 1402
+    },
     "scale": "1",
     "frameTags": [
-      { "name": "player-idle-south", "from": 0, "to": 0, "direction": "pingpong" },
-      { "name": "player-move-south", "from": 0, "to": 1, "direction": "forward" },
-      { "name": "player-idle-north", "from": 2, "to": 2, "direction": "pingpong" },
-      { "name": "player-move-north", "from": 2, "to": 3, "direction": "forward" },
-      { "name": "player-idle-west", "from": 4, "to": 4, "direction": "pingpong" },
-      { "name": "player-move-west", "from": 4, "to": 5, "direction": "forward" },
-      { "name": "player-idle-east", "from": 6, "to": 6, "direction": "pingpong" },
-      { "name": "player-move-east", "from": 6, "to": 7, "direction": "forward" }
+      {
+        "name": "player-idle-south",
+        "from": 0,
+        "to": 7,
+        "direction": "forward"
+      },
+      {
+        "name": "player-move-south",
+        "from": 8,
+        "to": 15,
+        "direction": "forward"
+      },
+      {
+        "name": "player-idle-north",
+        "from": 16,
+        "to": 23,
+        "direction": "forward"
+      },
+      {
+        "name": "player-move-north",
+        "from": 24,
+        "to": 31,
+        "direction": "forward"
+      },
+      {
+        "name": "player-idle-west",
+        "from": 32,
+        "to": 39,
+        "direction": "forward"
+      },
+      {
+        "name": "player-move-west",
+        "from": 40,
+        "to": 47,
+        "direction": "forward"
+      },
+      {
+        "name": "player-idle-east",
+        "from": 48,
+        "to": 55,
+        "direction": "forward"
+      },
+      {
+        "name": "player-move-east",
+        "from": 56,
+        "to": 63,
+        "direction": "forward"
+      }
     ]
   }
 }

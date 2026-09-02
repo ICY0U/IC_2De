@@ -17,10 +17,16 @@ enum class AnimationLoopMode {
     ping_pong,
 };
 
+enum class AnimationTransitionMode {
+    restart,
+    preserve_cycle_phase,
+};
+
 struct AnimationFrame {
     RectF source{};
     std::uint32_t duration_ticks{1};
     std::vector<std::string> events;
+    bool flip_x{false};
 };
 
 struct AnimationClip {
@@ -42,6 +48,7 @@ struct AnimationSample {
     std::size_t frame_index{0};
     bool paused{false};
     bool finished{false};
+    bool flip_x{false};
 };
 
 // Deterministic integer-tick clip playback. Construction validates the complete
@@ -58,6 +65,9 @@ public:
 
     // Returns true when playback state changed. Unknown clip ids throw.
     [[nodiscard]] bool play(std::string_view clip_id, bool restart = false);
+    // Phase-preserving transitions keep locomotion gait aligned when the
+    // selected directional clip changes. Once clips fall back to a restart.
+    [[nodiscard]] bool play(std::string_view clip_id, AnimationTransitionMode transition);
     void set_paused(bool paused) noexcept;
     void reset() noexcept;
 

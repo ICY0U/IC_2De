@@ -19,6 +19,11 @@ struct ProjectedPoint25D {
     float depth{0.0F};
 };
 
+struct GroundMovement25D {
+    Vec2 world_direction{};
+    Vec2 presentation_direction{};
+};
+
 [[nodiscard]] bool valid(const Camera25DState& camera) noexcept;
 
 // Projects a world point relative to the camera focus. The returned position is
@@ -31,6 +36,56 @@ struct ProjectedPoint25D {
 // Converts screen-relative ground input (right, forward) into an X/Z direction.
 [[nodiscard]] Vec3 camera_ground_direction_to_world(
     const Vec2& camera_direction,
+    const Camera25DState& camera
+) noexcept;
+
+// Inverse yaw transform used when world-space aim must select a screen-facing
+// animation direction.
+[[nodiscard]] Vec2 world_ground_direction_to_camera(
+    const Vec2& world_direction,
+    const Camera25DState& camera
+) noexcept;
+
+// Resolves a virtual-canvas pointer into a normalized X/Z direction from a
+// world origin. This is the inverse of the camera's ground projection at the
+// origin's elevation; invalid inputs or a pointer exactly on the origin return
+// zero rather than manufacturing an aim direction.
+[[nodiscard]] Vec2 canvas_ground_direction(
+    const Vec3& world_origin,
+    const Vec2& canvas_point,
+    int canvas_width,
+    int canvas_height,
+    const Camera25DState& camera
+) noexcept;
+
+// A billboard sprite carries one position and one sort depth, so it can only
+// represent geometry that occupies a single depth. A wall running along the
+// depth axis does not: both its screen position and its ordering against other
+// sprites vary continuously along its length. The engine therefore resolves a
+// depth-spanning sprite into a run of overlapping slices, each submitted at its
+// own depth, which is what lets one authored wall sort correctly against actors
+// standing anywhere beside it.
+struct DepthSlicePlan {
+    int count{1};
+    float step{0.0F};           // World depth between neighbouring centres.
+    float first_center_z{0.0F}; // Centre of the nearest slice.
+};
+
+// Chooses the fewest slices whose projected heights still overlap, so the run
+// reads as one unbroken surface rather than a staircase. A span at or below
+// zero, or an unusable camera pitch, plans the single slice a plain sprite
+// already draws.
+[[nodiscard]] DepthSlicePlan plan_depth_slices(
+    float center_z,
+    float depth_span,
+    float sprite_height,
+    float pitch_degrees
+) noexcept;
+
+// Keeps screen-relative facing separate from the camera-rotated world vector
+// used by simulation.
+[[nodiscard]] GroundMovement25D camera_ground_movement(
+    Vec2 camera_direction,
     const Camera25DState& camera
 ) noexcept;
 

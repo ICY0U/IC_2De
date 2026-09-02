@@ -38,7 +38,7 @@ void editor_write_file(const std::filesystem::path& path, const std::string_view
 // tests exercise the same records real authored content uses.
 [[nodiscard]] std::string editor_scene() {
     std::string contents =
-        "schema=7\n"
+        "schema=9\n"
         "id=editor-fixture\n"
         "world_space=x_y_z\n"
         "ground_plane=x_z\n"

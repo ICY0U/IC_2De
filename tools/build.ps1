@@ -5,9 +5,14 @@ param(
 
     [switch]$RunTests,
     [switch]$Launch,
+    [switch]$EditorOnly,
     [switch]$Shipping,
     [switch]$Install,
-    [string]$InstallPrefix
+    [string]$InstallPrefix,
+
+    # Extra arguments forwarded to the executable started by -Launch, so
+    # editor buttons can select a scene without editing this script.
+    [string[]]$LaunchArgs = @()
 )
 
 $ErrorActionPreference = "Stop"
@@ -49,6 +54,15 @@ if ($Shipping -and $Configuration -ne "Release") {
 if ($Shipping -and $RunTests) {
     throw "The shipping preset excludes test targets; run Release tests separately."
 }
+if ($EditorOnly -and $Shipping) {
+    throw "-EditorOnly and -Shipping select different build products."
+}
+if ($EditorOnly -and $Install) {
+    throw "Editor-only packaging is handled by tools/package-editor.ps1."
+}
+if ($EditorOnly -and $RunTests) {
+    throw "Editor-only builds exclude the full test target; run tests as a separate checkpoint."
+}
 $preset = if ($Shipping) { "windows-shipping" } else { "windows-$($Configuration.ToLowerInvariant())" }
 
 Push-Location $repoRoot
@@ -56,7 +70,12 @@ try {
     & $cmake --preset $preset
     if ($LASTEXITCODE -ne 0) { throw "CMake configure failed." }
 
-    & $cmake --build --preset $preset
+    if ($EditorOnly) {
+        & $cmake --build --preset $preset --target ic2de_editor_app
+    }
+    else {
+        & $cmake --build --preset $preset
+    }
     if ($LASTEXITCODE -ne 0) { throw "Build failed." }
 
     if ($RunTests) {
@@ -75,10 +94,18 @@ try {
     }
 
     if ($Launch) {
-        $executableName = if ($Shipping) { "IC_2DE.exe" } else { "ic2de_testbed.exe" }
+        $executableName = if ($EditorOnly) {
+            "IC_2DE-Editor.exe"
+        }
+        elseif ($Shipping) {
+            "IC_2DE.exe"
+        }
+        else {
+            "ic2de_testbed.exe"
+        }
         $executable = Join-Path $repoRoot "build\$preset\$executableName"
-        & $executable
-        if ($LASTEXITCODE -ne 0) { throw "The testbed exited with code $LASTEXITCODE." }
+        & $executable @LaunchArgs
+        if ($LASTEXITCODE -ne 0) { throw "The selected executable exited with code $LASTEXITCODE." }
     }
 }
 finally {

@@ -82,7 +82,8 @@ RenderDiagnostics2D RaylibRenderer2D::render(
 ) const {
     RenderDiagnostics2D diagnostics{
         .submitted_ground_quads = frame.ground_quads().size(),
-        .submitted_sprites = frame.sprites().size(),
+        .submitted_sprites = frame.submitted_sprites(),
+        .culled_sprites = frame.culled_sprites(),
     };
     std::optional<std::uint64_t> previous_material;
 
@@ -111,12 +112,9 @@ RenderDiagnostics2D RaylibRenderer2D::render(
         DrawTriangleFan(points, 4, to_raylib_color(ground_quad.tint));
     }
 
+    // Culling happened at submission, so every sprite reaching the renderer is
+    // one it is going to draw.
     for (const SpriteSubmission2D& sprite : frame.sprites()) {
-        if (!visible(sprite, frame.camera(), canvas_width, canvas_height)) {
-            ++diagnostics.culled_sprites;
-            continue;
-        }
-
         ++diagnostics.visible_sprites;
         diagnostics.visible_vertices += 4U;
         const float width = sprite.size.x * sprite.scale.x;
@@ -135,12 +133,15 @@ RenderDiagnostics2D RaylibRenderer2D::render(
             }
 
             if (slot) {
-                const Rectangle source = sprite.source.width > 0.0F && sprite.source.height > 0.0F
-                                             ? Rectangle{sprite.source.x, sprite.source.y,
-                                                         sprite.source.width, sprite.source.height}
-                                             : Rectangle{0.0F, 0.0F,
-                                                         static_cast<float>(slot->texture.width),
-                                                         static_cast<float>(slot->texture.height)};
+                Rectangle source = sprite.source.width > 0.0F && sprite.source.height > 0.0F
+                                       ? Rectangle{sprite.source.x, sprite.source.y,
+                                                   sprite.source.width, sprite.source.height}
+                                       : Rectangle{0.0F, 0.0F,
+                                                   static_cast<float>(slot->texture.width),
+                                                   static_cast<float>(slot->texture.height)};
+                if (sprite.flip_x) {
+                    source.width = -source.width;
+                }
                 DrawTexturePro(slot->texture, source, destination, origin, sprite.rotation_degrees, tint);
                 current_material = material_key(resolved_handle);
             }

@@ -69,6 +69,7 @@ function(ic2de_set_project_warnings target)
 endfunction()
 
 add_library(ic2de_core STATIC
+    engine/src/core/automated_run.cpp
     engine/src/core/fixed_step_clock.cpp
     engine/src/core/frame_telemetry.cpp
     engine/src/core/log.cpp
@@ -110,6 +111,51 @@ target_include_directories(ic2de_ground PUBLIC engine/include)
 target_compile_features(ic2de_ground PUBLIC cxx_std_20)
 ic2de_set_project_warnings(ic2de_ground)
 
+add_library(ic2de_nav_grid STATIC
+    engine/src/nav_grid.cpp
+)
+add_library(IC2DE::NavGrid ALIAS ic2de_nav_grid)
+target_include_directories(ic2de_nav_grid PUBLIC engine/include)
+target_link_libraries(ic2de_nav_grid PUBLIC IC2DE::Ground)
+target_compile_features(ic2de_nav_grid PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_nav_grid)
+
+add_library(ic2de_nav_pathfinding STATIC
+    engine/src/nav_pathfinding.cpp
+)
+add_library(IC2DE::NavPathfinding ALIAS ic2de_nav_pathfinding)
+target_include_directories(ic2de_nav_pathfinding PUBLIC engine/include)
+target_link_libraries(ic2de_nav_pathfinding PUBLIC IC2DE::NavGrid)
+target_compile_features(ic2de_nav_pathfinding PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_nav_pathfinding)
+
+add_library(ic2de_nav_agent STATIC
+    engine/src/nav_agent.cpp
+)
+add_library(IC2DE::NavAgent ALIAS ic2de_nav_agent)
+target_include_directories(ic2de_nav_agent PUBLIC engine/include)
+target_link_libraries(ic2de_nav_agent PUBLIC IC2DE::NavPathfinding)
+target_compile_features(ic2de_nav_agent PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_nav_agent)
+
+add_library(ic2de_flow_field STATIC
+    engine/src/flow_field.cpp
+)
+add_library(IC2DE::FlowField ALIAS ic2de_flow_field)
+target_include_directories(ic2de_flow_field PUBLIC engine/include)
+target_link_libraries(ic2de_flow_field PUBLIC IC2DE::NavGrid)
+target_compile_features(ic2de_flow_field PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_flow_field)
+
+add_library(ic2de_crowd STATIC
+    engine/src/crowd_separation.cpp
+)
+add_library(IC2DE::Crowd ALIAS ic2de_crowd)
+target_include_directories(ic2de_crowd PUBLIC engine/include)
+target_link_libraries(ic2de_crowd PUBLIC IC2DE::Jobs)
+target_compile_features(ic2de_crowd PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_crowd)
+
 add_library(ic2de_physics STATIC
     engine/src/physics2d.cpp
 )
@@ -126,6 +172,50 @@ add_library(IC2DE::Input ALIAS ic2de_input)
 target_include_directories(ic2de_input PUBLIC engine/include)
 target_compile_features(ic2de_input PUBLIC cxx_std_20)
 ic2de_set_project_warnings(ic2de_input)
+
+add_library(ic2de_combat STATIC
+    engine/src/combat.cpp
+)
+add_library(IC2DE::Combat ALIAS ic2de_combat)
+target_include_directories(ic2de_combat PUBLIC engine/include)
+target_compile_features(ic2de_combat PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_combat)
+
+add_library(ic2de_enemy_intent STATIC
+    engine/src/enemy_intent.cpp
+)
+add_library(IC2DE::EnemyIntent ALIAS ic2de_enemy_intent)
+target_include_directories(ic2de_enemy_intent PUBLIC engine/include)
+target_compile_features(ic2de_enemy_intent PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_enemy_intent)
+
+add_library(ic2de_projectiles STATIC
+    engine/src/projectiles.cpp
+)
+add_library(IC2DE::Projectiles ALIAS ic2de_projectiles)
+target_include_directories(ic2de_projectiles PUBLIC engine/include)
+target_link_libraries(ic2de_projectiles PUBLIC IC2DE::Combat)
+target_compile_features(ic2de_projectiles PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_projectiles)
+
+add_library(ic2de_health STATIC
+    engine/src/health.cpp
+)
+add_library(IC2DE::Health ALIAS ic2de_health)
+target_include_directories(ic2de_health PUBLIC engine/include)
+target_compile_features(ic2de_health PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_health)
+
+add_library(ic2de_gameplay_state STATIC
+    engine/src/gameplay_state.cpp
+)
+add_library(IC2DE::GameplayState ALIAS ic2de_gameplay_state)
+target_include_directories(ic2de_gameplay_state PUBLIC engine/include)
+target_link_libraries(ic2de_gameplay_state
+    PUBLIC IC2DE::Combat IC2DE::EnemyIntent IC2DE::Health IC2DE::NavAgent IC2DE::Projectiles IC2DE::World
+)
+target_compile_features(ic2de_gameplay_state PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_gameplay_state)
 
 add_library(ic2de_presentation STATIC
     engine/src/presentation.cpp
@@ -208,7 +298,7 @@ add_library(ic2de_scene STATIC
 add_library(IC2DE::Scene ALIAS ic2de_scene)
 target_include_directories(ic2de_scene PUBLIC engine/include)
 target_link_libraries(ic2de_scene
-    PUBLIC IC2DE::Animation IC2DE::Flow IC2DE::Ground IC2DE::Locomotion IC2DE::Physics IC2DE::World
+    PUBLIC IC2DE::Animation IC2DE::Flow IC2DE::Ground IC2DE::Jobs IC2DE::Locomotion IC2DE::Physics IC2DE::World
     PRIVATE IC2DE::Aseprite IC2DE::Assets IC2DE::Render
 )
 target_compile_features(ic2de_scene PUBLIC cxx_std_20)
@@ -235,7 +325,9 @@ if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
     target_compile_features(ic2de_imgui PUBLIC cxx_std_20)
 
     add_library(ic2de_editor STATIC
+        engine/src/editor/editor_layout.cpp
         engine/src/editor/editor_shell.cpp
+        engine/src/editor/editor_ui.cpp
         engine/src/editor/imgui_raylib_backend.cpp
     )
     add_library(IC2DE::Editor ALIAS ic2de_editor)
@@ -243,7 +335,7 @@ if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
     target_include_directories(ic2de_editor PRIVATE engine/src)
     target_link_libraries(ic2de_editor
         PUBLIC IC2DE::Debug IC2DE::Scene
-        PRIVATE IC2DE::Core ic2de_imgui raylib
+        PRIVATE IC2DE::Combat IC2DE::Core IC2DE::EnemyIntent IC2DE::Health IC2DE::Input IC2DE::NavAgent IC2DE::NavPathfinding IC2DE::Projectiles ic2de_imgui raylib
     )
     target_compile_features(ic2de_editor PUBLIC cxx_std_20)
     ic2de_set_project_warnings(ic2de_editor)
@@ -251,6 +343,7 @@ endif()
 
 add_library(ic2de_runtime STATIC
     engine/src/application.cpp
+    engine/src/core/renderdoc_capture.cpp
     engine/src/input/raylib_input_adapter.cpp
     engine/src/render/frame_pipeline.cpp
     engine/src/render/gpu_backdrop.cpp
@@ -261,7 +354,7 @@ target_include_directories(ic2de_runtime PUBLIC engine/include)
 target_include_directories(ic2de_runtime PRIVATE engine/src)
 target_link_libraries(ic2de_runtime
     PUBLIC IC2DE::Core
-    PRIVATE IC2DE::Assets IC2DE::Debug IC2DE::Ground IC2DE::Input IC2DE::Jobs IC2DE::Physics IC2DE::Presentation IC2DE::Project IC2DE::Render IC2DE::Scene IC2DE::World raylib
+    PRIVATE IC2DE::Assets IC2DE::Combat IC2DE::Crowd IC2DE::Debug IC2DE::FlowField IC2DE::EnemyIntent IC2DE::GameplayState IC2DE::Ground IC2DE::Health IC2DE::Input IC2DE::Jobs IC2DE::NavAgent IC2DE::NavGrid IC2DE::NavPathfinding IC2DE::Physics IC2DE::Presentation IC2DE::Project IC2DE::Projectiles IC2DE::Render IC2DE::Scene IC2DE::World raylib
 )
 if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
     target_link_libraries(ic2de_runtime PRIVATE IC2DE::Editor)
@@ -347,6 +440,7 @@ if(IC2DE_BUILD_TESTS)
     enable_testing()
 
     add_executable(ic2de_core_tests
+        tests/unit/automated_run_tests.cpp
         tests/unit/fixed_step_clock_tests.cpp
     )
     target_link_libraries(ic2de_core_tests PRIVATE IC2DE::Core)
@@ -379,6 +473,59 @@ if(IC2DE_BUILD_TESTS)
     ic2de_set_project_warnings(ic2de_input_tests)
     add_test(NAME ic2de.input COMMAND ic2de_input_tests)
 
+    if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
+        add_executable(ic2de_editor_input_tests
+            tests/unit/editor_input_tests.cpp
+        )
+        target_link_libraries(ic2de_editor_input_tests PRIVATE IC2DE::Editor)
+        target_include_directories(ic2de_editor_input_tests PRIVATE engine/src)
+        target_compile_features(ic2de_editor_input_tests PRIVATE cxx_std_20)
+        ic2de_set_project_warnings(ic2de_editor_input_tests)
+        add_test(NAME ic2de.editor_input COMMAND ic2de_editor_input_tests)
+    endif()
+
+    add_executable(ic2de_combat_tests
+        tests/unit/combat_tests.cpp
+    )
+    target_link_libraries(ic2de_combat_tests PRIVATE IC2DE::Combat)
+    target_compile_features(ic2de_combat_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_combat_tests)
+    add_test(NAME ic2de.combat COMMAND ic2de_combat_tests)
+
+    add_executable(ic2de_enemy_intent_tests
+        tests/unit/enemy_intent_tests.cpp
+    )
+    target_link_libraries(ic2de_enemy_intent_tests PRIVATE IC2DE::EnemyIntent)
+    target_compile_features(ic2de_enemy_intent_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_enemy_intent_tests)
+    add_test(NAME ic2de.enemy_intent COMMAND ic2de_enemy_intent_tests)
+
+    add_executable(ic2de_projectile_tests
+        tests/unit/projectile_tests.cpp
+    )
+    target_link_libraries(ic2de_projectile_tests PRIVATE IC2DE::Projectiles)
+    target_compile_features(ic2de_projectile_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_projectile_tests)
+    add_test(NAME ic2de.projectiles COMMAND ic2de_projectile_tests)
+
+    add_executable(ic2de_health_tests
+        tests/unit/health_tests.cpp
+    )
+    target_link_libraries(ic2de_health_tests PRIVATE IC2DE::Health)
+    target_compile_features(ic2de_health_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_health_tests)
+    add_test(NAME ic2de.health COMMAND ic2de_health_tests)
+
+    add_executable(ic2de_gameplay_state_tests
+        tests/unit/gameplay_state_tests.cpp
+    )
+    target_link_libraries(ic2de_gameplay_state_tests
+        PRIVATE IC2DE::GameplayState
+    )
+    target_compile_features(ic2de_gameplay_state_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_gameplay_state_tests)
+    add_test(NAME ic2de.gameplay_state COMMAND ic2de_gameplay_state_tests)
+
     add_executable(ic2de_locomotion_tests
         tests/unit/locomotion_tests.cpp
     )
@@ -386,6 +533,17 @@ if(IC2DE_BUILD_TESTS)
     target_compile_features(ic2de_locomotion_tests PRIVATE cxx_std_20)
     ic2de_set_project_warnings(ic2de_locomotion_tests)
     add_test(NAME ic2de.locomotion COMMAND ic2de_locomotion_tests)
+
+    add_executable(ic2de_assets_tests
+        tests/unit/assets_tests.cpp
+    )
+    target_link_libraries(ic2de_assets_tests PRIVATE IC2DE::Assets raylib)
+    target_compile_features(ic2de_assets_tests PRIVATE cxx_std_20)
+    target_compile_definitions(ic2de_assets_tests PRIVATE
+        IC2DE_RUNTIME_ASSET_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/game/assets/runtime"
+    )
+    ic2de_set_project_warnings(ic2de_assets_tests)
+    add_test(NAME ic2de.assets COMMAND ic2de_assets_tests)
 
     add_executable(ic2de_project_tests
         tests/unit/runtime_project_tests.cpp
@@ -402,6 +560,46 @@ if(IC2DE_BUILD_TESTS)
     target_compile_features(ic2de_ground_tests PRIVATE cxx_std_20)
     ic2de_set_project_warnings(ic2de_ground_tests)
     add_test(NAME ic2de.ground COMMAND ic2de_ground_tests)
+
+    add_executable(ic2de_nav_grid_tests
+        tests/unit/nav_grid_tests.cpp
+    )
+    target_link_libraries(ic2de_nav_grid_tests PRIVATE IC2DE::NavGrid)
+    target_compile_features(ic2de_nav_grid_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_nav_grid_tests)
+    add_test(NAME ic2de.nav_grid COMMAND ic2de_nav_grid_tests)
+
+    add_executable(ic2de_nav_pathfinding_tests
+        tests/unit/nav_pathfinding_tests.cpp
+    )
+    target_link_libraries(ic2de_nav_pathfinding_tests PRIVATE IC2DE::NavPathfinding)
+    target_compile_features(ic2de_nav_pathfinding_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_nav_pathfinding_tests)
+    add_test(NAME ic2de.nav_pathfinding COMMAND ic2de_nav_pathfinding_tests)
+
+    add_executable(ic2de_nav_agent_tests
+        tests/unit/nav_agent_tests.cpp
+    )
+    target_link_libraries(ic2de_nav_agent_tests PRIVATE IC2DE::NavAgent)
+    target_compile_features(ic2de_nav_agent_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_nav_agent_tests)
+    add_test(NAME ic2de.nav_agent COMMAND ic2de_nav_agent_tests)
+
+    add_executable(ic2de_flow_field_tests
+        tests/unit/flow_field_tests.cpp
+    )
+    target_link_libraries(ic2de_flow_field_tests PRIVATE IC2DE::FlowField IC2DE::NavPathfinding)
+    target_compile_features(ic2de_flow_field_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_flow_field_tests)
+    add_test(NAME ic2de.flow_field COMMAND ic2de_flow_field_tests)
+
+    add_executable(ic2de_crowd_tests
+        tests/unit/crowd_separation_tests.cpp
+    )
+    target_link_libraries(ic2de_crowd_tests PRIVATE IC2DE::Crowd)
+    target_compile_features(ic2de_crowd_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_crowd_tests)
+    add_test(NAME ic2de.crowd_separation COMMAND ic2de_crowd_tests)
 
     add_executable(ic2de_physics_tests
         tests/unit/physics2d_tests.cpp
@@ -488,6 +686,16 @@ if(IC2DE_BUILD_TESTS)
         add_test(NAME ic2de.testbed_startup COMMAND ic2de_testbed --validate-content)
         set_tests_properties(ic2de.testbed_startup PROPERTIES
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:ic2de_testbed>"
+        )
+    endif()
+
+    # Crowd actors hold no rigid body, so nothing in the unit suite can cover
+    # their being shot: it needs a real scene, projectiles and health. This
+    # opens a window, so it is only registered where the editor build exists.
+    if(TARGET ic2de_editor_app)
+        add_test(NAME ic2de.crowd_kill COMMAND ic2de_editor_app --smoke-crowd-kill)
+        set_tests_properties(ic2de.crowd_kill PROPERTIES
+            WORKING_DIRECTORY "$<TARGET_FILE_DIR:ic2de_editor_app>"
         )
     endif()
 endif()

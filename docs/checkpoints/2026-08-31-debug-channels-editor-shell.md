@@ -34,6 +34,14 @@ The `lights` channel is deliberately present and unavailable rather than omitted
 - **Statistics** reports frame, tick, entity, body, texture, and batch figures, the document's saved state, and save/apply/pause/reset controls.
 - **Debug channels** exposes the same switches F1 drives.
 
+### Selection
+
+Clicking a sprite in the viewport selects it. The shell reports the click as a canvas-space point and nothing more; the application owns the camera and the running scene, so it resolves the point and reports the placement back through `select_entity()`. The editor therefore needs no projection, camera, or renderer knowledge, and the picker cannot drift from what is drawn because it rebuilds the renderer's own destination rectangle and walks it in the renderer's layer-then-depth order.
+
+The hit placement is outlined in the viewport, opened in the inspector, and scrolled into view in the hierarchy. Clicking empty ground clears the selection rather than leaving a stale one.
+
+Reading the document parses its text, so the shell caches the entity and prefab views and rebuilds them only when `SceneEditor::revision()` changes. Before that the panels re-parsed the whole scene twice per frame, which was invisible at fourteen entities and would not have stayed that way.
+
 ### Input routing
 
 The game keeps running behind the panels, so the character stays drivable with the editor open. Movement keys are withheld only while a panel field is actually collecting them - a text field being typed in, or a widget being dragged or held - which the Statistics panel reports as "Movement keys: game" or "Movement keys: editor field being edited".
@@ -67,6 +75,7 @@ The packaged editor comes from the Release preset: development tools stay compil
 - Debug CTest: 15 of 15 passed. Release CTest: 15 of 15 passed.
 - Release presentation verification at 30 Hz, 60 Hz, 120 Hz, monitor-matched, and uncapped retained replay hash `7074030210802259671`.
 - A 300-tick automated run with the editor open reported the same replay hash, so the shell does not perturb simulation.
+- Driving the window with a synthetic click at viewport pixel (793, 310) resolved to canvas point (466.7, 214.8) and selected UUID 1004, the `near-tree` prefab instance, with the hierarchy, inspector, and viewport outline all following.
 - Driving the window with a synthetic held key produced identical results with and without the editor: holding D reached camera `-102.546104/-131.836731` in both the editor build and the plain testbed, holding A moved the opposite way, and an editor run with no input stayed exactly at the `-220/-170` spawn focus.
 - Captured frames confirm both states: with channels on, the elevation ramp, trigger volume, solid areas, static boundary bodies, grid, and overlay all render; with `--no-debug-visuals`, the canvas shows only shipped content.
 - The packaged Shipping GPU smoke loaded schema 7 with fourteen entities, ten physics bodies, and fourteen stable UUIDs, completed 300 ticks, retained the replay hash, and shut down cleanly.
@@ -77,8 +86,9 @@ The packaged editor comes from the Release preset: development tools stay compil
 
 ## Known gaps
 
-- Viewport input is display-only: clicking in the viewport does not pick entities, and there is no gizmo.
-- The editor reads the authored document, not the live World, so hierarchy selection does not highlight the running entity.
+- There is no gizmo: a selected placement is moved through the inspector's numeric fields, not by dragging it in the viewport.
+- The hierarchy lists authored document records. Picking resolves against the live World, but the list itself does not show runtime-only state.
+- Picking and the selection outline each copy a World snapshot on the frames they run. That is bounded by the scene's entity count and only happens in the editor path, but it is not free.
 - No content browser, console log panel, or profiler yet, and no isolated play/stop mode beyond "Apply to running scene".
 - Multi-viewport (`ImGuiConfigFlags_ViewportsEnable`) is off; panels stay inside the main window.
 

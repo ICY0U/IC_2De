@@ -15,7 +15,7 @@ start_scene=test_area.scene
 
 `asset_directory` and `start_scene` must be safe relative paths. Absolute paths, rooted paths, and any `..` component are rejected. The start scene is resolved beneath the manifest's asset directory.
 
-## Authored scene - schema 7
+## Authored scene - schema 10
 
 A scene describes the playable ground plane, camera, simulation policy, texture assets, physics bodies, visible entities, and animation. The development testbed loads `game/assets/runtime/test_area.scene`; a packaged runtime reaches the same file through its runtime project manifest.
 
@@ -23,7 +23,7 @@ Required singleton settings:
 
 | Key | Value fields |
 |---|---|
-| `schema` | Must be `7`. |
+| `schema` | Must be `10`. |
 | `id` | Unique document identifier using letters, digits, `_`, `-`, or `.`. |
 | `world_space` | Must be `x_y_z`. |
 | `ground_plane` | Must be `x_z`. |
@@ -74,7 +74,7 @@ This record creates both a file texture and all clips declared by the metadata's
 aseprite -b player.aseprite --sheet player.png --data player.json --format json-array --list-tags
 ```
 
-The adapter consumes `frames[].frame`, millisecond `duration`, `meta.image`, `meta.size`, and inclusive `meta.frameTags` ranges. Directions `forward`, `reverse`, `pingpong`, and `pingpong_reverse` map to engine-owned loop modes and frame order. The optional per-frame `ic2d_events` string array is an IC_2DE extension for event IDs such as `footstep`.
+The adapter consumes `frames[].frame`, millisecond `duration`, `meta.image`, `meta.size`, and inclusive `meta.frameTags` ranges. Directions `forward`, `reverse`, `pingpong`, and `pingpong_reverse` map to engine-owned loop modes and frame order. Optional IC_2DE per-frame extensions are `ic2d_events`, a string array for event IDs such as `footstep`, and `ic2d_flip_x`, a boolean that mirrors the selected source rectangle horizontally without modifying the atlas.
 
 Durations are quantized once at load time using `max(1, (milliseconds * fixed_update_hz + 500) / 1000)`. The integer rule is deterministic and independent of presentation FPS. Hash-format JSON, empty tags, invalid ranges, duplicate/invalid clip IDs, rotated or trimmed frames, out-of-sheet rectangles, unsafe paths, and missing atlases fail before graphics startup. Metadata and `meta.image` must remain beneath the scene directory.
 
@@ -86,21 +86,49 @@ ground_area=kind|x|z|width|depth|elevation|tag
 
 `kind` is `solid`, `elevation`, or `trigger`. Elevation areas use `elevation`; triggers use the integer `tag`. Unused fields remain explicit so every record has one stable shape.
 
+### Derived navigation grid
+
+Navigation data is derived at runtime; schema 10 adds no authored navigation record. `NavGrid` bakes an immutable dense row-major X/Z grid from `walkable_bounds`, `max_step_height`, and the current ground areas. The current editor checkpoint uses 20-world-unit cells and derives conservative agent clearance from the largest authored attacker footprint (falling back to the player when no attacker exists). In `test_area.scene` that produces 64 x 46 cells with 10 x 6 half-extents.
+
+The minimum X/Z bounds are inclusive and the far edges are exclusive. Each cell stores a canonical center, sampled elevation, and walkability. A cell is hard blocked when the full agent footprint leaves the walkable bounds or strictly overlaps a `solid` area. `trigger` areas do not affect topology; `elevation` areas provide the 2.5D heightfield.
+
+The bake also labels connected regions using that same neighbor contract, so component equality and reachability cannot disagree. Blocked cells are region zero. A search whose start and goal fall in different regions returns `unreachable` immediately with zero expanded cells, instead of expanding the whole of the start region to rediscover it on every request. This matters wherever content deliberately seals an area off, such as the enclosed player spawn in `perf_test.scene`.
+
+Neighbors are returned in a stable clockwise order beginning at negative Z. Cardinal and diagonal destinations must be walkable and within `max_step_height`; a diagonal also requires both cardinal flank cells to be traversable from the source. Distances are stored in world units. A blocked source exposes no edges.
+
+`snapshot()` returns a copy; `topology()` borrows the same data for the lifetime of the grid and is what search uses, so a path request does not duplicate every cell before reading the request. The snapshot is rebuilt when the editor applies a validated scene copy. Dynamic physics bodies are deliberately absent from the static topology and remain a separate local-obstacle concern. The grid is immutable topology input for A* and is not itself hashed. Future-affecting `NavAgentSystem` state is part of gameplay digest schema 3.
+
+### Derived navigation paths
+
+Path results are runtime-derived and add no schema-10 record. `find_nav_path()` accepts explicit cells; `find_nav_path_world()` first applies the grid's half-open conversion. Both return a copied result with one explicit status: found, start/goal out of bounds, start/goal blocked, or unreachable. A found path includes start and goal cells, total physical world distance, and the number of expanded cells.
+
+Search uses eight-way A* with an octile heuristic. The open set resolves equal estimates by lower heuristic, then row, then column, so a symmetric topology returns one repeatable route. Connectivity and edge distances come only from `NavGrid::neighbors()`, preserving hard blocking, elevation limits, and no-corner-cutting as one source of truth. Returned cells never retain an internal grid pointer.
+
+The editor builds one standalone reference path across the first usable solid obstruction for diagnostics. The Threadbound Runner separately requests and consumes its own route through `NavAgentSystem`: a new target cell, target identity change, invalid remaining route, or reactivation replans immediately; an unchanged route refreshes after a bounded 30 fixed ticks. Following advances through cell centres with a four-world-unit tolerance, then closes on the exact target point inside the goal cell. Blocked, out-of-bounds, and unreachable results produce zero motion instead of direct fallback movement, and unchanged failures wait for the bounded refresh rather than searching every tick.
+
+Navigation-agent snapshots are canonical actor-UUID-ordered runtime data. They contain the target, current/goal cells, copied path, waypoint cursor, next repath tick, movement direction, search/advance counters, distance, and expansion count. Gameplay digest schema 3 validates and hashes this future-affecting state. Applying a validated scene copy constructs the replacement grid, reference path, and registered navigation-agent candidate before committing them atomically. The editor's focused overlay shows the active Runner route while it is pursuing and otherwise falls back to the standalone reference path.
+
+### Runtime-only editor stress actors
+
+Enemy stress actors are generated initialization data, not authored scene data, so schema 10 gains no stress-spawn record. Before the first fixed tick, `RuntimeScene` may copy the complete entity/body/animation graph of the first authored non-player actor for a requested physics role. Runtime UUIDs are allocated deterministically above the authored and prefab-expanded identity space; every copy receives its own World entities, physics body, sprites, shadow, locomotion animation player, Health target, EnemyIntent actor, and NavAgent registration.
+
+The editor plans unique spawn positions from cells reachable from the player through the public `NavGrid` neighbor contract. It rejects cells occupied by the player, primary target, or existing attackers and never alters the source `SceneDocument`. Stress actors retain acquisition, pursuit, attack-state transitions, and attack requests, but the application suppresses their final Health damage submission to the player. Selecting `Restore authored scene` constructs a fresh runtime candidate from authored content, removes all stress copies, and restores normal enemy damage. Actor graph copying is rejected after simulation starts so runtime identity and module registrations cannot change halfway through a replay.
+
 ### Physics boxes
 
 ```text
 physics_box=id|role|motion|x|z|half_width|half_depth|category|mask|tag|sensor|fixed_rotation|linear_damping|angular_damping|density|friction
 ```
 
-Roles are `player`, `primary_prop`, `enemy`, or `generic`; motion is `static`, `kinematic`, or `dynamic`. Each scene requires exactly one kinematic `player` and one dynamic `primary_prop`. Physics uses X/Z world pixels in authored data and converts privately to Box2D metres at runtime. Gravity scale is currently fixed to zero because this solver represents the ground plane; World Y elevation remains owned by GroundMap.
+Roles are `player`, `primary_prop`, `enemy`, `attacker`, or `generic`; motion is `static`, `kinematic`, or `dynamic`. Each scene requires exactly one kinematic `player` and one dynamic `primary_prop`. Every `attacker` must be kinematic and have at least one bound entity so intent, collision, World synchronization, and presentation share one stable actor UUID. The `enemy` role remains available for stationary target fixtures. Physics uses X/Z world pixels in authored data and converts privately to Box2D metres at runtime. Gravity scale is currently fixed to zero because this solver represents the ground plane; World Y elevation remains owned by GroundMap.
 
 ### Sprite entities
 
 ```text
-entity=id|uuid|name|physics_binding|x|y|z|width|height|origin_x|origin_y|r|g|b|a|layer|texture_id
+entity=id|uuid|name|physics_binding|x|y|z|width|height|origin_x|origin_y|r|g|b|a|layer|texture_id[|depth_span]
 ```
 
-`uuid` is a non-zero, scene-unique 64-bit integer that remains stable when the entity is copied into a runtime World or captured in a World snapshot. The textual `id` remains the human-authored cross-reference used by physics and animation records; renaming the display `name` does not change identity. Use `-` for no physics binding or no texture. A physics-bound entity must begin at its body's X/Z center; its authored Y and any offset become its maintained render offset. Multiple entities can bind to one body, allowing a sprite and shadow to synchronize without application-side entity IDs.
+`uuid` is a non-zero, scene-unique 64-bit integer that remains stable when the entity is copied into a runtime World or captured in a World snapshot. The textual `id` remains the human-authored cross-reference used by physics and animation records; renaming the display `name` does not change identity. Use `-` for no physics binding or no texture. A physics-bound entity must begin at its body's X/Z center; its authored Y and any offset become its maintained render offset. Multiple entities can bind to one body, allowing a sprite and shadow to synchronize without application-side entity IDs. Schema 10 optionally appends a non-negative `depth_span`; omitting it preserves the former zero-span behavior.
 
 ### Prefabs and instances
 
@@ -133,18 +161,30 @@ Loop mode is `once`, `loop`, or `ping_pong`. Source rectangles select frames fro
 animation_binding=entity_id|locomotion_state|clip_id|initial
 ```
 
-An animated entity must be physics-bound and declare exactly one `initial=true` record. Every locomotion map supplies all sixteen states: idle and move variants for `south`, `southwest`, `west`, `northwest`, `north`, `northeast`, `east`, and `southeast`. For example, `idle_northwest` and `move_northwest` are separate records. Several states may intentionally reference the same clip, as the placeholder enemy currently does.
+An animated entity must be physics-bound and declare exactly one `initial=true` record. Every locomotion map supplies all sixteen core states: idle and move variants for `south`, `southwest`, `west`, `northwest`, `north`, `northeast`, `east`, and `southeast`. For example, `idle_northwest` and `move_northwest` are separate records. Several states may intentionally reference the same clip, as the placeholder enemy currently does.
+
+Dodge presentation is optional. An entity that declares any `dodge_<direction>` record must declare all eight compass directions. RuntimeScene selects those clips only while the generic player-motion command has `dodging=true`; authoritative displacement, invulnerability, duration, and cooldown remain owned by Combat. The player V2 dodge clips total exactly twelve fixed ticks, matching the authored gameplay action.
 
 Runtime facing divides the X/Z movement vector into eight equal 45-degree sectors. Cardinal directions own a 45-degree cone centered on their axis, with boundaries 22.5 degrees from the axis. When movement stops or is obstructed, the last idle-facing variant is retained.
+
+Switching between directional clips preserves the normalized cycle phase rather than restarting, so a character that turns while walking keeps its gait instead of snapping back to the first frame. Clips that play once fall back to a restart.
+
+### Automatic animations
+
+```text
+animation_auto=entity_id|clip_id|initial_tick_offset
+```
+
+A deterministic looping clip for entities that animate independently of physics locomotion, such as foliage, water, or machinery. Unlike a locomotion binding, an automatic animation does not require a physics-bound entity, but one entity cannot declare both. The clip and the entity must already exist.
+
+`initial_tick_offset` advances playback by that many fixed ticks once at construction and again on reset. It staggers repeated props authored from the same clip so they do not animate in lockstep, and because the offset is applied in integer ticks the result stays deterministic and independent of presentation FPS.
 
 ## Validation and ownership
 
 `SceneDefinition::load()` completes syntax, numeric, path, textual-ID/UUID uniqueness, cross-reference, GroundMap, camera, PhysicsWorld, animation-clip, and locomotion-map validation before the application creates a window. Diagnostics include the absolute scene path and a source line when one exists.
 
-After graphics startup, `RuntimeScene` consumes the validated definition and owns its World, GroundMap, PhysicsWorld, texture handles, role lookup, animation players, reset state, fixed-tick synchronization, trigger state, and interpolated render snapshots. The application loop supplies only a ground-plane movement direction and does not identify individual World entities, animation clips, or physics bodies.
+After graphics startup, `RuntimeScene` consumes the validated definition and owns its World, GroundMap, PhysicsWorld, texture handles, role lookup, animation players, reset state, fixed-tick synchronization, trigger state, and interpolated render snapshots. The application supplies copied movement requests addressed by stable actor UUID. `RuntimeScene` validates that each requested actor is an active non-player kinematic body, resolves movement through GroundMap and Physics2D, and returns copied resolved-motion results; the caller never identifies animation clips or private physics handles.
 
-`SceneDefinition::load()` remains strict and accepts only the current schema. Tools must explicitly call `SceneDocument::migrate_to_current()` before loading older authored data. Schema 5 migrates by deriving deterministic, non-zero, scene-unique UUIDs from the scene and entity textual IDs, and schema 6 migrates by version alone because schema 7 only adds optional prefab records. Both paths are idempotent.
+`SceneDefinition::load()` remains strict and accepts only the current schema. Tools must explicitly call `SceneDocument::migrate_to_current()` before loading older authored data. Schema 5 migrates by deriving deterministic, non-zero, scene-unique UUIDs from the scene and entity textual IDs. Schemas 6 through 9 then migrate by version alone: schema 7 added optional prefab records, schema 8 added optional automatic-animation records, schema 9 added the optional `attacker` physics role, and schema 10 adds the optional entity depth span. Every path is idempotent; migration never invents attacker records or depth spans.
 
 `SceneDocument` edits supported entity and prefab-instance fields by UUID while preserving comments and untouched records. It also creates prefab instances with deterministic identity derived from the scene and instance ids, and removes an instance together with the overrides that address it. A removal is refused while an animation binding still names the instance. `runtime_copy()` validates and materializes unsaved edits without changing the source file. `save_atomic()` writes a sibling temporary candidate, validates the complete scene through `SceneDefinition`, and replaces the destination only after validation succeeds. A malformed candidate leaves the previous destination bytes intact and removes the temporary file.
-
-`SceneEditor` is the single undoable seam above the document. Rename, move, create-instance, and destroy-instance commands apply to a private candidate copy, so a rejected command leaves both the document and the history untouched. History is bounded, `undo()`/`redo()` restore authored records exactly, and `modified()` reports unsaved state; saving over the opened document clears it, while saving a copy elsewhere does not.

@@ -27,11 +27,22 @@ void test_exact_integer_scale() {
            "Scaled canvas must fill a matching 720p output.");
 }
 
-void test_integer_letterbox() {
+void test_fractional_upscale_fills_a_resized_window() {
+    const auto viewport = ic2d::compute_canvas_viewport(1600, 900, 640, 360);
+    expect(near(viewport.scale, 2.5F),
+           "A resized matching-aspect window must scale the game continuously.");
+    expect(near(viewport.x, 0.0F) && near(viewport.y, 0.0F) &&
+               near(viewport.width, 1600.0F) && near(viewport.height, 900.0F),
+           "The game canvas must fill a resized matching-aspect window.");
+}
+
+void test_aspect_ratio_letterbox() {
     const auto viewport = ic2d::compute_canvas_viewport(1366, 768, 640, 360);
-    expect(near(viewport.scale, 2.0F), "Non-integer fit must round down to an integer scale.");
-    expect(near(viewport.x, 43.0F) && near(viewport.y, 24.0F),
-           "Integer scaling must center the canvas in its letterbox.");
+    expect(near(viewport.scale, 768.0F / 360.0F),
+           "A resized output must use all available space while preserving aspect ratio.");
+    expect(near(viewport.x, (1366.0F - 640.0F * viewport.scale) * 0.5F) &&
+               near(viewport.y, 0.0F),
+           "Continuous scaling must center the canvas in its letterbox.");
 }
 
 void test_fractional_downscale() {
@@ -50,7 +61,8 @@ void test_invalid_dimensions() {
 
 int main() {
     test_exact_integer_scale();
-    test_integer_letterbox();
+    test_fractional_upscale_fills_a_resized_window();
+    test_aspect_ratio_letterbox();
     test_fractional_downscale();
     test_invalid_dimensions();
 

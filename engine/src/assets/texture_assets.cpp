@@ -21,6 +21,30 @@ namespace {
     return next == 0U ? 1U : next;
 }
 
+[[nodiscard]] std::uint64_t next_revision(const std::uint64_t current) noexcept {
+    const std::uint64_t next = current + 1U;
+    return next == 0U ? 1U : next;
+}
+
+[[nodiscard]] TextureFileStamp file_stamp(
+    const std::filesystem::path& path
+) noexcept {
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(path, error) || error) {
+        return {};
+    }
+    const std::filesystem::file_time_type write_time =
+        std::filesystem::last_write_time(path, error);
+    if (error) {
+        return {};
+    }
+    const std::uintmax_t size = std::filesystem::file_size(path, error);
+    if (error) {
+        return {};
+    }
+    return {.write_time = write_time, .size = size, .exists = true};
+}
+
 } // namespace
 
 TextureAssets::Impl::Slot* TextureAssets::Impl::resolve(const TextureHandle handle) noexcept {
@@ -103,9 +127,15 @@ TextureHandle TextureAssets::acquire(
     Impl::Slot& slot = impl_->slots[slot_index];
     slot.texture = texture;
     slot.reference_count = 1;
+    slot.revision = 1;
     slot.source = key;
+    slot.sampling = sampling;
+    slot.observed_stamp = file_stamp(key);
+    slot.processed_stamp = slot.observed_stamp;
+    slot.stable_observations = 0;
     slot.occupied = true;
     slot.fallback = false;
+    slot.file_backed = true;
     impl_->path_cache.emplace(key, slot_index);
     return {.index = slot_index + 1U, .generation = slot.generation};
 }
@@ -154,9 +184,15 @@ TextureHandle TextureAssets::create_checker(
     Impl::Slot& slot = impl_->slots[slot_index];
     slot.texture = texture;
     slot.reference_count = 1;
+    slot.revision = 1;
     slot.source = key;
+    slot.sampling = sampling;
+    slot.observed_stamp = {};
+    slot.processed_stamp = {};
+    slot.stable_observations = 0;
     slot.occupied = true;
     slot.fallback = false;
+    slot.file_backed = false;
     impl_->path_cache.emplace(key, slot_index);
     return {.index = slot_index + 1U, .generation = slot.generation};
 }
@@ -206,9 +242,15 @@ TextureHandle TextureAssets::create_radial_gradient(
     Impl::Slot& slot = impl_->slots[slot_index];
     slot.texture = texture;
     slot.reference_count = 1;
+    slot.revision = 1;
     slot.source = key;
+    slot.sampling = sampling;
+    slot.observed_stamp = {};
+    slot.processed_stamp = {};
+    slot.stable_observations = 0;
     slot.occupied = true;
     slot.fallback = false;
+    slot.file_backed = false;
     impl_->path_cache.emplace(key, slot_index);
     return {.index = slot_index + 1U, .generation = slot.generation};
 }
@@ -229,10 +271,75 @@ void TextureAssets::release(const TextureHandle handle) noexcept {
     impl_->path_cache.erase(slot->source);
     slot->texture = {};
     slot->reference_count = 0;
+    slot->revision = 0;
     slot->source.clear();
+    slot->observed_stamp = {};
+    slot->processed_stamp = {};
+    slot->stable_observations = 0;
     slot->occupied = false;
+    slot->file_backed = false;
     slot->generation = next_generation(slot->generation);
     impl_->free_indices.push_back(handle.index - 1U);
+}
+
+TextureReloadSummary TextureAssets::reload_changed_files() {
+    TextureReloadSummary summary{};
+    for (Impl::Slot& slot : impl_->slots) {
+        if (!slot.occupied || slot.fallback || !slot.file_backed) {
+            continue;
+        }
+        ++summary.watched;
+
+        const TextureFileStamp current = file_stamp(slot.source);
+        if (current != slot.observed_stamp) {
+            slot.observed_stamp = current;
+            slot.stable_observations = 1;
+            continue;
+        }
+        if (current == slot.processed_stamp) {
+            slot.stable_observations = 0;
+            continue;
+        }
+        if (slot.stable_observations == 0) {
+            slot.stable_observations = 1;
+            continue;
+        }
+
+        ++summary.changed;
+        slot.processed_stamp = current;
+        slot.stable_observations = 0;
+        if (!current.exists) {
+            ++summary.failed;
+            log(LogLevel::warning,
+                "Texture hot reload kept the last good image; file is unavailable: " +
+                    slot.source);
+            continue;
+        }
+
+        Texture2D replacement = LoadTexture(slot.source.c_str());
+        if (!IsTextureValid(replacement)) {
+            ++summary.failed;
+            log(LogLevel::warning,
+                "Texture hot reload kept the last good image; replacement is invalid: " +
+                    slot.source);
+            continue;
+        }
+        SetTextureFilter(replacement, slot.sampling == TextureSampling::pixel
+                                          ? TEXTURE_FILTER_POINT
+                                          : TEXTURE_FILTER_BILINEAR);
+
+        const Texture2D previous = slot.texture;
+        slot.texture = replacement;
+        slot.revision = next_revision(slot.revision);
+        if (IsTextureValid(previous)) {
+            UnloadTexture(previous);
+        }
+        ++summary.reloaded;
+        log(LogLevel::info,
+            "Texture hot reloaded revision " + std::to_string(slot.revision) + ": " +
+                slot.source);
+    }
+    return summary;
 }
 
 TextureHandle TextureAssets::fallback() const noexcept {
@@ -253,6 +360,7 @@ std::optional<TextureInfo> TextureAssets::info(const TextureHandle handle) const
         .height = slot->texture.height,
         .source = slot->source,
         .reference_count = slot->reference_count,
+        .revision = slot->revision,
         .fallback = slot->fallback,
     };
 }

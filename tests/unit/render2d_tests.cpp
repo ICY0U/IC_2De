@@ -114,6 +114,30 @@ void test_invalid_camera_is_rejected() {
 
 int run_projection25d_tests();
 
+void test_offscreen_sprites_are_culled_before_ordering() {
+    // Sorting a frame and then discarding most of it in the renderer pays the
+    // ordering cost for sprites that never appear, so the queue rejects them
+    // as they arrive and reports what it dropped.
+    ic2d::RenderQueue2D queue;
+    queue.begin({.center = {0.0F, 0.0F}, .rotation_degrees = 0.0F, .zoom = 1.0F}, 100, 100);
+    queue.submit({.stable_id = 1, .position = {0.0F, 0.0F}, .size = {10.0F, 10.0F}});
+    queue.submit({.stable_id = 2, .position = {900.0F, 0.0F}, .size = {10.0F, 10.0F}});
+    queue.submit({.stable_id = 3, .position = {0.0F, -900.0F}, .size = {10.0F, 10.0F}});
+    const ic2d::RenderFrame2D frame = queue.finish();
+    expect(frame.submitted_sprites() == 3, "Every submission is counted.");
+    expect(frame.culled_sprites() == 2, "Both offscreen sprites are culled.");
+    expect(frame.sprites().size() == 1, "Only the visible sprite reaches the frame.");
+    expect(frame.sprites()[0].stable_id == 1, "The surviving sprite is the visible one.");
+
+    // A caller that only cares about ordering opts out with no viewport.
+    ic2d::RenderQueue2D unbounded;
+    unbounded.begin({.center = {0.0F, 0.0F}, .rotation_degrees = 0.0F, .zoom = 1.0F});
+    unbounded.submit({.stable_id = 9, .position = {9000.0F, 9000.0F}, .size = {10.0F, 10.0F}});
+    const ic2d::RenderFrame2D everything = unbounded.finish();
+    expect(everything.sprites().size() == 1 && everything.culled_sprites() == 0,
+           "A zero-sized viewport culls nothing.");
+}
+
 int main() {
     test_submission_requires_begin();
     test_ground_quads_are_immutable_and_ordered();
@@ -121,6 +145,7 @@ int main() {
     test_non_finite_sort_depth_is_rejected();
     test_finished_frame_is_independent_of_queue_reuse();
     test_invalid_camera_is_rejected();
+    test_offscreen_sprites_are_culled_before_ordering();
     failures += run_projection25d_tests();
 
     if (failures == 0) {

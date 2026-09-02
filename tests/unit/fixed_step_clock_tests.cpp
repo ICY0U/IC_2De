@@ -75,7 +75,10 @@ void test_rejects_invalid_configuration() {
 
 } // namespace
 
+int run_automated_run_tests();
+
 int main() {
+    failures += run_automated_run_tests();
     test_accumulates_partial_ticks();
     test_bounds_catch_up_work();
     test_ignores_invalid_frame_delta();

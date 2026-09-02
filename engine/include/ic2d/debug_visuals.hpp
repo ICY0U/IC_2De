@@ -13,11 +13,13 @@ enum class DebugChannel {
     trigger_volumes,  // Trigger areas and sensor bodies.
     elevation_map,    // Authored +Y elevation shaded by height.
     world_grid,       // Projected ground grid and walkable bounds.
-    stats_overlay,    // The text diagnostics drawn over the canvas.
+    navigation_grid,  // Dense 2.5D walkable/blocked cell snapshot.
+    navigation_path,  // Copied A-star reference path and endpoints.
+    stats_overlay,    // Compact viewport HUD; detailed data stays in the editor.
     lights,           // Reserved until a lighting module exists.
 };
 
-inline constexpr std::size_t debug_channel_count = 6;
+inline constexpr std::size_t debug_channel_count = 8;
 
 [[nodiscard]] std::string_view debug_channel_name(DebugChannel channel) noexcept;
 

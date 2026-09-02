@@ -16,7 +16,7 @@
 namespace ic2d {
 namespace {
 
-constexpr std::uint32_t supported_schema_version = 7;
+constexpr std::uint32_t supported_schema_version = 10;
 
 struct AuthoredValue {
     std::string value;
@@ -195,10 +195,14 @@ void require_field_count(
     if (value == "enemy") {
         return ScenePhysicsRole::enemy;
     }
+    if (value == "attacker") {
+        return ScenePhysicsRole::attacker;
+    }
     if (value == "generic") {
         return ScenePhysicsRole::generic;
     }
-    fail(path, line, "Physics role must be player, primary_prop, enemy, or generic.");
+    fail(path, line,
+         "Physics role must be player, primary_prop, enemy, attacker, or generic.");
 }
 
 [[nodiscard]] AnimationLoopMode animation_loop_mode(
@@ -271,8 +275,32 @@ void require_field_count(
     if (value == "move_southeast") {
         return LocomotionState::move_southeast;
     }
+    if (value == "dodge_south") {
+        return LocomotionState::dodge_south;
+    }
+    if (value == "dodge_southwest") {
+        return LocomotionState::dodge_southwest;
+    }
+    if (value == "dodge_west") {
+        return LocomotionState::dodge_west;
+    }
+    if (value == "dodge_northwest") {
+        return LocomotionState::dodge_northwest;
+    }
+    if (value == "dodge_north") {
+        return LocomotionState::dodge_north;
+    }
+    if (value == "dodge_northeast") {
+        return LocomotionState::dodge_northeast;
+    }
+    if (value == "dodge_east") {
+        return LocomotionState::dodge_east;
+    }
+    if (value == "dodge_southeast") {
+        return LocomotionState::dodge_southeast;
+    }
     fail(path, line,
-         "Animation state must be idle/move plus one of eight compass directions.");
+         "Animation state must be idle/move/dodge plus one of eight compass directions.");
 }
 
 [[nodiscard]] std::vector<std::string> animation_events(
@@ -465,6 +493,7 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
     std::vector<AuthoredValue> animation_clip_records;
     std::vector<AuthoredValue> animation_frame_records;
     std::vector<AuthoredValue> animation_binding_records;
+    std::vector<AuthoredValue> animation_auto_records;
     const std::unordered_set<std::string> singleton_keys{
         "schema", "id", "world_space", "ground_plane", "elevation_axis",
         "walkable_bounds", "max_step_height", "camera", "physics",
@@ -510,6 +539,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
             animation_frame_records.push_back(std::move(authored));
         } else if (key == "animation_binding") {
             animation_binding_records.push_back(std::move(authored));
+        } else if (key == "animation_auto") {
+            animation_auto_records.push_back(std::move(authored));
         } else if (!singleton_keys.contains(key)) {
             fail(absolute_path, line_number, "Unsupported setting: " + key);
         } else if (!settings.emplace(key, std::move(authored)).second) {
@@ -781,6 +812,9 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
             if (body.box.motion != PhysicsMotionType::dynamic_body) {
                 fail(absolute_path, record.line, "The primary prop body must be dynamic.");
             }
+        } else if (body.role == ScenePhysicsRole::attacker &&
+                   body.box.motion != PhysicsMotionType::kinematic_body) {
+            fail(absolute_path, record.line, "Attacker bodies must be kinematic.");
         }
         body_indices.emplace(body.id, scene.physics_bodies_.size());
         scene.physics_bodies_.push_back(std::move(body));
@@ -882,7 +916,13 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
             }
             instance_ids.insert(entity.id);
         } else {
-            require_field_count(parsed_fields, 17, absolute_path, record.line, "entity");
+            // Schema 10 appends an optional depth span. A schema-9 record
+            // omits it and means zero, so both widths stay readable here
+            // rather than in a separate migration pass over every line.
+            if (parsed_fields.size() != 17 && parsed_fields.size() != 18) {
+                fail(absolute_path, record.line,
+                     "entity requires 17 pipe-separated fields, or 18 with a depth span.");
+            }
             entity.id = parsed_fields[0];
             entity.uuid = {number<std::uint64_t>(
                 parsed_fields[1], absolute_path, record.line, "entity UUID")};
@@ -895,6 +935,14 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
             };
             entity.sprite =
                 sprite_definition(parsed_fields, 7, absolute_path, record.line, texture_ids);
+            if (parsed_fields.size() == 18) {
+                entity.sprite.depth_span = number<float>(
+                    parsed_fields[17], absolute_path, record.line, "entity depth span");
+                if (!(entity.sprite.depth_span >= 0.0F)) {
+                    fail(absolute_path, record.line,
+                         "Entity depth span must be zero or a positive world distance.");
+                }
+            }
         }
         if (!valid_id(entity.id) || !entity.uuid || entity.name.empty() ||
             entity_indices.contains(entity.id) ||
@@ -926,9 +974,12 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         }
     }
     for (const ScenePhysicsBodyDefinition& body : scene.physics_bodies_) {
-        if ((body.role == ScenePhysicsRole::player || body.role == ScenePhysicsRole::primary_prop) &&
+        if ((body.role == ScenePhysicsRole::player ||
+             body.role == ScenePhysicsRole::primary_prop ||
+             body.role == ScenePhysicsRole::attacker) &&
             !referenced_bodies.contains(body.id)) {
-            fail(absolute_path, 0, "Player and primary_prop bodies require at least one bound entity.");
+            fail(absolute_path, 0,
+                 "Player, primary_prop, and attacker bodies require at least one bound entity.");
         }
     }
 
@@ -1051,13 +1102,54 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
             fail(absolute_path, 0,
                  "Animation binding has no initial state: " + binding.entity_id);
         }
-        if (std::ranges::any_of(binding.state_clips, [](const std::string& clip) {
-                return clip.empty();
-            })) {
+        bool missing_core_state = false;
+        for (std::size_t index = 0; index < locomotion_core_state_count; ++index) {
+            missing_core_state = missing_core_state || binding.state_clips[index].empty();
+        }
+        if (missing_core_state) {
             fail(absolute_path, 0,
                  "Locomotion animation bindings require all sixteen idle/move states: " +
                      binding.entity_id);
         }
+        bool has_any_dodge = false;
+        bool has_all_dodge = true;
+        for (std::size_t index = locomotion_core_state_count;
+             index < locomotion_state_count; ++index) {
+            has_any_dodge = has_any_dodge || !binding.state_clips[index].empty();
+            has_all_dodge = has_all_dodge && !binding.state_clips[index].empty();
+        }
+        if (has_any_dodge && !has_all_dodge) {
+            fail(absolute_path, 0,
+                 "Dodge animation bindings require all eight compass states: " +
+                     binding.entity_id);
+        }
+    }
+
+    std::unordered_set<std::string> auto_animation_entities;
+    for (const AuthoredValue& record : animation_auto_records) {
+        const auto parsed_fields = fields(record.value);
+        require_field_count(parsed_fields, 3, absolute_path, record.line, "animation_auto");
+        const std::string entity_id{parsed_fields[0]};
+        if (!entity_indices.contains(entity_id)) {
+            fail(absolute_path, record.line,
+                 "Automatic animation references an unknown entity: " + entity_id);
+        }
+        if (animation_binding_indices.contains(entity_id) ||
+            !auto_animation_entities.insert(entity_id).second) {
+            fail(absolute_path, record.line,
+                 "Entities may have only one locomotion or automatic animation: " + entity_id);
+        }
+        const std::string clip_id{parsed_fields[1]};
+        if (!animation_clip_indices.contains(clip_id)) {
+            fail(absolute_path, record.line,
+                 "Automatic animation references an unknown clip: " + clip_id);
+        }
+        scene.auto_animations_.push_back({
+            .entity_id = entity_id,
+            .clip_id = clip_id,
+            .initial_tick_offset = number<std::uint32_t>(
+                parsed_fields[2], absolute_path, record.line, "initial animation tick offset"),
+        });
     }
 
     if (scene.simulation_.world_boundary_thickness <= 0.0F ||
@@ -1114,6 +1206,9 @@ const std::vector<SceneAnimationClipDefinition>& SceneDefinition::animation_clip
 }
 const std::vector<SceneAnimationBindingDefinition>& SceneDefinition::animation_bindings() const noexcept {
     return animation_bindings_;
+}
+const std::vector<SceneAutoAnimationDefinition>& SceneDefinition::auto_animations() const noexcept {
+    return auto_animations_;
 }
 
 } // namespace ic2d

@@ -72,6 +72,21 @@ using Json = nlohmann::json;
     return value.get<std::string>();
 }
 
+[[nodiscard]] bool optional_bool_field(
+    const Json& object,
+    const std::string_view key,
+    const std::filesystem::path& path
+) {
+    const auto found = object.find(key);
+    if (found == object.end()) {
+        return false;
+    }
+    if (!found->is_boolean()) {
+        fail(path, "Optional field '" + std::string{key} + "' must be a boolean.");
+    }
+    return found->get<bool>();
+}
+
 [[nodiscard]] std::uint32_t unsigned_field(
     const Json& object,
     const std::string_view key,
@@ -176,6 +191,7 @@ struct ImportedFrame {
             },
             .duration_ticks = duration_ticks(milliseconds, fixed_update_hz, path),
             .events = frame_events(authored, path),
+            .flip_x = optional_bool_field(authored, "ic2d_flip_x", path),
         },
     };
 }

@@ -17,6 +17,8 @@ if (-not $resolvedPackageRoot.StartsWith($resolvedDistRoot + [System.IO.Path]::D
     throw "Package output escaped the repository dist directory."
 }
 
+& (Join-Path $PSScriptRoot "validate-sprite-atlases.ps1")
+
 & (Join-Path $PSScriptRoot "build.ps1") -Configuration Debug -RunTests
 if ($LASTEXITCODE -ne 0) { throw "Debug verification failed." }
 

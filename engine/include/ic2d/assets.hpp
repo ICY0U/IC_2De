@@ -30,7 +30,15 @@ struct TextureInfo {
     int height{0};
     std::string source;
     std::size_t reference_count{0};
+    std::uint64_t revision{0};
     bool fallback{false};
+};
+
+struct TextureReloadSummary {
+    std::size_t watched{0};
+    std::size_t changed{0};
+    std::size_t reloaded{0};
+    std::size_t failed{0};
 };
 
 class RaylibRenderer2D;
@@ -69,6 +77,10 @@ public:
     );
     void release(TextureHandle handle) noexcept;
     void shutdown() noexcept;
+
+    // Checks file-backed textures and atomically swaps stable changes. A failed
+    // replacement leaves the current texture and handle alive.
+    [[nodiscard]] TextureReloadSummary reload_changed_files();
 
     [[nodiscard]] TextureHandle fallback() const noexcept;
     [[nodiscard]] bool alive(TextureHandle handle) const noexcept;

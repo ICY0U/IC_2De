@@ -151,7 +151,7 @@ void submit_draw_data(const ImDrawData& draw_data) {
 
 } // namespace
 
-ImGuiRaylibBackend::ImGuiRaylibBackend() {
+ImGuiRaylibBackend::ImGuiRaylibBackend(const FontConfigurator configure_fonts) {
     if (!IsWindowReady()) {
         log(LogLevel::error, "The editor backend requires an initialized window.");
         return;
@@ -172,9 +172,14 @@ ImGuiRaylibBackend::ImGuiRaylibBackend() {
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     // Keyboard navigation is deliberately off: it claims the keyboard whenever
     // any panel is focused, which would take movement keys from the game.
-    // Development tools must not leave state files beside packaged content.
+    // EditorShell configures a per-user or explicit probe path before the first
+    // frame. Until then persistence is safely disabled.
     io.IniFilename = nullptr;
     io.LogFilename = nullptr;
+
+    if (configure_fonts) {
+        configure_fonts();
+    }
 
     unsigned char* pixels = nullptr;
     int width = 0;
@@ -201,7 +206,6 @@ ImGuiRaylibBackend::ImGuiRaylibBackend() {
     }
     font_texture_id_ = font_texture.id;
     io.Fonts->SetTexID(static_cast<ImTextureID>(font_texture_id_));
-    ImGui::StyleColorsDark();
 }
 
 ImGuiRaylibBackend::~ImGuiRaylibBackend() { release(); }
@@ -223,6 +227,9 @@ void ImGuiRaylibBackend::release() noexcept {
         font_texture_id_ = 0U;
     }
     if (context_created_) {
+        if (!layout_path_bytes_.empty()) {
+            ImGui::SaveIniSettingsToDisk(layout_path_bytes_.c_str());
+        }
         ImGui::DestroyContext();
         context_created_ = false;
     }
@@ -230,6 +237,30 @@ void ImGuiRaylibBackend::release() noexcept {
 
 bool ImGuiRaylibBackend::available() const noexcept {
     return context_created_ && font_texture_id_ != 0U;
+}
+
+bool ImGuiRaylibBackend::configure_layout_file(
+    const std::filesystem::path& path
+) noexcept {
+    if (!context_created_ || frame_open_ || path.empty()) {
+        return false;
+    }
+    try {
+        layout_path_bytes_ = path.string();
+    } catch (...) {
+        layout_path_bytes_.clear();
+        return false;
+    }
+    ImGui::GetIO().IniFilename = layout_path_bytes_.c_str();
+    return true;
+}
+
+bool ImGuiRaylibBackend::save_layout_now() noexcept {
+    if (!available() || layout_path_bytes_.empty()) {
+        return false;
+    }
+    ImGui::SaveIniSettingsToDisk(layout_path_bytes_.c_str());
+    return true;
 }
 
 bool ImGuiRaylibBackend::new_frame() {

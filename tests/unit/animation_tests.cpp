@@ -57,6 +57,17 @@ void test_once_holds_the_final_frame() {
     expect(player.advance(20).empty(), "Finished playback must remain stable.");
 }
 
+void test_sample_retains_authored_horizontal_flip() {
+    ic2d::AnimationClip flipped = clip("west", ic2d::AnimationLoopMode::loop, 1);
+    flipped.frames.front().flip_x = true;
+    ic2d::AnimationPlayer player{{std::move(flipped)}, "west"};
+    expect(player.sample().flip_x,
+           "Animation samples must retain authored horizontal presentation flips.");
+    static_cast<void>(player.advance(1));
+    expect(!player.sample().flip_x,
+           "Horizontal flipping must remain a per-frame presentation property.");
+}
+
 void test_ping_pong_handles_large_advances() {
     ic2d::AnimationPlayer player{
         {clip("idle", ic2d::AnimationLoopMode::ping_pong, 1)}, "idle"};
@@ -97,6 +108,26 @@ void test_play_pause_and_reset() {
     expect(rejected, "Selecting an unknown clip must fail explicitly.");
 }
 
+void test_direction_changes_preserve_cycle_phase() {
+    std::vector<ic2d::AnimationClip> clips;
+    clips.push_back(clip("walk-south", ic2d::AnimationLoopMode::loop, 2));
+    clips.push_back(clip("walk-east", ic2d::AnimationLoopMode::loop, 1));
+    ic2d::AnimationPlayer player{std::move(clips), "walk-south"};
+
+    static_cast<void>(player.advance(3));
+    expect(player.sample().frame_index == 1,
+           "The source gait must reach the middle of its cycle.");
+    expect(player.play("walk-east", ic2d::AnimationTransitionMode::preserve_cycle_phase),
+           "Changing locomotion direction must select the new clip.");
+    expect(player.sample().clip_id == "walk-east" && player.sample().frame_index == 1,
+           "A directional transition must retain normalized gait phase.");
+
+    expect(player.play("walk-south"),
+           "The legacy transition path must still select a different clip.");
+    expect(player.sample().frame_index == 0,
+           "The legacy transition path must continue to restart playback.");
+}
+
 void test_invalid_definitions_fail_at_construction() {
     bool rejected = false;
     try {
@@ -121,8 +152,10 @@ void test_invalid_definitions_fail_at_construction() {
 int main() {
     test_loop_timing_and_events();
     test_once_holds_the_final_frame();
+    test_sample_retains_authored_horizontal_flip();
     test_ping_pong_handles_large_advances();
     test_play_pause_and_reset();
+    test_direction_changes_preserve_cycle_phase();
     test_invalid_definitions_fail_at_construction();
 
     if (failures == 0) {

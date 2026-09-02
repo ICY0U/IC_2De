@@ -1,0 +1,131 @@
+﻿{
+    "frames":  [
+                   {
+                       "filename":  "player-v2-walk-south-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  188,
+                                     "h":  323
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  117,
+                       "ic2d_events":  [
+                                           "footstep"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v2-walk-south-2",
+                       "frame":  {
+                                     "x":  188,
+                                     "y":  0,
+                                     "w":  188,
+                                     "h":  323
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "player-v2-walk-south-3",
+                       "frame":  {
+                                     "x":  376,
+                                     "y":  0,
+                                     "w":  188,
+                                     "h":  323
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "player-v2-walk-south-4",
+                       "frame":  {
+                                     "x":  564,
+                                     "y":  0,
+                                     "w":  188,
+                                     "h":  323
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "player-v2-walk-south-5",
+                       "frame":  {
+                                     "x":  752,
+                                     "y":  0,
+                                     "w":  188,
+                                     "h":  323
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  117,
+                       "ic2d_events":  [
+                                           "footstep"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v2-walk-south-6",
+                       "frame":  {
+                                     "x":  940,
+                                     "y":  0,
+                                     "w":  188,
+                                     "h":  323
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "player-v2-walk-south-7",
+                       "frame":  {
+                                     "x":  1128,
+                                     "y":  0,
+                                     "w":  188,
+                                     "h":  323
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "player-v2-walk-south-8",
+                       "frame":  {
+                                     "x":  1316,
+                                     "y":  0,
+                                     "w":  188,
+                                     "h":  323
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   }
+               ],
+    "meta":  {
+                 "app":  "IC_2DE player V2 importer",
+                 "version":  "1.0",
+                 "image":  "player-v2-walk-south.png",
+                 "format":  "RGBA8888",
+                 "size":  {
+                              "w":  1504,
+                              "h":  323
+                          },
+                 "scale":  "1",
+                 "frameTags":  [
+                                   {
+                                       "name":  "player-v2-idle-south",
+                                       "from":  0,
+                                       "to":  0,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "player-v2-move-south",
+                                       "from":  0,
+                                       "to":  7,
+                                       "direction":  "forward"
+                                   }
+                               ]
+             }
+}

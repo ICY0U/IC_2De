@@ -59,6 +59,30 @@ void test_unimplemented_channels_never_draw() {
            "Selecting an unavailable channel must not pretend it renders.");
 }
 
+void test_navigation_grid_is_available_but_opt_in() {
+    ic2d::DebugVisuals visuals;
+    expect(ic2d::debug_channel_implemented(ic2d::DebugChannel::navigation_grid),
+           "The navigation grid must be an honest implemented debug channel.");
+    expect(!visuals.channel_selected(ic2d::DebugChannel::navigation_grid),
+           "The dense navigation overlay must not obscure ordinary editor startup.");
+    visuals.set_channel_selected(ic2d::DebugChannel::navigation_grid, true);
+    expect(visuals.draws(ic2d::DebugChannel::navigation_grid),
+           "The editor must be able to enable the read-only navigation overlay.");
+}
+
+void test_navigation_path_is_available_but_opt_in() {
+    ic2d::DebugVisuals visuals;
+    expect(ic2d::debug_channel_implemented(ic2d::DebugChannel::navigation_path),
+           "The copied A-star path must be an honest implemented debug channel.");
+    expect(!visuals.channel_selected(ic2d::DebugChannel::navigation_path),
+           "The navigation path must not appear until a developer requests it.");
+    visuals.set_channel_selected(ic2d::DebugChannel::navigation_path, true);
+    expect(visuals.draws(ic2d::DebugChannel::navigation_path),
+           "The editor must be able to enable the focused path overlay.");
+    expect(ic2d::debug_channel_name(ic2d::DebugChannel::stats_overlay) == "Compact HUD",
+           "The viewport text channel must describe its compact presentation honestly.");
+}
+
 void test_every_channel_is_named() {
     for (std::size_t index = 0; index < ic2d::debug_channel_count; ++index) {
         const auto channel = static_cast<ic2d::DebugChannel>(index);
@@ -104,6 +128,8 @@ int main() {
     test_master_switch_hides_every_channel();
     test_channels_are_independent();
     test_unimplemented_channels_never_draw();
+    test_navigation_grid_is_available_but_opt_in();
+    test_navigation_path_is_available_but_opt_in();
     test_every_channel_is_named();
     test_elevation_tint_ramps_with_height();
     test_elevation_tint_survives_degenerate_input();

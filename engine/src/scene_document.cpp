@@ -20,12 +20,13 @@
 namespace ic2d {
 namespace {
 
-constexpr std::uint32_t current_scene_schema = 7;
+constexpr std::uint32_t current_scene_schema = 10;
 constexpr std::size_t entity_field_count = 17;
 constexpr std::size_t prefab_field_count = 13;
 constexpr std::size_t prefab_instance_field_count = 8;
 constexpr std::size_t prefab_override_field_count = 3;
 constexpr std::size_t animation_binding_field_count = 4;
+constexpr std::size_t animation_auto_field_count = 3;
 
 struct TextRecord {
     std::string key;
@@ -148,7 +149,12 @@ template <typename Number>
 }
 
 [[nodiscard]] bool placement_layout(const TextRecord& record, PlacementLayout& layout) noexcept {
-    if (record.key == "entity" && record.fields.size() == entity_field_count) {
+    // Schema 10 entity records carry an optional trailing depth span. Every
+    // field this class edits sits before it, and formatting rewrites the whole
+    // record, so a spanned wall keeps its span across a rename or a move.
+    if (record.key == "entity" &&
+        (record.fields.size() == entity_field_count ||
+         record.fields.size() == entity_field_count + 1)) {
         layout = {.uuid = 1, .prefab = 0, .name = 2, .binding = 3, .position = 4};
         return true;
     }
@@ -252,8 +258,8 @@ void replace_file(
 #endif
 }
 
-// Schema 5 predates persistent entity identity; schema 6 predates prefabs but
-// remains readable because schema 7 only adds optional records.
+// Schema 5 predates persistent entity identity. Schemas 6 and 7 remain
+// readable because later schemas only add optional prefab/animation records.
 void migrate_five_to_six(std::vector<std::string>& lines, const std::string_view scene_id) {
     std::unordered_set<std::uint64_t> assigned;
     for (std::string& line : lines) {
@@ -321,8 +327,9 @@ SceneDocument SceneDocument::migrate_to_current(const std::filesystem::path& pat
         return open(absolute_path);
     }
     const std::string scene_id = scene_id_of(lines);
-    if ((schema != 5 && schema != 6) || scene_id.empty()) {
-        throw std::runtime_error{"Only scene schema 5 or 6 can be migrated to schema 7."};
+    if ((schema < 5 || schema > 9) || scene_id.empty()) {
+        throw std::runtime_error{
+            "Only scene schema 5, 6, 7, 8, or 9 can be migrated to schema 10."};
     }
     if (schema == 5) {
         migrate_five_to_six(lines, scene_id);
@@ -504,6 +511,12 @@ bool SceneDocument::destroy_prefab_instance(const EntityUuid uuid) {
             referencing.fields[0] == instance_id) {
             throw std::invalid_argument{
                 "Animation bindings still reference this prefab instance: " + instance_id};
+        }
+        if (parse_record(line, referencing) && referencing.key == "animation_auto" &&
+            referencing.fields.size() == animation_auto_field_count &&
+            referencing.fields[0] == instance_id) {
+            throw std::invalid_argument{
+                "Automatic animations still reference this prefab instance: " + instance_id};
         }
     }
 

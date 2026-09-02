@@ -152,6 +152,19 @@ std::optional<WorldTransform> World::transform(const EntityId entity) const {
     return value ? std::optional<WorldTransform>{*value} : std::nullopt;
 }
 
+bool World::set_position(const EntityId entity, const Vec3& position) {
+    const auto found = impl_->entities.find(entity.value);
+    if (found == impl_->entities.end()) {
+        return false;
+    }
+    auto* current = impl_->registry.try_get<WorldTransform>(found->second);
+    if (!current) {
+        return false;
+    }
+    current->position = position;
+    return true;
+}
+
 bool World::set_transform(const EntityId entity, const WorldTransform& transform_value) {
     const auto found = impl_->entities.find(entity.value);
     if (found == impl_->entities.end()) {
@@ -199,14 +212,26 @@ void World::restore(const WorldSnapshot& source) {
     *this = std::move(replacement);
 }
 
-std::vector<RenderItem2D> World::collect_render_items() const {
+std::vector<RenderItem2D> World::collect_render_items(
+    const std::optional<RectXZ> region
+) const {
     std::vector<RenderItem2D> items;
     items.reserve(impl_->entities.size());
+
+    const auto inside = [&region](const WorldTransform& transform_value) {
+        if (!region) {
+            return true;
+        }
+        return transform_value.position.x >= region->x &&
+               transform_value.position.x <= region->x + region->width &&
+               transform_value.position.z >= region->z &&
+               transform_value.position.z <= region->z + region->depth;
+    };
 
     for (const auto& [id, internal] : impl_->entities) {
         const auto* transform_value = impl_->registry.try_get<WorldTransform>(internal);
         const auto* sprite = impl_->registry.try_get<Sprite2D>(internal);
-        if (transform_value && sprite) {
+        if (transform_value && sprite && inside(*transform_value)) {
             items.push_back(RenderItem2D{
                 .entity = EntityId{id},
                 .transform = *transform_value,

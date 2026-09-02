@@ -1,0 +1,473 @@
+{
+  "frames": [
+    {
+      "filename": "npc patchwork move southwest 1",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83,
+      "ic2d_events": [
+        "npc_step"
+      ]
+    },
+    {
+      "filename": "npc patchwork move southwest 2",
+      "frame": {
+        "x": 192,
+        "y": 0,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move southwest 3",
+      "frame": {
+        "x": 384,
+        "y": 0,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move southwest 4",
+      "frame": {
+        "x": 576,
+        "y": 0,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move southwest 5",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83,
+      "ic2d_events": [
+        "npc_step"
+      ]
+    },
+    {
+      "filename": "npc patchwork move southwest 6",
+      "frame": {
+        "x": 960,
+        "y": 0,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move southwest 7",
+      "frame": {
+        "x": 1152,
+        "y": 0,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move southwest 8",
+      "frame": {
+        "x": 1344,
+        "y": 0,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move northwest 1",
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83,
+      "ic2d_events": [
+        "npc_step"
+      ]
+    },
+    {
+      "filename": "npc patchwork move northwest 2",
+      "frame": {
+        "x": 192,
+        "y": 256,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move northwest 3",
+      "frame": {
+        "x": 384,
+        "y": 256,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move northwest 4",
+      "frame": {
+        "x": 576,
+        "y": 256,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move northwest 5",
+      "frame": {
+        "x": 768,
+        "y": 256,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83,
+      "ic2d_events": [
+        "npc_step"
+      ]
+    },
+    {
+      "filename": "npc patchwork move northwest 6",
+      "frame": {
+        "x": 960,
+        "y": 256,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move northwest 7",
+      "frame": {
+        "x": 1152,
+        "y": 256,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move northwest 8",
+      "frame": {
+        "x": 1344,
+        "y": 256,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move northeast 1",
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83,
+      "ic2d_events": [
+        "npc_step"
+      ]
+    },
+    {
+      "filename": "npc patchwork move northeast 2",
+      "frame": {
+        "x": 192,
+        "y": 512,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move northeast 3",
+      "frame": {
+        "x": 384,
+        "y": 512,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move northeast 4",
+      "frame": {
+        "x": 576,
+        "y": 512,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move northeast 5",
+      "frame": {
+        "x": 768,
+        "y": 512,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83,
+      "ic2d_events": [
+        "npc_step"
+      ]
+    },
+    {
+      "filename": "npc patchwork move northeast 6",
+      "frame": {
+        "x": 960,
+        "y": 512,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move northeast 7",
+      "frame": {
+        "x": 1152,
+        "y": 512,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move northeast 8",
+      "frame": {
+        "x": 1344,
+        "y": 512,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move southeast 1",
+      "frame": {
+        "x": 0,
+        "y": 768,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83,
+      "ic2d_events": [
+        "npc_step"
+      ]
+    },
+    {
+      "filename": "npc patchwork move southeast 2",
+      "frame": {
+        "x": 192,
+        "y": 768,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move southeast 3",
+      "frame": {
+        "x": 384,
+        "y": 768,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move southeast 4",
+      "frame": {
+        "x": 576,
+        "y": 768,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move southeast 5",
+      "frame": {
+        "x": 768,
+        "y": 768,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83,
+      "ic2d_events": [
+        "npc_step"
+      ]
+    },
+    {
+      "filename": "npc patchwork move southeast 6",
+      "frame": {
+        "x": 960,
+        "y": 768,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move southeast 7",
+      "frame": {
+        "x": 1152,
+        "y": 768,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    },
+    {
+      "filename": "npc patchwork move southeast 8",
+      "frame": {
+        "x": 1344,
+        "y": 768,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 83
+    }
+  ],
+  "meta": {
+    "app": "IC_2DE authored sprite pipeline",
+    "version": "2",
+    "image": "npc-patchwork-diagonal-atlas.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1536,
+      "h": 1024
+    },
+    "scale": "1",
+    "frameTags": [
+      {
+        "name": "npc-patchwork-idle-southwest",
+        "from": 0,
+        "to": 0,
+        "direction": "forward"
+      },
+      {
+        "name": "npc-patchwork-move-southwest",
+        "from": 0,
+        "to": 7,
+        "direction": "forward"
+      },
+      {
+        "name": "npc-patchwork-idle-northwest",
+        "from": 8,
+        "to": 8,
+        "direction": "forward"
+      },
+      {
+        "name": "npc-patchwork-move-northwest",
+        "from": 8,
+        "to": 15,
+        "direction": "forward"
+      },
+      {
+        "name": "npc-patchwork-idle-northeast",
+        "from": 16,
+        "to": 16,
+        "direction": "forward"
+      },
+      {
+        "name": "npc-patchwork-move-northeast",
+        "from": 16,
+        "to": 23,
+        "direction": "forward"
+      },
+      {
+        "name": "npc-patchwork-idle-southeast",
+        "from": 24,
+        "to": 24,
+        "direction": "forward"
+      },
+      {
+        "name": "npc-patchwork-move-southeast",
+        "from": 24,
+        "to": 31,
+        "direction": "forward"
+      }
+    ]
+  }
+}

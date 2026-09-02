@@ -13,7 +13,8 @@
       "rotated": false,
       "trimmed": false,
       "duration": 17,
-      "ic2d_events": ["footstep"]
+      "ic2d_events": ["footstep"],
+      "ic2d_flip_x": true
     },
     {
       "filename": "hero 2.aseprite",

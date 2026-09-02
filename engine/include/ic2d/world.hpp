@@ -23,11 +23,16 @@ struct WorldTransform {
 struct Sprite2D {
     TextureHandle texture{};
     RectF source{}; // A zero-sized source uses the complete texture.
+    bool flip_x{false};
     Vec2 size{16.0F, 16.0F};
     Vec2 normalized_origin{0.5F, 1.0F};
     float rotation_degrees{0.0F};
     ColorRgba8 tint{};
     std::int32_t layer{0};
+    // World units this sprite occupies along the depth axis. Zero is a plain
+    // billboard; a positive value is a surface running away from the camera
+    // that submission resolves into depth-sorted slices.
+    float depth_span{0.0F};
 };
 
 struct EntityBlueprint {
@@ -72,9 +77,23 @@ public:
     [[nodiscard]] std::size_t entity_count() const noexcept;
     [[nodiscard]] std::optional<WorldTransform> transform(EntityId entity) const;
     [[nodiscard]] bool set_transform(EntityId entity, const WorldTransform& transform);
+
+    // Moving an entity through transform()/set_transform() copies the whole
+    // transform out and back and resolves the entity twice. Position is what
+    // physics and ground movement actually change every tick, and at crowd
+    // scale that doubled lookup is the cost, so it gets a direct path.
+    [[nodiscard]] bool set_position(EntityId entity, const Vec3& position);
     [[nodiscard]] WorldSnapshot snapshot() const;
     void restore(const WorldSnapshot& snapshot);
-    [[nodiscard]] std::vector<RenderItem2D> collect_render_items() const;
+    // An optional world-space X/Z region restricts collection to entities that
+    // could appear inside it. Gathering, ordering and animating an entity that
+    // will be culled later is the dominant cost of a frame once a scene holds
+    // tens of thousands of them, and almost all of a large scene is offscreen.
+    // The filter is a plain spatial bound rather than a camera: how a transform
+    // is projected stays the presentation layer's business.
+    [[nodiscard]] std::vector<RenderItem2D> collect_render_items(
+        std::optional<RectXZ> region = std::nullopt
+    ) const;
 
 private:
     struct Impl;

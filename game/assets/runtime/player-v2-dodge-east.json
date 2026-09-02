@@ -1,0 +1,241 @@
+﻿{
+    "frames":  [
+                   {
+                       "filename":  "player-v2-dodge-east-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-2",
+                       "frame":  {
+                                     "x":  349,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_events":  [
+                                           "dodge_launch"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-3",
+                       "frame":  {
+                                     "x":  698,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-4",
+                       "frame":  {
+                                     "x":  1047,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-5",
+                       "frame":  {
+                                     "x":  1396,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-6",
+                       "frame":  {
+                                     "x":  1745,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_events":  [
+                                           "dodge_recover"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-7",
+                       "frame":  {
+                                     "x":  2094,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-8",
+                       "frame":  {
+                                     "x":  2443,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-west-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-west-2",
+                       "frame":  {
+                                     "x":  349,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "dodge_launch"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-west-3",
+                       "frame":  {
+                                     "x":  698,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-west-4",
+                       "frame":  {
+                                     "x":  1047,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-west-5",
+                       "frame":  {
+                                     "x":  1396,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-west-6",
+                       "frame":  {
+                                     "x":  1745,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "dodge_recover"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-west-7",
+                       "frame":  {
+                                     "x":  2094,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v2-dodge-east-west-8",
+                       "frame":  {
+                                     "x":  2443,
+                                     "y":  0,
+                                     "w":  349,
+                                     "h":  288
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true
+                   }
+               ],
+    "meta":  {
+                 "app":  "IC_2DE player V2 importer",
+                 "version":  "1.0",
+                 "image":  "player-v2-dodge-east.png",
+                 "format":  "RGBA8888",
+                 "size":  {
+                              "w":  2792,
+                              "h":  288
+                          },
+                 "scale":  "1",
+                 "frameTags":  [
+                                   {
+                                       "name":  "player-v2-dodge-east",
+                                       "from":  0,
+                                       "to":  7,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "player-v2-dodge-west",
+                                       "from":  8,
+                                       "to":  15,
+                                       "direction":  "forward"
+                                   }
+                               ]
+             }
+}

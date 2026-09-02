@@ -1,0 +1,125 @@
+﻿{
+    "frames":  [
+                   {
+                       "filename":  "player-v2-dodge-south-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  277,
+                                     "h":  289
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v2-dodge-south-2",
+                       "frame":  {
+                                     "x":  277,
+                                     "y":  0,
+                                     "w":  277,
+                                     "h":  289
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_events":  [
+                                           "dodge_launch"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v2-dodge-south-3",
+                       "frame":  {
+                                     "x":  554,
+                                     "y":  0,
+                                     "w":  277,
+                                     "h":  289
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v2-dodge-south-4",
+                       "frame":  {
+                                     "x":  831,
+                                     "y":  0,
+                                     "w":  277,
+                                     "h":  289
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v2-dodge-south-5",
+                       "frame":  {
+                                     "x":  1108,
+                                     "y":  0,
+                                     "w":  277,
+                                     "h":  289
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v2-dodge-south-6",
+                       "frame":  {
+                                     "x":  1385,
+                                     "y":  0,
+                                     "w":  277,
+                                     "h":  289
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_events":  [
+                                           "dodge_recover"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v2-dodge-south-7",
+                       "frame":  {
+                                     "x":  1662,
+                                     "y":  0,
+                                     "w":  277,
+                                     "h":  289
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v2-dodge-south-8",
+                       "frame":  {
+                                     "x":  1939,
+                                     "y":  0,
+                                     "w":  277,
+                                     "h":  289
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   }
+               ],
+    "meta":  {
+                 "app":  "IC_2DE player V2 importer",
+                 "version":  "1.0",
+                 "image":  "player-v2-dodge-south.png",
+                 "format":  "RGBA8888",
+                 "size":  {
+                              "w":  2216,
+                              "h":  289
+                          },
+                 "scale":  "1",
+                 "frameTags":  [
+                                   {
+                                       "name":  "player-v2-dodge-south",
+                                       "from":  0,
+                                       "to":  7,
+                                       "direction":  "forward"
+                                   }
+                               ]
+             }
+}

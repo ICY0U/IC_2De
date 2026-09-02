@@ -1,6 +1,7 @@
 #include "ic2d/animation.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
@@ -100,6 +101,45 @@ struct AnimationPlayer::Impl {
         finished = false;
     }
 
+    [[nodiscard]] std::uint64_t cycle_duration(const AnimationClip& clip) const noexcept {
+        std::uint64_t duration = 0;
+        for (const AnimationFrame& frame : clip.frames) {
+            duration += frame.duration_ticks;
+        }
+        return duration;
+    }
+
+    void preserve_cycle_phase(const std::size_t clip_index) noexcept {
+        const AnimationClip& source = clips[current_clip];
+        const AnimationClip& target = clips[clip_index];
+        if (source.loop_mode == AnimationLoopMode::once ||
+            target.loop_mode == AnimationLoopMode::once) {
+            rewind(clip_index);
+            return;
+        }
+
+        std::uint64_t source_tick = ticks_in_frame;
+        for (std::size_t frame = 0; frame < current_frame; ++frame) {
+            source_tick += source.frames[frame].duration_ticks;
+        }
+        const std::uint64_t source_duration = cycle_duration(source);
+        const std::uint64_t target_duration = cycle_duration(target);
+        std::uint64_t target_tick = source_tick * target_duration / source_duration;
+        if (target_tick >= target_duration) {
+            target_tick = target_duration - 1;
+        }
+
+        current_clip = clip_index;
+        current_frame = 0;
+        while (target_tick >= target.frames[current_frame].duration_ticks) {
+            target_tick -= target.frames[current_frame].duration_ticks;
+            ++current_frame;
+        }
+        ticks_in_frame = static_cast<std::uint32_t>(target_tick);
+        direction = 1;
+        finished = false;
+    }
+
     std::vector<AnimationClip> clips;
     std::unordered_map<std::string, std::size_t> clip_indices;
     std::string initial_clip;
@@ -130,6 +170,25 @@ bool AnimationPlayer::play(const std::string_view clip_id, const bool restart) {
         return false;
     }
     impl_->rewind(found->second);
+    return true;
+}
+
+bool AnimationPlayer::play(
+    const std::string_view clip_id,
+    const AnimationTransitionMode transition
+) {
+    const auto found = impl_->clip_indices.find(std::string{clip_id});
+    if (found == impl_->clip_indices.end()) {
+        throw std::out_of_range{"Unknown animation clip: " + std::string{clip_id}};
+    }
+    if (found->second == impl_->current_clip) {
+        return false;
+    }
+    if (transition == AnimationTransitionMode::preserve_cycle_phase) {
+        impl_->preserve_cycle_phase(found->second);
+    } else {
+        impl_->rewind(found->second);
+    }
     return true;
 }
 
@@ -164,12 +223,14 @@ std::vector<AnimationFrameEvent> AnimationPlayer::advance(std::uint32_t ticks) {
 
 AnimationSample AnimationPlayer::sample() const {
     const AnimationClip& clip = impl_->clips[impl_->current_clip];
+    const AnimationFrame& frame = clip.frames[impl_->current_frame];
     return {
         .clip_id = clip.id,
-        .source = clip.frames[impl_->current_frame].source,
+        .source = frame.source,
         .frame_index = impl_->current_frame,
         .paused = impl_->paused,
         .finished = impl_->finished,
+        .flip_x = frame.flip_x,
     };
 }
 

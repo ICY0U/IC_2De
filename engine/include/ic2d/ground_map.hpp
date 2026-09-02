@@ -51,6 +51,13 @@ private:
     RectXZ walkable_bounds_{};
     float max_step_height_{0.0F};
     std::vector<GroundArea> areas_;
+    // Areas partitioned by kind at construction. Every query cares about one
+    // kind, so walking the combined list makes each one cost the size of the
+    // whole map; with thousands of actors moving per tick that dominates. A
+    // scene with no elevation areas then does no elevation work at all.
+    std::vector<GroundArea> solid_areas_;
+    std::vector<GroundArea> elevation_areas_;
+    std::vector<GroundArea> trigger_areas_;
 };
 
 } // namespace ic2d

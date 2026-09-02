@@ -44,6 +44,7 @@ enum class ScenePhysicsRole {
     player,
     primary_prop,
     enemy,
+    attacker,
     generic,
 };
 
@@ -59,6 +60,12 @@ struct SceneSpriteDefinition {
     ColorRgba8 tint{};
     std::int32_t layer{0};
     std::string texture_id;
+    // How far the sprite extends along the depth axis, in world units. Zero is
+    // an ordinary billboard occupying a single depth. A positive span declares
+    // a surface running away from the camera, such as a wall along Z, which the
+    // renderer resolves into overlapping depth-sorted slices. Authoring it as
+    // one value keeps the wall one entity to select, move, and name.
+    float depth_span{0.0F};
 };
 
 // A reusable sprite template with its own persistent identity. Instances copy
@@ -89,6 +96,14 @@ struct SceneAnimationBindingDefinition {
     std::string entity_id;
     LocomotionState initial_state{LocomotionState::idle_south};
     std::array<std::string, locomotion_state_count> state_clips;
+};
+
+// A deterministic looping clip for entities that animate independently of a
+// physics locomotion state, such as foliage, water, or machinery.
+struct SceneAutoAnimationDefinition {
+    std::string entity_id;
+    std::string clip_id;
+    std::uint32_t initial_tick_offset{0};
 };
 
 struct SceneSimulationDefinition {
@@ -123,6 +138,7 @@ public:
     [[nodiscard]] const std::vector<SceneEntityDefinition>& entities() const noexcept;
     [[nodiscard]] const std::vector<SceneAnimationClipDefinition>& animation_clips() const noexcept;
     [[nodiscard]] const std::vector<SceneAnimationBindingDefinition>& animation_bindings() const noexcept;
+    [[nodiscard]] const std::vector<SceneAutoAnimationDefinition>& auto_animations() const noexcept;
 
 private:
     std::uint32_t schema_version_{0};
@@ -137,6 +153,7 @@ private:
     std::vector<SceneEntityDefinition> entities_;
     std::vector<SceneAnimationClipDefinition> animation_clips_;
     std::vector<SceneAnimationBindingDefinition> animation_bindings_;
+    std::vector<SceneAutoAnimationDefinition> auto_animations_;
 };
 
 } // namespace ic2d

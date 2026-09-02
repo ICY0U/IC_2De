@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $preset = "windows-$($Configuration.ToLowerInvariant())"
-$executable = Join-Path $repoRoot "build\$preset\ic2de_testbed.exe"
+$executable = Join-Path $repoRoot "build\$preset\IC_2DE-Editor.exe"
 
 Push-Location $repoRoot
 try {
@@ -22,13 +22,14 @@ try {
     }
 
     $modes = @(
-        @{ Name = "30 Hz"; Args = @("--smoke-movement", "--fps=30") },
-        @{ Name = "60 Hz"; Args = @("--smoke-movement", "--fps=60") },
-        @{ Name = "120 Hz"; Args = @("--smoke-movement", "--fps=120") },
-        @{ Name = "monitor"; Args = @("--smoke-movement", "--monitor-hz") },
-        @{ Name = "uncapped"; Args = @("--smoke-movement", "--uncapped") }
+        @{ Name = "30 Hz"; Args = @("--smoke-gameplay-replay", "--fps=30") },
+        @{ Name = "60 Hz"; Args = @("--smoke-gameplay-replay", "--fps=60") },
+        @{ Name = "120 Hz"; Args = @("--smoke-gameplay-replay", "--fps=120") },
+        @{ Name = "monitor"; Args = @("--smoke-gameplay-replay", "--monitor-hz") },
+        @{ Name = "uncapped"; Args = @("--smoke-gameplay-replay", "--uncapped") }
     )
     $expectedHash = $null
+    $expectedSchema = $null
     foreach ($mode in $modes) {
         $stdoutPath = [System.IO.Path]::GetTempFileName()
         $stderrPath = [System.IO.Path]::GetTempFileName()
@@ -49,22 +50,25 @@ try {
             $output | Write-Host
             throw "Replay mode '$($mode.Name)' exited with code $exitCode."
         }
-        $hashLine = $output | Where-Object { $_ -match 'Replay state hash: ([0-9]+)\.' } |
+        $hashLine = $output | Where-Object { $_ -match 'Gameplay state digest v([0-9]+): ([0-9]+)\.' } |
             Select-Object -Last 1
         if (-not $hashLine) {
             $output | Write-Host
             throw "Replay mode '$($mode.Name)' did not report a state hash."
         }
-        $hash = [regex]::Match($hashLine, 'Replay state hash: ([0-9]+)\.').Groups[1].Value
+        $match = [regex]::Match($hashLine, 'Gameplay state digest v([0-9]+): ([0-9]+)\.')
+        $schema = $match.Groups[1].Value
+        $hash = $match.Groups[2].Value
         if ($null -eq $expectedHash) {
             $expectedHash = $hash
-        } elseif ($hash -ne $expectedHash) {
-            throw "Replay divergence in '$($mode.Name)': expected $expectedHash, received $hash."
+            $expectedSchema = $schema
+        } elseif ($hash -ne $expectedHash -or $schema -ne $expectedSchema) {
+            throw "Replay divergence in '$($mode.Name)': expected v$expectedSchema/$expectedHash, received v$schema/$hash."
         }
-        Write-Host ("{0,-9} hash {1}" -f $mode.Name, $hash)
+        Write-Host ("{0,-9} digest v{1} {2}" -f $mode.Name, $schema, $hash)
     }
 
-    Write-Host "Replay verification passed across all presentation modes."
+    Write-Host "Gameplay replay verification passed across all presentation modes."
 }
 finally {
     Pop-Location

@@ -17,8 +17,7 @@ CanvasViewport compute_canvas_viewport(
 
     const float horizontal_scale = static_cast<float>(output_width) / static_cast<float>(canvas_width);
     const float vertical_scale = static_cast<float>(output_height) / static_cast<float>(canvas_height);
-    const float fitted_scale = std::min(horizontal_scale, vertical_scale);
-    const float scale = fitted_scale >= 1.0F ? std::floor(fitted_scale) : fitted_scale;
+    const float scale = std::min(horizontal_scale, vertical_scale);
     const float width = static_cast<float>(canvas_width) * scale;
     const float height = static_cast<float>(canvas_height) * scale;
 

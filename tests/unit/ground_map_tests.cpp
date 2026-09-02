@@ -55,10 +55,23 @@ void test_free_motion_and_world_bounds() {
 void test_solid_collision_slides_by_axis() {
     const auto map = make_map();
     const auto result = map.move({20.0F, 0.0F, 50.0F}, {50.0F, 70.0F}, {2.0F, 2.0F});
-    expect(near(result.position.x, 20.0F) && near(result.position.z, 70.0F),
-           "A blocked X move must still permit free Z movement.");
+    expect(near(result.position.x, 38.0F) && near(result.position.z, 70.0F),
+           "A blocked X move must advance to contact and still permit free Z movement.");
     expect(result.blocked_x && !result.blocked_z,
            "Axis-separated collision must report only the blocked axis.");
+}
+
+void test_fast_motion_cannot_tunnel_through_a_solid() {
+    const auto map = make_map();
+    const auto forward = map.move(
+        {10.0F, 0.0F, 50.0F}, {90.0F, 50.0F}, {2.0F, 2.0F});
+    expect(near(forward.position.x, 38.0F) && forward.blocked_x,
+           "Fast positive movement must stop at the near wall face instead of tunnelling.");
+
+    const auto reverse = map.move(
+        {90.0F, 0.0F, 50.0F}, {10.0F, 50.0F}, {2.0F, 2.0F});
+    expect(near(reverse.position.x, 62.0F) && reverse.blocked_x,
+           "Fast negative movement must stop at the far wall face instead of tunnelling.");
 }
 
 void test_discrete_elevation_and_step_limit() {
@@ -96,6 +109,7 @@ void test_invalid_definition_is_rejected() {
 int main() {
     test_free_motion_and_world_bounds();
     test_solid_collision_slides_by_axis();
+    test_fast_motion_cannot_tunnel_through_a_solid();
     test_discrete_elevation_and_step_limit();
     test_trigger_is_reported_without_blocking();
     test_invalid_definition_is_rejected();

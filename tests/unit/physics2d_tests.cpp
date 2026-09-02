@@ -160,6 +160,64 @@ void test_kinematic_body_stops_when_target_stops() {
            "The stopped kinematic body must remain still on later fixed ticks.");
 }
 
+void test_segment_query_returns_the_nearest_solid_hit() {
+    ic2d::PhysicsWorld physics{{.pixels_per_metre = 20.0F}};
+    const ic2d::PhysicsBodyId nearest = physics.create_box({
+        .center = {30.0F, 0.0F},
+        .half_extents = {5.0F, 8.0F},
+        .tag = 41,
+    });
+    static_cast<void>(physics.create_box({
+        .center = {60.0F, 0.0F},
+        .half_extents = {5.0F, 8.0F},
+        .tag = 82,
+    }));
+
+    const std::optional<ic2d::PhysicsSegmentHit> hit = physics.cast_segment({
+        .start = {0.0F, 0.0F},
+        .end = {100.0F, 0.0F},
+    });
+    expect(hit.has_value(), "A segment crossing solid boxes must report a hit.");
+    if (hit) {
+        expect(hit->body == nearest && hit->tag == 41,
+               "The segment query must return the nearest body and copied tag.");
+        expect(near(hit->point.x, 25.0F) && near(hit->point.y, 0.0F) &&
+                   near(hit->fraction, 0.25F, 0.001F),
+               "The hit point and fraction must use engine pixel coordinates.");
+        expect(near(hit->normal.x, -1.0F, 0.001F) && near(hit->normal.y, 0.0F, 0.001F),
+               "The segment hit must copy its outward surface normal.");
+    }
+}
+
+void test_segment_query_ignores_owner_and_sensors() {
+    ic2d::PhysicsWorld physics{{.pixels_per_metre = 20.0F}};
+    const ic2d::PhysicsBodyId owner = physics.create_box({
+        .center = {10.0F, 0.0F},
+        .half_extents = {4.0F, 6.0F},
+        .tag = 10,
+    });
+    static_cast<void>(physics.create_box({
+        .center = {20.0F, 0.0F},
+        .half_extents = {3.0F, 6.0F},
+        .tag = 20,
+        .sensor = true,
+    }));
+    const ic2d::PhysicsBodyId target = physics.create_box({
+        .center = {30.0F, 0.0F},
+        .half_extents = {5.0F, 6.0F},
+        .tag = 30,
+    });
+
+    const std::optional<ic2d::PhysicsSegmentHit> hit = physics.cast_segment({
+        .start = {0.0F, 0.0F},
+        .end = {50.0F, 0.0F},
+        .ignored_body = owner,
+    });
+    expect(hit.has_value() && hit->body == target && hit->tag == 30 &&
+               near(hit->point.x, 25.0F),
+           "Segment filtering must skip the owning body and non-solid sensors.");
+}
+
 void test_invalid_definitions_fail_early() {
     bool rejected = false;
     try {
@@ -178,6 +236,8 @@ int main() {
     test_contact_and_sensor_events();
     test_kinematic_target_and_handle_generation();
     test_kinematic_body_stops_when_target_stops();
+    test_segment_query_returns_the_nearest_solid_hit();
+    test_segment_query_ignores_owner_and_sensors();
     test_invalid_definitions_fail_early();
 
     if (failures == 0) {

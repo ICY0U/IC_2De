@@ -1,0 +1,119 @@
+{
+  "frames": [
+    {
+      "filename": "tree sway 1",
+      "frame": {
+        "x": 20,
+        "y": 22,
+        "w": 336,
+        "h": 448
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 220
+    },
+    {
+      "filename": "tree sway 2",
+      "frame": {
+        "x": 432,
+        "y": 22,
+        "w": 336,
+        "h": 448
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 220
+    },
+    {
+      "filename": "tree sway 3",
+      "frame": {
+        "x": 816,
+        "y": 22,
+        "w": 336,
+        "h": 448
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 220
+    },
+    {
+      "filename": "tree sway 4",
+      "frame": {
+        "x": 1187,
+        "y": 22,
+        "w": 336,
+        "h": 448
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 220
+    },
+    {
+      "filename": "tree sway 5",
+      "frame": {
+        "x": 17,
+        "y": 527,
+        "w": 336,
+        "h": 448
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 220
+    },
+    {
+      "filename": "tree sway 6",
+      "frame": {
+        "x": 390,
+        "y": 527,
+        "w": 336,
+        "h": 448
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 220
+    },
+    {
+      "filename": "tree sway 7",
+      "frame": {
+        "x": 776,
+        "y": 527,
+        "w": 336,
+        "h": 448
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 220
+    },
+    {
+      "filename": "tree sway 8",
+      "frame": {
+        "x": 1176,
+        "y": 527,
+        "w": 336,
+        "h": 448
+      },
+      "rotated": false,
+      "trimmed": false,
+      "duration": 220
+    }
+  ],
+  "meta": {
+    "app": "IC_2DE authored sprite pipeline",
+    "version": "3",
+    "image": "tree-atlas.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1536,
+      "h": 1024
+    },
+    "scale": "1",
+    "frameTags": [
+      {
+        "name": "tree-sway",
+        "from": 0,
+        "to": 7,
+        "direction": "forward"
+      }
+    ]
+  }
+}

@@ -56,6 +56,9 @@ public:
     [[nodiscard]] std::vector<SceneEdit> history() const; // Applied edits, oldest first.
     [[nodiscard]] std::size_t undone_count() const noexcept;
     [[nodiscard]] bool modified() const noexcept;
+    // Changes whenever the document changes, including through undo and redo.
+    // Tools key cached views off it instead of re-reading the document.
+    [[nodiscard]] std::uint64_t revision() const noexcept;
 
     [[nodiscard]] SceneDefinition runtime_copy() const;
     void save_atomic(const std::filesystem::path& destination);

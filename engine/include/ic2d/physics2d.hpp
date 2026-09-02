@@ -90,6 +90,23 @@ struct PhysicsFootprint {
     bool sensor{false};
 };
 
+struct PhysicsSegmentQuery {
+    Vec2 start{};
+    Vec2 end{};
+    std::uint64_t category_bits{~std::uint64_t{0}};
+    std::uint64_t mask_bits{~std::uint64_t{0}};
+    PhysicsBodyId ignored_body{};
+    bool include_sensors{false};
+};
+
+struct PhysicsSegmentHit {
+    PhysicsBodyId body{};
+    Vec2 point{};
+    Vec2 normal{};
+    float fraction{0.0F};
+    std::uint32_t tag{0};
+};
+
 // Owns the Box2D world, unit conversion, handle lifetime, and event copying.
 // Invalid numeric definitions throw; stale handles return false/nullopt.
 class PhysicsWorld final {
@@ -117,6 +134,11 @@ public:
     );
 
     [[nodiscard]] std::optional<PhysicsBodySnapshot> snapshot(PhysicsBodyId body) const noexcept;
+    // Returns the nearest accepted body along start -> end. Filtering and
+    // ignored identity remain engine-owned; no Box2D type leaves this seam.
+    [[nodiscard]] std::optional<PhysicsSegmentHit> cast_segment(
+        const PhysicsSegmentQuery& query
+    ) const;
     [[nodiscard]] PhysicsStepResult step(float time_step_seconds);
     [[nodiscard]] std::vector<PhysicsFootprint> debug_footprints() const;
 
