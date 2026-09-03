@@ -1,0 +1,37 @@
+# IC_2DE C++ formatting.
+#
+# These values were chosen by measuring the existing sources rather than by
+# taste: each candidate configuration was run over engine/, game/ and tests/,
+# and the one that rewrote the fewest lines was kept. The notes below record
+# what the measurement showed, so a future change to this file can be argued
+# against the same evidence instead of restarting the debate.
+Language: Cpp
+BasedOnStyle: LLVM
+
+# The 99th percentile source line is 96 columns and only 133 lines of ~30k
+# exceed 100, so 100 preserves the existing wrapping almost everywhere.
+ColumnLimit: 100
+
+IndentWidth: 4
+AccessModifierOffset: -4
+ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+
+# `Health& health`, `const std::string& line`.
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+
+# `namespace ic2d {` does not indent its contents.
+NamespaceIndentation: None
+
+# Aligned continuation, not BlockIndent. Some declarations are hand-written in
+# a one-parameter-per-line form with the closing paren on its own line, which
+# looks like BlockIndent, but that pattern is a minority: forcing it repository
+# wide rewrote 11.5k lines against 7.0k for Align, because it also breaks up
+# the call sites and conditionals that make up most of the code.
+AlignAfterOpenBracket: Align
+
+# .gitattributes normalises these sources to LF. Left at its default the
+# formatter derives the ending from whatever the working tree happens to hold,
+# which reintroduced CRLF into ~28 files that predate that rule.
+LineEnding: LF

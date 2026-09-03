@@ -1,0 +1,62 @@
+# IC_2DE static analysis.
+#
+# This list is deliberately curated rather than wholesale. Enabling every
+# available check produces thousands of findings on a codebase this size, and a
+# diagnostic set nobody can clear is one nobody reads. Everything listed here is
+# expected to hold at zero findings so that a new one means a real regression.
+#
+# The analysis is wired to the IC2DE_ENABLE_CLANG_TIDY CMake option and is off
+# by default, because it roughly doubles compile time.
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  misc-const-correctness,
+  misc-misplaced-const,
+  misc-redundant-expression,
+  misc-unused-alias-decls,
+  misc-unused-using-decls,
+  modernize-use-emplace,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-using,
+  readability-braces-around-statements,
+  readability-const-return-type,
+  readability-misleading-indentation,
+  readability-non-const-parameter,
+  readability-redundant-control-flow,
+  readability-redundant-member-init,
+  readability-redundant-smartptr-get,
+  readability-redundant-string-cstr,
+  readability-simplify-boolean-expr,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-branch-clone
+
+# Rationale for the three suppressions above, which are the checks whose cost
+# exceeds their value in this particular codebase:
+#
+#   bugprone-easily-swappable-parameters
+#     Fires on any adjacent same-typed parameters. Geometry and simulation code
+#     is made of (x, y), (width, height) and (min, max) pairs, so this reports
+#     hundreds of call signatures that are already as clear as they can be.
+#
+#   bugprone-narrowing-conversions
+#     2D rendering converts between float world units and int pixel coordinates
+#     constantly and deliberately. The conversions are the design, not a defect.
+#
+#   bugprone-branch-clone
+#     Direction and state dispatch legitimately maps several cases onto the same
+#     handling, and collapsing those branches would obscure the eight-way
+#     locomotion tables rather than clarify them.
+
+# Analyse the project's own headers and skip vendored ones. renderdoc_app.h is
+# third-party and is excluded from formatting for the same reason.
+HeaderFilterRegex: '.*[/\\]engine[/\\](include|src)[/\\].*'
+ExcludeHeaderFilterRegex: '.*renderdoc_app\.h$'
+
+# Findings are reported but do not fail a build yet. Once the tree is clean this
+# should become '*' so the set stays at zero.
+WarningsAsErrors: ''
+
+FormatStyle: file
