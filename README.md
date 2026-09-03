@@ -246,6 +246,28 @@ for the Release development editor. All three use the same adjacent
 without setting a working directory. Scene edits saved from the packaged editor
 are written to that folder's `Content` copy, never back to the source checkout.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` builds both configurations on every push and pull
+request, and checks formatting as a separate job so a style failure is obvious
+at a glance rather than buried in a build log.
+
+Both the Debug and the shipping preset are built. The shipping preset compiles
+with `IC2DE_ENABLE_DEVELOPMENT_TOOLS` off, which is a genuinely different
+translation of `application.cpp`, and it had been broken without anyone noticing
+precisely because nothing built it automatically.
+
+The three tests that drive a real executable open a window and need a GPU, so
+they carry the `gpu` CTest label. A headless machine runs everything else:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .	oolsuild.ps1 -Configuration Debug -RunTests -ExcludeGpuTests
+```
+
+Adding a smoke test through `ic2de_add_smoke_test` applies that label
+automatically, so a new one cannot accidentally be handed to a machine that
+cannot run it.
+
 ## Formatting and static analysis
 
 `.clang-format` describes the house style. Its values were chosen by measuring
