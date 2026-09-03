@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <fstream>
 #include <limits>
@@ -76,6 +77,23 @@ using Json = nlohmann::json;
         fail(path, "Optional field '" + std::string{key} + "' must be a boolean.");
     }
     return found->get<bool>();
+}
+
+[[nodiscard]] float optional_positive_float_field(const Json& object, const std::string_view key,
+                                                  const std::filesystem::path& path) {
+    const auto found = object.find(key);
+    if (found == object.end()) {
+        return 1.0F;
+    }
+    if (!found->is_number()) {
+        fail(path, "Optional field '" + std::string{key} + "' must be a number.");
+    }
+    const double parsed = found->get<double>();
+    if (!std::isfinite(parsed) || parsed <= 0.0 || parsed > 8.0) {
+        fail(path, "Optional field '" + std::string{key} +
+                       "' must be finite and in the range (0, 8].");
+    }
+    return static_cast<float>(parsed);
 }
 
 [[nodiscard]] std::uint32_t unsigned_field(const Json& object, const std::string_view key,
@@ -177,6 +195,8 @@ struct ImportedFrame {
                 .duration_ticks = duration_ticks(milliseconds, fixed_update_hz, path),
                 .events = frame_events(authored, path),
                 .flip_x = optional_bool_field(authored, "ic2d_flip_x", path),
+                .presentation_scale =
+                    optional_positive_float_field(authored, "ic2d_scale", path),
             },
     };
 }

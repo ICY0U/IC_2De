@@ -41,5 +41,6 @@ These are high-resolution animation concepts, not native-resolution game sprites
 - Scene role: the existing stationary damage target, with its original collision, health, retirement behavior, and UUID preserved.
 - Driven now: eight-way idle and movement bindings, nonlethal hurt, and projectile death; the active target remains stationary under its existing behavior.
 - A lethal projectile presents the death one-shot only. Explosion remains available as a separate authored terminal clip for a future boss proximity/attack behavior, and is never chained automatically from death.
+- Its available explosion clip now shares the clean native-pixel ignition, expanding blast, and smoke choreography used by the Stalker, scaled up for the boss presentation without changing its collision.
 
 The source set only contains a true east-facing chase strip. Other movement directions use that animated cycle or its mirrored variant until dedicated directional boss locomotion is approved.

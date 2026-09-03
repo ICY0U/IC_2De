@@ -57,12 +57,17 @@ void test_once_holds_the_final_frame() {
 void test_sample_retains_authored_horizontal_flip() {
     ic2d::AnimationClip flipped = clip("west", ic2d::AnimationLoopMode::loop, 1);
     flipped.frames.front().flip_x = true;
+    flipped.frames.front().presentation_scale = 1.75F;
     ic2d::AnimationPlayer player{{std::move(flipped)}, "west"};
     expect(player.sample().flip_x,
            "Animation samples must retain authored horizontal presentation flips.");
+    expect(player.sample().presentation_scale == 1.75F,
+           "Animation samples must retain authored per-frame presentation scale.");
     static_cast<void>(player.advance(1));
     expect(!player.sample().flip_x,
            "Horizontal flipping must remain a per-frame presentation property.");
+    expect(player.sample().presentation_scale == 1.0F,
+           "Presentation scaling must remain a per-frame property.");
 }
 
 void test_ping_pong_handles_large_advances() {

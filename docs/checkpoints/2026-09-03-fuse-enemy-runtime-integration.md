@@ -12,7 +12,7 @@ The active test scene now uses the approved tall Fuse enemy family instead of th
 - `game/assets/runtime/fuse-tyrant-atlas.json`: 20 clips and 110 frame records.
 - `tools/import-fuse-enemies.ps1`: deterministic source-sheet cleanup and native-grid atlas generation.
 
-The importer removes the baked pale checker background, writes true RGBA transparency, downsamples with nearest-neighbor sampling, quantizes to the approved teal/brass/plum/orange palette, and grounds each pose to a stable root line. Locomotion and idle sheets are segmented as complete connected poses before atlas placement, so artwork that crosses a presentation-grid boundary cannot leak a limb or fragment into the neighbouring runtime frame.
+The importer removes the baked pale checker background, writes true RGBA transparency, downsamples with nearest-neighbor sampling, quantizes to the approved teal/brass/plum/orange palette, and grounds each pose to a stable root line. Locomotion and idle sheets are segmented as complete connected poses before atlas placement, so artwork that crosses a presentation-grid boundary cannot leak a limb or fragment into the neighbouring runtime frame. Explosion follow-through is rebuilt as a deterministic native-pixel ignition, two-frame blast, and three-stage plum smoke decay because the loose high-resolution concept layout cannot be divided safely into equal frame cells.
 
 ## Scene mapping
 
@@ -21,6 +21,7 @@ The importer removes the baked pale checker background, writes true RGBA transpa
 - Their existing shadow entities remain paired but were resized and renamed.
 - All eight idle and all eight movement directions are bound for both enemies.
 - Nonlethal damage plays the authored hurt one-shot and returns to locomotion. Lethal projectile damage retires gameplay collision immediately, presents only the authored death one-shot, then hides the enemy and its shadow. The explosion is a separate kamikaze path triggered only when a pursuing Stalker enters its 20-unit attack range of the player.
+- Animation frames can author a presentation-only `ic2d_scale`; the explosion uses it to expand visually without changing actor transforms, navigation, collision, or damage range.
 - The player and unrelated scene entities were not changed by this replacement.
 
 ## Validation
@@ -28,11 +29,12 @@ The importer removes the baked pale checker background, writes true RGBA transpa
 - Debug configuration/build passed, followed by the complete 37/37 CTest suite.
 - Scene tests passed with the new 71-clip scene contract and complete hurt/death/explosion bindings for both enemy roles.
 - Asset hot-reload tests passed.
-- Atlas validation passed with 110 frame records per enemy, zero cell-boundary failures, zero detached-pose framing failures, transparent corners, and all six terminal clips authored as one-shots.
+- Atlas validation passed with 110 frame records per enemy, zero cell-boundary failures, zero detached-pose framing failures, transparent corners, and all six terminal clips authored as one-shots. The Stalker explosion now peaks at 92.9 rendered pixels across four readable blast/smoke frames and lasts 1200 ms; the Tyrant peaks at 135.6 pixels and lasts 1430 ms.
 - The real RTX 2080 Ti/OpenGL moving-attacker smoke completed 150 fixed ticks, one acquisition, one attack request, 110.699997 world units of collision-resolved travel, 12 player damage, and clean shutdown.
 - The real GPU hit smoke completed one hurt reaction with zero death and zero explosion completions.
 - The real GPU Tyrant target-death smoke completed three projectile spawns, three resolved impacts, one deterministic death, one matching gameplay retirement, one completed death animation, zero explosions, and clean shutdown.
 - The real GPU proximity smoke completed one close-range Stalker detonation with zero death animations and one explosion animation while applying 12 player damage.
+- Real OpenGL captures at fixed ticks 150, 160, 170, 185, and 205 verified the complete ignition-to-blast-to-smoke sequence at gameplay scale.
 - The 400-Stalker crowd-kill smoke requires projectile deaths to complete without producing proximity explosions.
 
 ## Deliberate limits

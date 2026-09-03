@@ -1581,6 +1581,8 @@ RuntimeScene::collect_render_items(const float interpolation_alpha,
             item.sprite.texture = impl_->animation_clip_textures.at(std::string{sample.clip_id});
             item.sprite.source = sample.source;
             item.sprite.flip_x = sample.flip_x;
+            item.sprite.size.x *= sample.presentation_scale;
+            item.sprite.size.y *= sample.presentation_scale;
         }
     }
     return items;

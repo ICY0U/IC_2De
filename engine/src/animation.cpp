@@ -32,9 +32,12 @@ struct AnimationPlayer::Impl {
                 throw std::invalid_argument{"Animation clips require at least one frame."};
             }
             for (const AnimationFrame& frame : clip.frames) {
-                if (!valid_source(frame.source) || frame.duration_ticks == 0) {
+                if (!valid_source(frame.source) || frame.duration_ticks == 0 ||
+                    !std::isfinite(frame.presentation_scale) ||
+                    frame.presentation_scale <= 0.0F) {
                     throw std::invalid_argument{
-                        "Animation frames require a finite positive source and duration."};
+                        "Animation frames require a finite positive source, duration, and "
+                        "presentation scale."};
                 }
                 std::unordered_set<std::string> event_names;
                 for (const std::string& event : frame.events) {
@@ -225,6 +228,7 @@ AnimationSample AnimationPlayer::sample() const {
         .paused = impl_->paused,
         .finished = impl_->finished,
         .flip_x = frame.flip_x,
+        .presentation_scale = frame.presentation_scale,
     };
 }
 

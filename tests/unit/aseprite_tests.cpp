@@ -51,6 +51,10 @@ void test_imports_golden_json_array() {
            "The optional IC_2DE frame-event extension must survive import.");
     expect(imported.clips[0].frames[1].flip_x && imported.clips[1].frames[0].flip_x,
            "The optional horizontal-flip extension must follow a frame through tag ordering.");
+    expect(imported.clips[0].frames[1].presentation_scale == 1.5F &&
+               imported.clips[1].frames[0].presentation_scale == 1.5F &&
+               imported.clips[0].frames[0].presentation_scale == 1.0F,
+           "The optional presentation-scale extension must follow a frame and default to one.");
 }
 
 void test_rejects_hash_format_and_unsafe_images(const std::filesystem::path& root) {
