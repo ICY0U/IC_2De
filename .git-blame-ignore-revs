@@ -1,0 +1,7 @@
+# Revisions that changed formatting only and would otherwise obscure `git blame`.
+#
+# Apply with:
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Apply clang-format across engine, game and tests
+d9a3097aeb02268627b14a807c0eb98f6ed5ad75

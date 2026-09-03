@@ -246,6 +246,41 @@ for the Release development editor. All three use the same adjacent
 without setting a working directory. Scene edits saved from the packaged editor
 are written to that folder's `Content` copy, never back to the source checkout.
 
+## Formatting and static analysis
+
+`.clang-format` describes the house style. Its values were chosen by measuring
+the existing sources rather than by preference: each candidate configuration was
+run across `engine/`, `game/` and `tests/`, and the one that rewrote the fewest
+lines was kept, so the file records the style already in use instead of imposing
+a new one.
+
+clang-format is not on PATH on a stock Windows machine, so the helper locates
+the copy bundled with Visual Studio, the same way `tools/build.ps1` locates
+CMake and Ninja:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\format.ps1
+```
+
+`-Check` reports unformatted files and exits non-zero without writing to them,
+which is the mode continuous integration runs.
+
+Vendored third-party sources are excluded; reformatting them would create a
+permanent diff against upstream and make future updates harder to apply.
+
+`.clang-tidy` holds a deliberately curated check list. Enabling every available
+check on a codebase this size produces thousands of findings, and a diagnostic
+set nobody can clear is one nobody reads, so the list is kept to checks that are
+expected to hold at zero. The three suppressed checks are documented in the file
+with the reasoning for each.
+
+`git blame` skips the one-time reformatting commit through
+`.git-blame-ignore-revs`. To have it applied automatically:
+
+```powershell
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 ## Documents
 
 - `docs/ENGINE_CHARTER.md` - the current product and technical assumptions;
