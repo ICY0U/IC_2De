@@ -795,11 +795,12 @@ if(IC2DE_BUILD_TESTS)
 
     ic2de_add_test(debug SOURCES tests/unit/debug_visuals_tests.cpp DEPS IC2DE::Debug DOCTEST)
 
-    ic2de_add_test(aiming SOURCES tests/unit/aiming_tests.cpp DEPS IC2DE::Aiming)
+    ic2de_add_test(aiming SOURCES tests/unit/aiming_tests.cpp DEPS IC2DE::Aiming DOCTEST)
 
     ic2de_add_test(interaction
         SOURCES tests/unit/interaction_tests.cpp
         DEPS IC2DE::Combat IC2DE::Interaction
+        DOCTEST
     )
 
     ic2de_add_test(render
