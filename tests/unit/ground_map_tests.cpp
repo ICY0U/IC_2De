@@ -24,18 +24,19 @@ void expect(const bool condition, const std::string_view message) {
     return ic2d::GroundMap{{
         .walkable_bounds = {0.0F, 0.0F, 100.0F, 100.0F},
         .max_step_height = 16.0F,
-        .areas = {
-            {.bounds = {40.0F, 40.0F, 20.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
-            {.bounds = {60.0F, 0.0F, 40.0F, 40.0F},
-             .kind = ic2d::GroundAreaKind::elevation,
-             .elevation = 16.0F},
-            {.bounds = {60.0F, 60.0F, 30.0F, 30.0F},
-             .kind = ic2d::GroundAreaKind::elevation,
-             .elevation = 40.0F},
-            {.bounds = {10.0F, 70.0F, 20.0F, 20.0F},
-             .kind = ic2d::GroundAreaKind::trigger,
-             .tag = 7},
-        },
+        .areas =
+            {
+                {.bounds = {40.0F, 40.0F, 20.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                {.bounds = {60.0F, 0.0F, 40.0F, 40.0F},
+                 .kind = ic2d::GroundAreaKind::elevation,
+                 .elevation = 16.0F},
+                {.bounds = {60.0F, 60.0F, 30.0F, 30.0F},
+                 .kind = ic2d::GroundAreaKind::elevation,
+                 .elevation = 40.0F},
+                {.bounds = {10.0F, 70.0F, 20.0F, 20.0F},
+                 .kind = ic2d::GroundAreaKind::trigger,
+                 .tag = 7},
+            },
     }};
 }
 
@@ -63,13 +64,11 @@ void test_solid_collision_slides_by_axis() {
 
 void test_fast_motion_cannot_tunnel_through_a_solid() {
     const auto map = make_map();
-    const auto forward = map.move(
-        {10.0F, 0.0F, 50.0F}, {90.0F, 50.0F}, {2.0F, 2.0F});
+    const auto forward = map.move({10.0F, 0.0F, 50.0F}, {90.0F, 50.0F}, {2.0F, 2.0F});
     expect(near(forward.position.x, 38.0F) && forward.blocked_x,
            "Fast positive movement must stop at the near wall face instead of tunnelling.");
 
-    const auto reverse = map.move(
-        {90.0F, 0.0F, 50.0F}, {10.0F, 50.0F}, {2.0F, 2.0F});
+    const auto reverse = map.move({90.0F, 0.0F, 50.0F}, {10.0F, 50.0F}, {2.0F, 2.0F});
     expect(near(reverse.position.x, 62.0F) && reverse.blocked_x,
            "Fast negative movement must stop at the far wall face instead of tunnelling.");
 }
@@ -90,8 +89,7 @@ void test_trigger_is_reported_without_blocking() {
     const auto result = map.move({5.0F, 0.0F, 75.0F}, {15.0F, 75.0F}, {2.0F, 2.0F});
     expect(result.trigger_tag && *result.trigger_tag == 7,
            "Overlapping a trigger footprint must return its engine-owned tag.");
-    expect(!result.blocked_x && !result.blocked_z,
-           "Triggers must not block movement.");
+    expect(!result.blocked_x && !result.blocked_z, "Triggers must not block movement.");
 }
 
 void test_invalid_definition_is_rejected() {

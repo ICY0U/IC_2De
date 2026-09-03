@@ -13,10 +13,7 @@ namespace {
     return static_cast<std::int32_t>(std::floor(value / cell_size));
 }
 
-[[nodiscard]] std::uint32_t cell_hash(
-    const std::int32_t column,
-    const std::int32_t row
-) noexcept {
+[[nodiscard]] std::uint32_t cell_hash(const std::int32_t column, const std::int32_t row) noexcept {
     const auto x = static_cast<std::uint32_t>(column) * 0x9E3779B9U;
     const auto y = static_cast<std::uint32_t>(row) * 0x85EBCA6BU;
     std::uint32_t mixed = x ^ (y + 0x165667B1U + (x << 6U) + (x >> 2U));
@@ -36,11 +33,9 @@ namespace {
 
 } // namespace
 
-std::vector<CrowdSteer> resolve_crowd_separation(
-    const std::vector<CrowdAgent>& agents,
-    const CrowdSeparationSettings& settings,
-    JobSystem* const jobs
-) {
+std::vector<CrowdSteer> resolve_crowd_separation(const std::vector<CrowdAgent>& agents,
+                                                 const CrowdSeparationSettings& settings,
+                                                 JobSystem* const jobs) {
     std::vector<CrowdSteer> steers;
     steers.reserve(agents.size());
     for (const CrowdAgent& agent : agents) {
@@ -93,72 +88,70 @@ std::vector<CrowdSteer> resolve_crowd_separation(
     }
 
     const auto steer_range = [&](const std::size_t first, const std::size_t last) {
-    for (std::size_t index = first; index < last; ++index) {
-        const CrowdAgent& agent = agents[index];
-        Vec2 push{};
-        for (std::int32_t row_offset = -1; row_offset <= 1; ++row_offset) {
-            for (std::int32_t column_offset = -1; column_offset <= 1; ++column_offset) {
-                const std::int32_t column = columns[index] + column_offset;
-                const std::int32_t row = rows[index] + row_offset;
-                const std::uint32_t bucket = cell_hash(column, row) & bucket_mask;
-                for (std::uint32_t slot = bucket_start[bucket];
-                     slot < bucket_start[bucket + 1U]; ++slot) {
-                    const std::uint32_t other_index = bucket_items[slot];
-                    // Buckets are shared by colliding cells, so confirm the
-                    // neighbour really is in the cell being visited.
-                    if (columns[other_index] != column || rows[other_index] != row) {
-                        continue;
+        for (std::size_t index = first; index < last; ++index) {
+            const CrowdAgent& agent = agents[index];
+            Vec2 push{};
+            for (std::int32_t row_offset = -1; row_offset <= 1; ++row_offset) {
+                for (std::int32_t column_offset = -1; column_offset <= 1; ++column_offset) {
+                    const std::int32_t column = columns[index] + column_offset;
+                    const std::int32_t row = rows[index] + row_offset;
+                    const std::uint32_t bucket = cell_hash(column, row) & bucket_mask;
+                    for (std::uint32_t slot = bucket_start[bucket];
+                         slot < bucket_start[bucket + 1U]; ++slot) {
+                        const std::uint32_t other_index = bucket_items[slot];
+                        // Buckets are shared by colliding cells, so confirm the
+                        // neighbour really is in the cell being visited.
+                        if (columns[other_index] != column || rows[other_index] != row) {
+                            continue;
+                        }
+                        if (other_index == index) {
+                            continue;
+                        }
+                        const CrowdAgent& other = agents[other_index];
+                        const float delta_x = agent.position.x - other.position.x;
+                        const float delta_y = agent.position.y - other.position.y;
+                        const float distance_squared = delta_x * delta_x + delta_y * delta_y;
+                        if (distance_squared >= radius_squared) {
+                            continue;
+                        }
+                        if (distance_squared <= 0.0F) {
+                            // Exactly coincident actors have no gradient to follow.
+                            // Fan them apart by input order so the result is stable
+                            // instead of dependent on floating-point noise.
+                            const float angle = static_cast<float>(index % 8U) * 0.78539816F;
+                            push.x += std::cos(angle);
+                            push.y += std::sin(angle);
+                            continue;
+                        }
+                        const float distance = std::sqrt(distance_squared);
+                        // Linear falloff: touching actors push hardest, actors at
+                        // the radius contribute nothing and cannot cause a jump.
+                        float weight = (radius - distance) / radius;
+                        if (distance < personal_space) {
+                            // Squared so the term is negligible at the edge of the
+                            // padding and firm at contact. The steer is normalized
+                            // afterwards, so a large value only ever means "move
+                            // directly away" and cannot make the motion explode.
+                            const float closeness = (personal_space - distance) / personal_space;
+                            weight += closeness * closeness * settings.contact_strength;
+                        }
+                        push.x += delta_x / distance * weight;
+                        push.y += delta_y / distance * weight;
                     }
-                    if (other_index == index) {
-                        continue;
-                    }
-                    const CrowdAgent& other = agents[other_index];
-                    const float delta_x = agent.position.x - other.position.x;
-                    const float delta_y = agent.position.y - other.position.y;
-                    const float distance_squared = delta_x * delta_x + delta_y * delta_y;
-                    if (distance_squared >= radius_squared) {
-                        continue;
-                    }
-                    if (distance_squared <= 0.0F) {
-                        // Exactly coincident actors have no gradient to follow.
-                        // Fan them apart by input order so the result is stable
-                        // instead of dependent on floating-point noise.
-                        const float angle =
-                            static_cast<float>(index % 8U) * 0.78539816F;
-                        push.x += std::cos(angle);
-                        push.y += std::sin(angle);
-                        continue;
-                    }
-                    const float distance = std::sqrt(distance_squared);
-                    // Linear falloff: touching actors push hardest, actors at
-                    // the radius contribute nothing and cannot cause a jump.
-                    float weight = (radius - distance) / radius;
-                    if (distance < personal_space) {
-                        // Squared so the term is negligible at the edge of the
-                        // padding and firm at contact. The steer is normalized
-                        // afterwards, so a large value only ever means "move
-                        // directly away" and cannot make the motion explode.
-                        const float closeness =
-                            (personal_space - distance) / personal_space;
-                        weight += closeness * closeness * settings.contact_strength;
-                    }
-                    push.x += delta_x / distance * weight;
-                    push.y += delta_y / distance * weight;
                 }
             }
-        }
 
-        if (push.x == 0.0F && push.y == 0.0F) {
-            continue;
+            if (push.x == 0.0F && push.y == 0.0F) {
+                continue;
+            }
+            const Vec2 desired = steers[index].direction;
+            const Vec2 blended{
+                desired.x + push.x * settings.strength,
+                desired.y + push.y * settings.strength,
+            };
+            steers[index].direction = normalized(blended);
+            steers[index].separated = true;
         }
-        const Vec2 desired = steers[index].direction;
-        const Vec2 blended{
-            desired.x + push.x * settings.strength,
-            desired.y + push.y * settings.strength,
-        };
-        steers[index].direction = normalized(blended);
-        steers[index].separated = true;
-    }
     };
 
     // Below this the thread hand-off costs more than the work it hands off.

@@ -6,13 +6,9 @@
 
 namespace ic2d {
 
-FixedStepClock::FixedStepClock(
-    const double fixed_step_seconds,
-    const double max_frame_seconds,
-    const std::uint32_t max_steps_per_frame
-)
-    : fixed_step_seconds_{fixed_step_seconds},
-      max_frame_seconds_{max_frame_seconds},
+FixedStepClock::FixedStepClock(const double fixed_step_seconds, const double max_frame_seconds,
+                               const std::uint32_t max_steps_per_frame)
+    : fixed_step_seconds_{fixed_step_seconds}, max_frame_seconds_{max_frame_seconds},
       max_steps_per_frame_{max_steps_per_frame} {
     if (!std::isfinite(fixed_step_seconds_) || fixed_step_seconds_ <= 0.0) {
         throw std::invalid_argument{"Fixed step must be finite and greater than zero."};
@@ -59,8 +55,6 @@ TickPlan FixedStepClock::advance(const double frame_seconds) noexcept {
     };
 }
 
-void FixedStepClock::reset() noexcept {
-    accumulator_seconds_ = 0.0;
-}
+void FixedStepClock::reset() noexcept { accumulator_seconds_ = 0.0; }
 
 } // namespace ic2d

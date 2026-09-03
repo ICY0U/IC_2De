@@ -29,38 +29,70 @@ struct KeyMapping {
 // Enough of the keyboard for panel navigation and text fields. Gameplay keys
 // are read by the game's own adapter and are deliberately absent.
 constexpr std::array<KeyMapping, 64> key_mappings{{
-    {KEY_APOSTROPHE, ImGuiKey_Apostrophe},   {KEY_COMMA, ImGuiKey_Comma},
-    {KEY_MINUS, ImGuiKey_Minus},             {KEY_PERIOD, ImGuiKey_Period},
-    {KEY_SLASH, ImGuiKey_Slash},             {KEY_ZERO, ImGuiKey_0},
-    {KEY_ONE, ImGuiKey_1},                   {KEY_TWO, ImGuiKey_2},
-    {KEY_THREE, ImGuiKey_3},                 {KEY_FOUR, ImGuiKey_4},
-    {KEY_FIVE, ImGuiKey_5},                  {KEY_SIX, ImGuiKey_6},
-    {KEY_SEVEN, ImGuiKey_7},                 {KEY_EIGHT, ImGuiKey_8},
-    {KEY_NINE, ImGuiKey_9},                  {KEY_SEMICOLON, ImGuiKey_Semicolon},
-    {KEY_EQUAL, ImGuiKey_Equal},             {KEY_A, ImGuiKey_A},
-    {KEY_B, ImGuiKey_B},                     {KEY_C, ImGuiKey_C},
-    {KEY_D, ImGuiKey_D},                     {KEY_E, ImGuiKey_E},
-    {KEY_F, ImGuiKey_F},                     {KEY_G, ImGuiKey_G},
-    {KEY_H, ImGuiKey_H},                     {KEY_I, ImGuiKey_I},
-    {KEY_J, ImGuiKey_J},                     {KEY_K, ImGuiKey_K},
-    {KEY_L, ImGuiKey_L},                     {KEY_M, ImGuiKey_M},
-    {KEY_N, ImGuiKey_N},                     {KEY_O, ImGuiKey_O},
-    {KEY_P, ImGuiKey_P},                     {KEY_Q, ImGuiKey_Q},
-    {KEY_R, ImGuiKey_R},                     {KEY_S, ImGuiKey_S},
-    {KEY_T, ImGuiKey_T},                     {KEY_U, ImGuiKey_U},
-    {KEY_V, ImGuiKey_V},                     {KEY_W, ImGuiKey_W},
-    {KEY_X, ImGuiKey_X},                     {KEY_Y, ImGuiKey_Y},
-    {KEY_Z, ImGuiKey_Z},                     {KEY_SPACE, ImGuiKey_Space},
-    {KEY_ESCAPE, ImGuiKey_Escape},           {KEY_ENTER, ImGuiKey_Enter},
-    {KEY_TAB, ImGuiKey_Tab},                 {KEY_BACKSPACE, ImGuiKey_Backspace},
-    {KEY_INSERT, ImGuiKey_Insert},           {KEY_DELETE, ImGuiKey_Delete},
-    {KEY_RIGHT, ImGuiKey_RightArrow},        {KEY_LEFT, ImGuiKey_LeftArrow},
-    {KEY_DOWN, ImGuiKey_DownArrow},          {KEY_UP, ImGuiKey_UpArrow},
-    {KEY_PAGE_UP, ImGuiKey_PageUp},          {KEY_PAGE_DOWN, ImGuiKey_PageDown},
-    {KEY_HOME, ImGuiKey_Home},               {KEY_END, ImGuiKey_End},
-    {KEY_KP_ENTER, ImGuiKey_KeypadEnter},    {KEY_LEFT_BRACKET, ImGuiKey_LeftBracket},
-    {KEY_BACKSLASH, ImGuiKey_Backslash},     {KEY_RIGHT_BRACKET, ImGuiKey_RightBracket},
-    {KEY_GRAVE, ImGuiKey_GraveAccent},       {KEY_CAPS_LOCK, ImGuiKey_CapsLock},
+    {KEY_APOSTROPHE, ImGuiKey_Apostrophe},
+    {KEY_COMMA, ImGuiKey_Comma},
+    {KEY_MINUS, ImGuiKey_Minus},
+    {KEY_PERIOD, ImGuiKey_Period},
+    {KEY_SLASH, ImGuiKey_Slash},
+    {KEY_ZERO, ImGuiKey_0},
+    {KEY_ONE, ImGuiKey_1},
+    {KEY_TWO, ImGuiKey_2},
+    {KEY_THREE, ImGuiKey_3},
+    {KEY_FOUR, ImGuiKey_4},
+    {KEY_FIVE, ImGuiKey_5},
+    {KEY_SIX, ImGuiKey_6},
+    {KEY_SEVEN, ImGuiKey_7},
+    {KEY_EIGHT, ImGuiKey_8},
+    {KEY_NINE, ImGuiKey_9},
+    {KEY_SEMICOLON, ImGuiKey_Semicolon},
+    {KEY_EQUAL, ImGuiKey_Equal},
+    {KEY_A, ImGuiKey_A},
+    {KEY_B, ImGuiKey_B},
+    {KEY_C, ImGuiKey_C},
+    {KEY_D, ImGuiKey_D},
+    {KEY_E, ImGuiKey_E},
+    {KEY_F, ImGuiKey_F},
+    {KEY_G, ImGuiKey_G},
+    {KEY_H, ImGuiKey_H},
+    {KEY_I, ImGuiKey_I},
+    {KEY_J, ImGuiKey_J},
+    {KEY_K, ImGuiKey_K},
+    {KEY_L, ImGuiKey_L},
+    {KEY_M, ImGuiKey_M},
+    {KEY_N, ImGuiKey_N},
+    {KEY_O, ImGuiKey_O},
+    {KEY_P, ImGuiKey_P},
+    {KEY_Q, ImGuiKey_Q},
+    {KEY_R, ImGuiKey_R},
+    {KEY_S, ImGuiKey_S},
+    {KEY_T, ImGuiKey_T},
+    {KEY_U, ImGuiKey_U},
+    {KEY_V, ImGuiKey_V},
+    {KEY_W, ImGuiKey_W},
+    {KEY_X, ImGuiKey_X},
+    {KEY_Y, ImGuiKey_Y},
+    {KEY_Z, ImGuiKey_Z},
+    {KEY_SPACE, ImGuiKey_Space},
+    {KEY_ESCAPE, ImGuiKey_Escape},
+    {KEY_ENTER, ImGuiKey_Enter},
+    {KEY_TAB, ImGuiKey_Tab},
+    {KEY_BACKSPACE, ImGuiKey_Backspace},
+    {KEY_INSERT, ImGuiKey_Insert},
+    {KEY_DELETE, ImGuiKey_Delete},
+    {KEY_RIGHT, ImGuiKey_RightArrow},
+    {KEY_LEFT, ImGuiKey_LeftArrow},
+    {KEY_DOWN, ImGuiKey_DownArrow},
+    {KEY_UP, ImGuiKey_UpArrow},
+    {KEY_PAGE_UP, ImGuiKey_PageUp},
+    {KEY_PAGE_DOWN, ImGuiKey_PageDown},
+    {KEY_HOME, ImGuiKey_Home},
+    {KEY_END, ImGuiKey_End},
+    {KEY_KP_ENTER, ImGuiKey_KeypadEnter},
+    {KEY_LEFT_BRACKET, ImGuiKey_LeftBracket},
+    {KEY_BACKSLASH, ImGuiKey_Backslash},
+    {KEY_RIGHT_BRACKET, ImGuiKey_RightBracket},
+    {KEY_GRAVE, ImGuiKey_GraveAccent},
+    {KEY_CAPS_LOCK, ImGuiKey_CapsLock},
 }};
 
 void apply_mouse_cursor() {
@@ -118,10 +150,9 @@ void submit_draw_data(const ImDrawData& draw_data) {
             }
 
             rlEnableScissorTest();
-            rlScissor(static_cast<int>(clip_left),
-                      framebuffer_height - static_cast<int>(clip_bottom),
-                      static_cast<int>(clip_right - clip_left),
-                      static_cast<int>(clip_bottom - clip_top));
+            rlScissor(
+                static_cast<int>(clip_left), framebuffer_height - static_cast<int>(clip_bottom),
+                static_cast<int>(clip_right - clip_left), static_cast<int>(clip_bottom - clip_top));
 
             rlSetTexture(static_cast<unsigned int>(command.GetTexID()));
             rlBegin(RL_TRIANGLES);
@@ -239,9 +270,7 @@ bool ImGuiRaylibBackend::available() const noexcept {
     return context_created_ && font_texture_id_ != 0U;
 }
 
-bool ImGuiRaylibBackend::configure_layout_file(
-    const std::filesystem::path& path
-) noexcept {
+bool ImGuiRaylibBackend::configure_layout_file(const std::filesystem::path& path) noexcept {
     if (!context_created_ || frame_open_ || path.empty()) {
         return false;
     }
@@ -269,8 +298,8 @@ bool ImGuiRaylibBackend::new_frame() {
     }
 
     ImGuiIO& io = ImGui::GetIO();
-    io.DisplaySize = ImVec2{static_cast<float>(GetScreenWidth()),
-                            static_cast<float>(GetScreenHeight())};
+    io.DisplaySize =
+        ImVec2{static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
     io.DisplayFramebufferScale = ImVec2{1.0F, 1.0F};
     const float frame_seconds = GetFrameTime();
     io.DeltaTime = frame_seconds > 0.0F ? frame_seconds : 1.0F / 60.0F;
@@ -284,8 +313,7 @@ bool ImGuiRaylibBackend::new_frame() {
         io.AddMouseWheelEvent(wheel.x, wheel.y);
     }
 
-    io.AddKeyEvent(ImGuiMod_Ctrl,
-                   IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL));
+    io.AddKeyEvent(ImGuiMod_Ctrl, IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL));
     io.AddKeyEvent(ImGuiMod_Shift, IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT));
     io.AddKeyEvent(ImGuiMod_Alt, IsKeyDown(KEY_LEFT_ALT) || IsKeyDown(KEY_RIGHT_ALT));
     io.AddKeyEvent(ImGuiMod_Super, IsKeyDown(KEY_LEFT_SUPER) || IsKeyDown(KEY_RIGHT_SUPER));

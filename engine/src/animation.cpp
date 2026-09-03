@@ -11,9 +11,8 @@ namespace ic2d {
 namespace {
 
 [[nodiscard]] bool valid_source(const RectF& source) noexcept {
-    return std::isfinite(source.x) && std::isfinite(source.y) &&
-           std::isfinite(source.width) && std::isfinite(source.height) &&
-           source.width > 0.0F && source.height > 0.0F;
+    return std::isfinite(source.x) && std::isfinite(source.y) && std::isfinite(source.width) &&
+           std::isfinite(source.height) && source.width > 0.0F && source.height > 0.0F;
 }
 
 } // namespace
@@ -151,10 +150,7 @@ struct AnimationPlayer::Impl {
     bool finished{false};
 };
 
-AnimationPlayer::AnimationPlayer(
-    std::vector<AnimationClip> clips,
-    std::string initial_clip
-)
+AnimationPlayer::AnimationPlayer(std::vector<AnimationClip> clips, std::string initial_clip)
     : impl_{std::make_unique<Impl>(std::move(clips), std::move(initial_clip))} {}
 
 AnimationPlayer::~AnimationPlayer() = default;
@@ -173,10 +169,8 @@ bool AnimationPlayer::play(const std::string_view clip_id, const bool restart) {
     return true;
 }
 
-bool AnimationPlayer::play(
-    const std::string_view clip_id,
-    const AnimationTransitionMode transition
-) {
+bool AnimationPlayer::play(const std::string_view clip_id,
+                           const AnimationTransitionMode transition) {
     const auto found = impl_->clip_indices.find(std::string{clip_id});
     if (found == impl_->clip_indices.end()) {
         throw std::out_of_range{"Unknown animation clip: " + std::string{clip_id}};

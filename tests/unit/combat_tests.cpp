@@ -17,9 +17,8 @@ void expect(const bool condition, const std::string_view message) {
     }
 }
 
-[[nodiscard]] std::vector<const ic2d::CombatIntentEvent*> intent_events(
-    const std::vector<ic2d::CombatEvent>& events
-) {
+[[nodiscard]] std::vector<const ic2d::CombatIntentEvent*>
+intent_events(const std::vector<ic2d::CombatEvent>& events) {
     std::vector<const ic2d::CombatIntentEvent*> result;
     for (const ic2d::CombatEvent& event : events) {
         if (const auto* intent = std::get_if<ic2d::CombatIntentEvent>(&event)) {
@@ -29,9 +28,8 @@ void expect(const bool condition, const std::string_view message) {
     return result;
 }
 
-[[nodiscard]] std::vector<const ic2d::ProjectileSpawnedEvent*> projectile_events(
-    const std::vector<ic2d::CombatEvent>& events
-) {
+[[nodiscard]] std::vector<const ic2d::ProjectileSpawnedEvent*>
+projectile_events(const std::vector<ic2d::CombatEvent>& events) {
     std::vector<const ic2d::ProjectileSpawnedEvent*> result;
     for (const ic2d::CombatEvent& event : events) {
         if (const auto* projectile = std::get_if<ic2d::ProjectileSpawnedEvent>(&event)) {
@@ -41,9 +39,8 @@ void expect(const bool condition, const std::string_view message) {
     return result;
 }
 
-[[nodiscard]] std::vector<const ic2d::DodgeStartedEvent*> dodge_started_events(
-    const std::vector<ic2d::CombatEvent>& events
-) {
+[[nodiscard]] std::vector<const ic2d::DodgeStartedEvent*>
+dodge_started_events(const std::vector<ic2d::CombatEvent>& events) {
     std::vector<const ic2d::DodgeStartedEvent*> result;
     for (const ic2d::CombatEvent& event : events) {
         if (const auto* dodge = std::get_if<ic2d::DodgeStartedEvent>(&event)) {
@@ -70,7 +67,8 @@ void test_fire_is_buffered_until_the_next_fixed_tick() {
     combat.fixed_update(1);
     const std::vector<ic2d::CombatEvent> events = combat.drain_events();
     const auto intents = intent_events(events);
-    expect(intents.size() == 1, "One buffered fire edge must emit exactly one intent acknowledgement.");
+    expect(intents.size() == 1,
+           "One buffered fire edge must emit exactly one intent acknowledgement.");
     if (intents.size() == 1) {
         const auto& event = *intents.front();
         expect(event.tick == 1 && event.sequence == 1,
@@ -105,8 +103,7 @@ void test_commands_keep_fifo_order_and_normalize_aim() {
     combat.fixed_update(1);
     const std::vector<ic2d::CombatEvent> events = combat.drain_events();
     const auto intents = intent_events(events);
-    expect(intents.size() == 3,
-           "Every buffered edge must survive until the authoritative tick.");
+    expect(intents.size() == 3, "Every buffered edge must survive until the authoritative tick.");
     if (intents.size() == 3) {
         const auto& fire = *intents[0];
         const auto& reload = *intents[1];
@@ -162,8 +159,7 @@ void test_invalid_ticks_do_not_consume_commands_and_reset_is_clean() {
 
     ic2d::CombatCommand invalid_aim;
     invalid_aim.actor = {9};
-    invalid_aim.aim_direction = ic2d::Vec2{
-        std::numeric_limits<float>::infinity(), 0.0F};
+    invalid_aim.aim_direction = ic2d::Vec2{std::numeric_limits<float>::infinity(), 0.0F};
     expect(!combat.submit(invalid_aim), "Non-finite aim must be rejected at submission.");
 
     combat.reset();
@@ -190,7 +186,8 @@ void test_empty_identity_and_zero_aim_commands_are_rejected() {
 
     ic2d::CombatCommand missing_actor;
     missing_actor.request(ic2d::CombatIntent::dodge);
-    expect(!combat.submit(missing_actor), "A command without stable actor identity must be rejected.");
+    expect(!combat.submit(missing_actor),
+           "A command without stable actor identity must be rejected.");
 
     ic2d::CombatCommand zero_aim;
     zero_aim.actor = {4};
@@ -248,8 +245,7 @@ void test_needle_pistol_fire_consumes_ammo_and_emits_spawn_event() {
     expect(projectile != nullptr,
            "An eligible fire intent must emit one copied projectile-spawn event.");
     if (projectile != nullptr) {
-        expect(projectile->tick == 1 && projectile->sequence == 2 &&
-                   projectile->projectile_id == 1,
+        expect(projectile->tick == 1 && projectile->sequence == 2 && projectile->projectile_id == 1,
                "The first projectile must carry stable tick, event, and projectile identity.");
         expect(projectile->actor == ic2d::EntityUuid{73} &&
                    projectile->weapon == ic2d::WeaponKind::needle_pistol,
@@ -297,8 +293,7 @@ void test_replenish_fills_the_weapon_and_abandons_a_reload() {
     expect(!filled.weapon.reloading && filled.weapon.reload_ticks_remaining == 0,
            "Replenish must abandon a reload, because there is nothing left to reload into.");
     expect(!filled.actors.empty() &&
-               filled.actors.front().weapon.magazine_ammo ==
-                   ic2d::needle_pistol.magazine_capacity,
+               filled.actors.front().weapon.magazine_ammo == ic2d::needle_pistol.magazine_capacity,
            "Replenish must republish the per-actor snapshot, not only the latest-actor view.");
 
     // Applied outside a tick, so it must not disturb tick ordering. The shot
@@ -312,8 +307,7 @@ void test_replenish_fills_the_weapon_and_abandons_a_reload() {
            "The shot must be taken while the abandoned reload would still be running.");
     submit(ic2d::CombatIntent::fire);
     combat.fixed_update(tick);
-    expect(combat.snapshot().weapon.magazine_ammo ==
-               ic2d::needle_pistol.magazine_capacity - 1,
+    expect(combat.snapshot().weapon.magazine_ammo == ic2d::needle_pistol.magazine_capacity - 1,
            "A replenished weapon must fire rather than finish the reload it abandoned.");
 
     expect(!combat.replenish({}), "A zero identity must be refused.");
@@ -348,8 +342,7 @@ void test_needle_pistol_fire_cooldown_is_fixed_tick_authoritative() {
     combat.fixed_update(ready_tick);
     expect(projectile_events(combat.drain_events()).size() == 1,
            "The first tick after cooldown expiry must permit the next shot.");
-    expect(combat.snapshot().weapon.magazine_ammo ==
-               ic2d::needle_pistol.magazine_capacity - 2,
+    expect(combat.snapshot().weapon.magazine_ammo == ic2d::needle_pistol.magazine_capacity - 2,
            "Blocked fire commands must not consume magazine ammunition.");
     expect(combat.snapshot().spawned_projectile_count == 2,
            "Only cooldown-eligible commands may increase the projectile count.");
@@ -368,21 +361,17 @@ void test_needle_pistol_reload_has_exact_duration_and_blocks_fire() {
     submit(ic2d::CombatIntent::fire);
     combat.fixed_update(1);
     static_cast<void>(combat.drain_events());
-    expect(combat.snapshot().weapon.magazine_ammo ==
-               ic2d::needle_pistol.magazine_capacity - 1,
+    expect(combat.snapshot().weapon.magazine_ammo == ic2d::needle_pistol.magazine_capacity - 1,
            "The reload fixture must begin with exactly one missing round.");
 
     submit(ic2d::CombatIntent::reload);
     combat.fixed_update(2);
     static_cast<void>(combat.drain_events());
-    expect(combat.snapshot().weapon.reloading &&
-               combat.snapshot().weapon.reload_ticks_remaining ==
-                   ic2d::needle_pistol.reload_duration_ticks,
+    expect(combat.snapshot().weapon.reloading && combat.snapshot().weapon.reload_ticks_remaining ==
+                                                     ic2d::needle_pistol.reload_duration_ticks,
            "Reload must start on its command tick with the complete duration remaining.");
 
-    for (std::uint64_t tick = 3;
-         tick < ic2d::needle_pistol.fire_cooldown_ticks + 2;
-         ++tick) {
+    for (std::uint64_t tick = 3; tick < ic2d::needle_pistol.fire_cooldown_ticks + 2; ++tick) {
         combat.fixed_update(tick);
         static_cast<void>(combat.drain_events());
     }
@@ -391,8 +380,7 @@ void test_needle_pistol_reload_has_exact_duration_and_blocks_fire() {
     combat.fixed_update(blocked_fire_tick);
     expect(projectile_events(combat.drain_events()).empty(),
            "Reload must block firing even after the ordinary fire cooldown expires.");
-    expect(combat.snapshot().weapon.magazine_ammo ==
-               ic2d::needle_pistol.magazine_capacity - 1,
+    expect(combat.snapshot().weapon.magazine_ammo == ic2d::needle_pistol.magazine_capacity - 1,
            "A fire attempt during reload must not consume ammunition.");
 
     const std::uint64_t completion_tick = 2 + ic2d::needle_pistol.reload_duration_ticks;
@@ -508,25 +496,23 @@ void test_dodge_starts_on_a_fixed_tick_and_has_an_exact_invulnerability_window()
                        ic2d::player_dodge.invulnerability_ticks &&
                    starts.front()->cooldown_ticks == ic2d::player_dodge.cooldown_ticks,
                "The dodge event must copy every authored timing value.");
-        expect(starts.front()->direction.x == 0.6F && starts.front()->direction.y == 0.8F,
-               "The dodge event must freeze the normalized movement direction from its start tick.");
+        expect(
+            starts.front()->direction.x == 0.6F && starts.front()->direction.y == 0.8F,
+            "The dodge event must freeze the normalized movement direction from its start tick.");
     }
 
     ic2d::DodgeSnapshot snapshot = combat.snapshot().dodge;
     expect(snapshot.active && snapshot.invulnerable && combat.invulnerable(actor),
            "A started dodge must be active and queryable as invulnerable.");
     expect(snapshot.active_ticks_remaining == ic2d::player_dodge.duration_ticks &&
-               snapshot.invulnerable_ticks_remaining ==
-                   ic2d::player_dodge.invulnerability_ticks &&
+               snapshot.invulnerable_ticks_remaining == ic2d::player_dodge.invulnerability_ticks &&
                snapshot.cooldown_ticks_remaining == ic2d::player_dodge.cooldown_ticks &&
                snapshot.started_count == 1,
            "The start tick must expose the complete authored dodge timers.");
     expect(snapshot.direction.x == 0.6F && snapshot.direction.y == 0.8F,
            "The active dodge snapshot must expose its frozen world direction.");
 
-    for (std::uint64_t tick = 2;
-         tick <= ic2d::player_dodge.invulnerability_ticks;
-         ++tick) {
+    for (std::uint64_t tick = 2; tick <= ic2d::player_dodge.invulnerability_ticks; ++tick) {
         combat.fixed_update(tick);
         static_cast<void>(combat.drain_events());
         expect(combat.invulnerable(actor),
@@ -538,8 +524,7 @@ void test_dodge_starts_on_a_fixed_tick_and_has_an_exact_invulnerability_window()
            "Invulnerability must end exactly after its authored fixed-tick window.");
 
     for (std::uint64_t tick = ic2d::player_dodge.invulnerability_ticks + 2;
-         tick <= ic2d::player_dodge.duration_ticks;
-         ++tick) {
+         tick <= ic2d::player_dodge.duration_ticks; ++tick) {
         combat.fixed_update(tick);
         static_cast<void>(combat.drain_events());
     }
@@ -586,16 +571,14 @@ void test_combat_snapshot_copies_all_actor_state_in_stable_identity_order() {
     higher_actor.actor = {902};
     higher_actor.aim_direction = ic2d::Vec2{1.0F, 0.0F};
     higher_actor.set_fire_held(true);
-    expect(combat.submit(higher_actor),
-           "The higher actor fixture must enter Combat first.");
+    expect(combat.submit(higher_actor), "The higher actor fixture must enter Combat first.");
 
     ic2d::CombatCommand lower_actor;
     lower_actor.actor = {901};
     lower_actor.aim_direction = ic2d::Vec2{0.0F, -1.0F};
     lower_actor.dodge_direction = ic2d::Vec2{-1.0F, 0.0F};
     lower_actor.request(ic2d::CombatIntent::dodge);
-    expect(combat.submit(lower_actor),
-           "The lower actor fixture must enter Combat second.");
+    expect(combat.submit(lower_actor), "The lower actor fixture must enter Combat second.");
 
     combat.fixed_update(1);
     static_cast<void>(combat.drain_events());
@@ -607,17 +590,16 @@ void test_combat_snapshot_copies_all_actor_state_in_stable_identity_order() {
         expect(snapshot.actors[0].actor == ic2d::EntityUuid{901} &&
                    snapshot.actors[1].actor == ic2d::EntityUuid{902},
                "Combat actor snapshots must use stable UUID order, not command arrival order.");
-        expect(snapshot.actors[0].dodge.active &&
-                   snapshot.actors[0].dodge.direction.x == -1.0F &&
+        expect(snapshot.actors[0].dodge.active && snapshot.actors[0].dodge.direction.x == -1.0F &&
                    !snapshot.actors[0].fire_held,
                "The lower actor snapshot must copy its frozen dodge and held-fire state.");
-        expect(snapshot.actors[1].aim_direction.x == 1.0F &&
-                   snapshot.actors[1].fire_held,
+        expect(snapshot.actors[1].aim_direction.x == 1.0F && snapshot.actors[1].fire_held,
                "The higher actor snapshot must copy its retained aim and held-fire state.");
     }
-    expect(snapshot.next_event_sequence > 1 &&
-               snapshot.next_projectile_id == snapshot.spawned_projectile_count + 1,
-           "The snapshot must copy the next identities that influence later deterministic results.");
+    expect(
+        snapshot.next_event_sequence > 1 &&
+            snapshot.next_projectile_id == snapshot.spawned_projectile_count + 1,
+        "The snapshot must copy the next identities that influence later deterministic results.");
 }
 
 void test_dodge_cooldown_rejects_restarts_and_reset_clears_state() {
@@ -636,8 +618,7 @@ void test_dodge_cooldown_rejects_restarts_and_reset_clears_state() {
 
     const std::uint64_t ready_tick = 1 + ic2d::player_dodge.cooldown_ticks;
     for (std::uint64_t tick = 2; tick < ready_tick; ++tick) {
-        if (tick == 2 || tick == ic2d::player_dodge.duration_ticks + 2 ||
-            tick == ready_tick - 1) {
+        if (tick == 2 || tick == ic2d::player_dodge.duration_ticks + 2 || tick == ready_tick - 1) {
             submit_dodge();
         }
         combat.fixed_update(tick);
@@ -661,9 +642,8 @@ void test_dodge_cooldown_rejects_restarts_and_reset_clears_state() {
     combat.reset();
     const ic2d::DodgeSnapshot reset = combat.snapshot().dodge;
     expect(!reset.active && !reset.invulnerable && reset.active_ticks_remaining == 0 &&
-               reset.invulnerable_ticks_remaining == 0 &&
-               reset.cooldown_ticks_remaining == 0 && reset.started_count == 0 &&
-               !combat.invulnerable(actor),
+               reset.invulnerable_ticks_remaining == 0 && reset.cooldown_ticks_remaining == 0 &&
+               reset.started_count == 0 && !combat.invulnerable(actor),
            "Reset must clear dodge activity, invulnerability, cooldown, and counters.");
 }
 

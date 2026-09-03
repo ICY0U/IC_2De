@@ -35,14 +35,13 @@ void test_spawn_is_buffered_and_moves_one_fixed_tick() {
 
     expect(projectiles.spawn(spawn, {10.0F, 3.0F, -4.0F}),
            "A valid copied Combat spawn must enter the projectile buffer.");
-    expect(projectiles.snapshot().active.empty() &&
-               projectiles.snapshot().pending_spawn_count == 1,
+    expect(projectiles.snapshot().active.empty() && projectiles.snapshot().pending_spawn_count == 1,
            "Render-rate submission must not mutate authoritative projectile positions.");
 
     projectiles.fixed_update(1, 1.0F / 60.0F);
     const ic2d::ProjectileSimulationSnapshot snapshot = projectiles.snapshot();
-    expect(snapshot.tick == 1 && snapshot.total_spawned == 1 &&
-               snapshot.pending_spawn_count == 0 && snapshot.active.size() == 1,
+    expect(snapshot.tick == 1 && snapshot.total_spawned == 1 && snapshot.pending_spawn_count == 0 &&
+               snapshot.active.size() == 1,
            "The matching fixed tick must activate exactly one buffered projectile.");
     if (snapshot.active.size() == 1) {
         const ic2d::ProjectileStateSnapshot& projectile = snapshot.active.front();
@@ -52,8 +51,7 @@ void test_spawn_is_buffered_and_moves_one_fixed_tick() {
                    near(projectile.previous_position.y, 3.0F) &&
                    near(projectile.previous_position.z, -4.0F),
                "The first movement segment must begin at the resolved actor origin.");
-        expect(near(projectile.position.x, 11.2F) &&
-                   near(projectile.position.y, 3.0F) &&
+        expect(near(projectile.position.x, 11.2F) && near(projectile.position.y, 3.0F) &&
                    near(projectile.position.z, -2.4F),
                "One 60 Hz tick must integrate direction times speed in world X/Z space.");
         expect(projectile.lifetime_ticks_remaining == 9,
@@ -90,16 +88,13 @@ void test_projectile_expires_after_its_exact_authored_lifetime() {
     const ic2d::ProjectileSimulationSnapshot expired = projectiles.snapshot();
     expect(expired.active.empty() && expired.total_expired == 1,
            "The projectile must leave active state on its third simulated step.");
-    const std::vector<ic2d::ProjectileExpiredEvent> events =
-        projectiles.drain_expired_events();
-    expect(events.size() == 1,
-           "Exact lifetime expiry must emit one copied lifecycle event.");
+    const std::vector<ic2d::ProjectileExpiredEvent> events = projectiles.drain_expired_events();
+    expect(events.size() == 1, "Exact lifetime expiry must emit one copied lifecycle event.");
     if (events.size() == 1) {
         expect(events.front().tick == 3 && events.front().projectile_id == 19 &&
                    events.front().actor == ic2d::EntityUuid{88},
                "The expiration event must retain tick and stable ownership identity.");
-        expect(near(events.front().position.x, 13.0F) &&
-                   near(events.front().position.y, 2.0F) &&
+        expect(near(events.front().position.x, 13.0F) && near(events.front().position.y, 2.0F) &&
                    near(events.front().position.z, 6.0F),
                "Expiration must report the endpoint after exactly three movement steps.");
     }
@@ -110,16 +105,17 @@ void test_projectile_expires_after_its_exact_authored_lifetime() {
 void test_impact_ignores_owner_then_removes_projectile_on_valid_target() {
     ic2d::ProjectileSimulation projectiles;
     const ic2d::EntityUuid owner{301};
-    expect(projectiles.spawn({
-                                 .tick = 1,
-                                 .projectile_id = 44,
-                                 .actor = owner,
-                                 .aim_direction = {1.0F, 0.0F},
-                                 .speed = 60.0F,
-                                 .lifetime_ticks = 10,
-                                 .damage = 18.0F,
-                             },
-                             {0.0F, 4.0F, 0.0F}),
+    expect(projectiles.spawn(
+               {
+                   .tick = 1,
+                   .projectile_id = 44,
+                   .actor = owner,
+                   .aim_direction = {1.0F, 0.0F},
+                   .speed = 60.0F,
+                   .lifetime_ticks = 10,
+                   .damage = 18.0F,
+               },
+               {0.0F, 4.0F, 0.0F}),
            "The impact fixture must accept its projectile spawn.");
     projectiles.fixed_update(1, 1.0F / 60.0F);
 
@@ -132,8 +128,7 @@ void test_impact_ignores_owner_then_removes_projectile_on_valid_target() {
                .tag = 10,
            }),
            "A projectile must reject an impact against its owning actor.");
-    expect(projectiles.snapshot().active.size() == 1 &&
-               projectiles.drain_impact_events().empty(),
+    expect(projectiles.snapshot().active.size() == 1 && projectiles.drain_impact_events().empty(),
            "An ignored owner overlap must not remove the projectile or emit an impact.");
 
     const ic2d::EntityUuid target{302};
@@ -146,20 +141,16 @@ void test_impact_ignores_owner_then_removes_projectile_on_valid_target() {
                .tag = 30,
            }),
            "A valid non-owner collision must resolve the active projectile.");
-    expect(projectiles.snapshot().active.empty() &&
-               projectiles.snapshot().total_impacted == 1,
+    expect(projectiles.snapshot().active.empty() && projectiles.snapshot().total_impacted == 1,
            "A resolved impact must remove the projectile and increment impact state once.");
-    const std::vector<ic2d::ProjectileImpactEvent> events =
-        projectiles.drain_impact_events();
-    expect(events.size() == 1,
-           "A resolved collision must emit exactly one copied impact event.");
+    const std::vector<ic2d::ProjectileImpactEvent> events = projectiles.drain_impact_events();
+    expect(events.size() == 1, "A resolved collision must emit exactly one copied impact event.");
     if (events.size() == 1) {
         expect(events.front().tick == 1 && events.front().projectile_id == 44 &&
                    events.front().actor == owner && events.front().target == target,
                "The impact event must preserve projectile, owner, and target identity.");
         expect(events.front().tag == 30 && near(events.front().damage, 18.0F) &&
-                   near(events.front().position.x, 0.75F) &&
-                   near(events.front().normal.x, -1.0F),
+                   near(events.front().position.x, 0.75F) && near(events.front().normal.x, -1.0F),
                "The impact event must copy collision geometry, tag, and authored damage.");
     }
     expect(!projectiles.resolve_impact({

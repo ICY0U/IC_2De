@@ -34,14 +34,17 @@ void test_button_transitions() {
 void test_axis_is_normalized() {
     ic2d::InputTracker tracker;
     const auto positive = tracker.update(ic2d::InputSample{.move_horizontal = 2.0F});
-    const auto negative = tracker.update(ic2d::InputSample{.move_horizontal = -3.0F, .move_depth = 0.0F});
-    const auto diagonal = tracker.update(ic2d::InputSample{.move_horizontal = 1.0F, .move_depth = 1.0F});
+    const auto negative =
+        tracker.update(ic2d::InputSample{.move_horizontal = -3.0F, .move_depth = 0.0F});
+    const auto diagonal =
+        tracker.update(ic2d::InputSample{.move_horizontal = 1.0F, .move_depth = 1.0F});
     expect(std::abs(positive.move_horizontal - 1.0F) < 0.0001F,
            "Positive action axis must be clamped to one.");
     expect(std::abs(negative.move_horizontal + 1.0F) < 0.0001F,
            "Negative action axis must be clamped to minus one.");
     expect(std::abs(std::sqrt(diagonal.move_horizontal * diagonal.move_horizontal +
-                             diagonal.move_depth * diagonal.move_depth) - 1.0F) < 0.0001F,
+                              diagonal.move_depth * diagonal.move_depth) -
+                    1.0F) < 0.0001F,
            "Diagonal movement must be normalized to prevent a speed boost.");
 }
 
@@ -58,7 +61,8 @@ void test_render_mode_transition() {
     const auto first = tracker.update(ic2d::InputSample{.cycle_render_pacing = true});
     const auto held = tracker.update(ic2d::InputSample{.cycle_render_pacing = true});
     expect(first.cycle_render_pacing.pressed, "Render pacing action must emit one pressed edge.");
-    expect(!held.cycle_render_pacing.pressed, "Held render pacing action must not cycle repeatedly.");
+    expect(!held.cycle_render_pacing.pressed,
+           "Held render pacing action must not cycle repeatedly.");
 }
 
 void test_post_process_toggle_transition() {
@@ -66,12 +70,10 @@ void test_post_process_toggle_transition() {
     const auto first = tracker.update(ic2d::InputSample{.toggle_post_process = true});
     const auto held = tracker.update(ic2d::InputSample{.toggle_post_process = true});
     const auto released = tracker.update(ic2d::InputSample{});
-    expect(first.toggle_post_process.pressed,
-           "Post-process action must emit one pressed edge.");
+    expect(first.toggle_post_process.pressed, "Post-process action must emit one pressed edge.");
     expect(!held.toggle_post_process.pressed,
            "Held post-process action must not repeat the pressed edge.");
-    expect(released.toggle_post_process.released,
-           "Post-process action must emit a release edge.");
+    expect(released.toggle_post_process.released, "Post-process action must emit a release edge.");
 }
 
 void test_gameplay_actions_have_independent_edges() {

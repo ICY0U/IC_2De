@@ -2,11 +2,11 @@
 #include "ic2d/scene_document.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
-#include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -116,32 +116,31 @@ void test_loads_automatic_animation_with_phase_offset(const std::filesystem::pat
 void test_loads_enemy_reaction_animation_states(const std::filesystem::path& root) {
     static_assert(ic2d::locomotion_state_count == 33);
     const std::filesystem::path path = root / "enemy-reactions.scene";
-    write_file(path, valid_scene(
-        "animation_clip=enemy-hurt|crate|once\n"
-        "animation_clip=enemy-death|crate|once\n"
-        "animation_clip=enemy-explode|crate|once\n"
-        "animation_frame=enemy-hurt|0|0|4|8|2|-\n"
-        "animation_frame=enemy-death|0|0|4|8|3|-\n"
-        "animation_frame=enemy-explode|0|0|4|8|4|-\n"
-        "animation_binding=player|hurt_south|enemy-hurt|false\n"
-        "animation_binding=player|death_south|enemy-death|false\n"
-        "animation_binding=player|explode_south|enemy-explode|false\n"));
+    write_file(path, valid_scene("animation_clip=enemy-hurt|crate|once\n"
+                                 "animation_clip=enemy-death|crate|once\n"
+                                 "animation_clip=enemy-explode|crate|once\n"
+                                 "animation_frame=enemy-hurt|0|0|4|8|2|-\n"
+                                 "animation_frame=enemy-death|0|0|4|8|3|-\n"
+                                 "animation_frame=enemy-explode|0|0|4|8|4|-\n"
+                                 "animation_binding=player|hurt_south|enemy-hurt|false\n"
+                                 "animation_binding=player|death_south|enemy-death|false\n"
+                                 "animation_binding=player|explode_south|enemy-explode|false\n"));
 
     const ic2d::SceneDefinition scene = ic2d::SceneDefinition::load(path);
     const ic2d::SceneAnimationBindingDefinition& binding = scene.animation_bindings().front();
-    expect(binding.state_clips[static_cast<std::size_t>(ic2d::LocomotionState::hurt_south)] ==
-               "enemy-hurt" &&
-               binding.state_clips[static_cast<std::size_t>(ic2d::LocomotionState::death_south)] ==
-                   "enemy-death" &&
-               binding.state_clips[static_cast<std::size_t>(ic2d::LocomotionState::explode_south)] ==
-                   "enemy-explode",
-           "Enemy reaction bindings must retain hurt, death, and explosion one-shots.");
+    expect(
+        binding.state_clips[static_cast<std::size_t>(ic2d::LocomotionState::hurt_south)] ==
+                "enemy-hurt" &&
+            binding.state_clips[static_cast<std::size_t>(ic2d::LocomotionState::death_south)] ==
+                "enemy-death" &&
+            binding.state_clips[static_cast<std::size_t>(ic2d::LocomotionState::explode_south)] ==
+                "enemy-explode",
+        "Enemy reaction bindings must retain hurt, death, and explosion one-shots.");
 }
 
 void test_loads_second_authored_fixture() {
     const std::filesystem::path path =
-        std::filesystem::path{IC2DE_TEST_FIXTURE_DIRECTORY} / "scenes" /
-        "compact_encounter.scene";
+        std::filesystem::path{IC2DE_TEST_FIXTURE_DIRECTORY} / "scenes" / "compact_encounter.scene";
     const ic2d::SceneDefinition scene = ic2d::SceneDefinition::load(path);
     expect(scene.id() == "compact_encounter", "The second fixture id must be retained.");
     expect(scene.physics_bodies().size() == 3,
@@ -184,7 +183,7 @@ void test_loads_aseprite_runtime_content() {
                player_texture->relative_path == "player-v3-idle-south.png",
            "The Aseprite records must provide the native-grid V3 player texture set.");
     expect(scene.animation_clips().size() == 71,
-            "The runtime scene must combine V3 player actions, Fuse enemies, and ambient clips.");
+           "The runtime scene must combine V3 player actions, Fuse enemies, and ambient clips.");
     expect(scene.animation_clips().front().clip.id == "player-v3-move-south" &&
                scene.animation_clips().front().clip.frames.size() == 8,
            "Imported tag order and inclusive ranges must reach scene-owned clips.");
@@ -223,21 +222,21 @@ void test_loads_aseprite_runtime_content() {
     expect(player_move_west != nullptr &&
                player_move_west->clip.frames.front().source.x <
                    player_move_west->clip.frames.back().source.x &&
-               std::ranges::all_of(player_move_west->clip.frames,
-                                   [](const ic2d::AnimationFrame& frame) {
-                                       return frame.flip_x;
-                                   }),
-           "The west gait must play forward while horizontally presenting the east-facing source art.");
+               std::ranges::all_of(
+                   player_move_west->clip.frames,
+                   [](const ic2d::AnimationFrame& frame) { return frame.flip_x; }),
+           "The west gait must play forward while horizontally presenting the east-facing source "
+           "art.");
     expect(player_idle_east != nullptr && player_idle_east->clip.frames.size() == 6 &&
                std::ranges::all_of(player_idle_east->clip.frames,
-                                   [](const ic2d::AnimationFrame& frame) {
-                                       return !frame.flip_x;
-                                   }),
+                                   [](const ic2d::AnimationFrame& frame) { return !frame.flip_x; }),
            "The V3 east idle must use all six authored east-facing poses.");
     expect(player_move_west != nullptr &&
-               std::ranges::all_of(player_move_west->clip.frames, [](const ic2d::AnimationFrame& frame) {
-                   return frame.duration_ticks >= 5 && frame.duration_ticks <= 7;
-               }),
+               std::ranges::all_of(player_move_west->clip.frames,
+                                   [](const ic2d::AnimationFrame& frame) {
+                                       return frame.duration_ticks >= 5 &&
+                                              frame.duration_ticks <= 7;
+                                   }),
            "The V3-normalized walk must preserve the authored 48-tick gait.");
     std::uint32_t dodge_ticks = 0;
     if (player_dodge_west != nullptr) {
@@ -248,9 +247,7 @@ void test_loads_aseprite_runtime_content() {
     expect(player_dodge_west != nullptr && player_dodge_west->clip.frames.size() == 6 &&
                dodge_ticks == 12 &&
                std::ranges::all_of(player_dodge_west->clip.frames,
-                                   [](const ic2d::AnimationFrame& frame) {
-                                       return frame.flip_x;
-                                   }),
+                                   [](const ic2d::AnimationFrame& frame) { return frame.flip_x; }),
            "The mirrored west sidestep must show all six poses across exactly twelve ticks.");
     std::uint32_t seated_ticks = 0;
     if (player_seated_north != nullptr) {
@@ -272,16 +269,17 @@ void test_loads_aseprite_runtime_content() {
            "The south shooting strip must respond and recover inside nine fixed ticks.");
     expect(stalker_move_east != nullptr && stalker_move_east->clip.frames.size() == 8 &&
                tyrant_idle_south != nullptr && tyrant_idle_south->clip.frames.size() == 6,
-            "The replacement Stalker pursuit and Tyrant boss idle must be available through scene bindings.");
-    expect(tree_sway != nullptr &&
-               std::ranges::all_of(tree_sway->clip.frames, [](const ic2d::AnimationFrame& frame) {
-                   return frame.duration_ticks >= 12;
-               }),
+           "The replacement Stalker pursuit and Tyrant boss idle must be available through scene "
+           "bindings.");
+    expect(tree_sway != nullptr && std::ranges::all_of(tree_sway->clip.frames,
+                                                       [](const ic2d::AnimationFrame& frame) {
+                                                           return frame.duration_ticks >= 12;
+                                                       }),
            "Tree sway must remain slower than its original rapid loop.");
 
-    const auto tree_prefab = std::ranges::find(scene.prefabs(), "tree", &ic2d::ScenePrefabDefinition::id);
-    expect(tree_prefab != scene.prefabs().end() &&
-               tree_prefab->sprite.normalized_origin.y <= 0.96F,
+    const auto tree_prefab =
+        std::ranges::find(scene.prefabs(), "tree", &ic2d::ScenePrefabDefinition::id);
+    expect(tree_prefab != scene.prefabs().end() && tree_prefab->sprite.normalized_origin.y <= 0.96F,
            "Tree sprites must sink their visible roots into the authored ground contact point.");
 
     const ic2d::SceneEntityDefinition* player_shadow = nullptr;
@@ -307,16 +305,14 @@ void test_loads_aseprite_runtime_content() {
 void test_rejects_incomplete_locomotion_binding(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "incomplete-animation.scene";
     std::string contents = valid_scene();
-    const std::string missing =
-        "animation_binding=player|move_east|player-move|false\n";
+    const std::string missing = "animation_binding=player|move_east|player-move|false\n";
     contents.erase(contents.find(missing), missing.size());
     write_file(path, contents);
     bool rejected = false;
     try {
         static_cast<void>(ic2d::SceneDefinition::load(path));
     } catch (const std::runtime_error& error) {
-        rejected = std::string_view{error.what()}.find("all sixteen") !=
-                   std::string_view::npos;
+        rejected = std::string_view{error.what()}.find("all sixteen") != std::string_view::npos;
     }
     expect(rejected, "Locomotion bindings must provide all idle and move directions.");
 }
@@ -325,22 +321,24 @@ void test_rejects_unknown_binding(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "unknown-binding.scene";
     std::string contents = valid_scene();
     const std::string expected = "entity=prop|3002|Prop|prop|";
-    contents.replace(contents.find(expected), expected.size(),
-                     "entity=prop|3002|Prop|missing|");
+    contents.replace(contents.find(expected), expected.size(), "entity=prop|3002|Prop|missing|");
     write_file(path, contents);
     bool rejected = false;
     try {
         static_cast<void>(ic2d::SceneDefinition::load(path));
     } catch (const std::runtime_error& error) {
-        rejected = std::string_view{error.what()}.find("unknown physics body") != std::string_view::npos;
+        rejected =
+            std::string_view{error.what()}.find("unknown physics body") != std::string_view::npos;
     }
     expect(rejected, "Unknown physics bindings must fail with a field diagnostic.");
 }
 
 void test_rejects_duplicate_ids(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "duplicate.scene";
-    write_file(path, valid_scene(
-        "entity=player|3999|Duplicate|player|-20|0|-20|16|24|0.5|1|255|255|255|255|0|-\n"));
+    write_file(
+        path,
+        valid_scene(
+            "entity=player|3999|Duplicate|player|-20|0|-20|16|24|0.5|1|255|255|255|255|0|-\n"));
     bool rejected = false;
     try {
         static_cast<void>(ic2d::SceneDefinition::load(path));
@@ -352,8 +350,8 @@ void test_rejects_duplicate_ids(const std::filesystem::path& root) {
 
 void test_rejects_duplicate_entity_uuids(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "duplicate-uuid.scene";
-    write_file(path, valid_scene(
-        "entity=duplicate|3001|Duplicate UUID|player|-20|0|-20|16|24|0.5|1|255|255|255|255|0|-\n"));
+    write_file(path, valid_scene("entity=duplicate|3001|Duplicate "
+                                 "UUID|player|-20|0|-20|16|24|0.5|1|255|255|255|255|0|-\n"));
     bool rejected = false;
     try {
         static_cast<void>(ic2d::SceneDefinition::load(path));
@@ -385,7 +383,8 @@ void test_rejects_unsafe_asset_path(const std::filesystem::path& root) {
     try {
         static_cast<void>(ic2d::SceneDefinition::load(path));
     } catch (const std::runtime_error& error) {
-        rejected = std::string_view{error.what()}.find("safe relative paths") != std::string_view::npos;
+        rejected =
+            std::string_view{error.what()}.find("safe relative paths") != std::string_view::npos;
     }
     expect(rejected, "Scene assets must not escape the scene content directory.");
 }
@@ -399,15 +398,18 @@ void test_rejects_unsupported_schema(const std::filesystem::path& root) {
     try {
         static_cast<void>(ic2d::SceneDefinition::load(path));
     } catch (const std::runtime_error& error) {
-        rejected = std::string_view{error.what()}.find("Unsupported schema") != std::string_view::npos;
+        rejected =
+            std::string_view{error.what()}.find("Unsupported schema") != std::string_view::npos;
     }
     expect(rejected, "Unsupported scene schemas must fail before runtime construction.");
 }
 
 void test_scene_document_round_trip_edits_by_uuid(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "editable.scene";
-    write_file(path, std::string{"# editor-note\n"} + valid_scene(
-        "entity=marker|3003|Marker|-|10|0|10|8|8|0.5|1|255|255|255|255|1|-\n"));
+    write_file(
+        path,
+        std::string{"# editor-note\n"} +
+            valid_scene("entity=marker|3003|Marker|-|10|0|10|8|8|0.5|1|255|255|255|255|1|-\n"));
 
     ic2d::SceneDocument document = ic2d::SceneDocument::open(path);
     const auto before = document.entities();
@@ -430,8 +432,8 @@ void test_scene_document_round_trip_edits_by_uuid(const std::filesystem::path& r
            "SceneDocument must not bypass physics ownership when moving a bound entity.");
 
     const ic2d::SceneDefinition runtime_copy = document.runtime_copy();
-    const auto runtime_renamed = std::ranges::find(
-        runtime_copy.entities(), ic2d::EntityUuid{3002}, &ic2d::SceneEntityDefinition::uuid);
+    const auto runtime_renamed = std::ranges::find(runtime_copy.entities(), ic2d::EntityUuid{3002},
+                                                   &ic2d::SceneEntityDefinition::uuid);
     expect(runtime_renamed != runtime_copy.entities().end() &&
                runtime_renamed->name == "Renamed prop",
            "An unsaved runtime copy must contain validated in-memory document edits.");
@@ -478,9 +480,7 @@ void test_scene_document_failed_save_preserves_destination(const std::filesystem
            "Failed scene saves must clean their candidate file.");
 }
 
-void test_scene_document_migrates_schema_five_deterministically(
-    const std::filesystem::path& root
-) {
+void test_scene_document_migrates_schema_five_deterministically(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "schema-five.scene";
     std::string legacy = valid_scene();
     legacy.replace(legacy.find("schema=12"), 9, "schema=5");
@@ -505,12 +505,11 @@ void test_scene_document_migrates_schema_five_deterministically(
 }
 
 [[nodiscard]] std::string prefab_scene() {
-    return valid_scene(
-        "prefab=marker|3100|Marker prefab|8|8|0.5|1|255|255|255|255|1|crate\n"
-        "prefab_instance=marker-b|3102|marker|Marker B|-|20|0|20\n"
-        "prefab_override=marker-b|sprite_size|12,6\n"
-        "prefab_override=marker-b|tint|10,20,30,255\n"
-        "prefab_override=marker-b|texture|-\n");
+    return valid_scene("prefab=marker|3100|Marker prefab|8|8|0.5|1|255|255|255|255|1|crate\n"
+                       "prefab_instance=marker-b|3102|marker|Marker B|-|20|0|20\n"
+                       "prefab_override=marker-b|sprite_size|12,6\n"
+                       "prefab_override=marker-b|tint|10,20,30,255\n"
+                       "prefab_override=marker-b|texture|-\n");
 }
 
 void test_expands_prefab_instances_in_authored_order(const std::filesystem::path& root) {
@@ -533,10 +532,10 @@ void test_expands_prefab_instances_in_authored_order(const std::filesystem::path
     }
     expect(ordered, "Entities and prefab instances must retain authored source order.");
 
-    const auto instance_a = std::ranges::find(scene.entities(), "marker-a",
-                                              &ic2d::SceneEntityDefinition::id);
-    const auto instance_b = std::ranges::find(scene.entities(), "marker-b",
-                                              &ic2d::SceneEntityDefinition::id);
+    const auto instance_a =
+        std::ranges::find(scene.entities(), "marker-a", &ic2d::SceneEntityDefinition::id);
+    const auto instance_b =
+        std::ranges::find(scene.entities(), "marker-b", &ic2d::SceneEntityDefinition::id);
     expect(instance_a != scene.entities().end() && instance_a->prefab_id == "marker" &&
                instance_a->uuid.value == 3101 && instance_a->sprite.size.x == 8.0F &&
                instance_a->sprite.size.y == 8.0F && instance_a->sprite.layer == 1 &&
@@ -551,8 +550,7 @@ void test_expands_prefab_instances_in_authored_order(const std::filesystem::path
 
 void test_rejects_unknown_prefab_reference(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "unknown-prefab.scene";
-    write_file(path, valid_scene(
-        "prefab_instance=marker-a|3101|missing|Marker A|-|10|0|10\n"));
+    write_file(path, valid_scene("prefab_instance=marker-a|3101|missing|Marker A|-|10|0|10\n"));
     bool rejected = false;
     try {
         static_cast<void>(ic2d::SceneDefinition::load(path));
@@ -564,8 +562,8 @@ void test_rejects_unknown_prefab_reference(const std::filesystem::path& root) {
 
 void test_rejects_prefab_identity_collision(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "prefab-collision.scene";
-    write_file(path, valid_scene(
-        "prefab=marker|3001|Marker prefab|8|8|0.5|1|255|255|255|255|1|crate\n"));
+    write_file(path,
+               valid_scene("prefab=marker|3001|Marker prefab|8|8|0.5|1|255|255|255|255|1|crate\n"));
     bool rejected = false;
     try {
         static_cast<void>(ic2d::SceneDefinition::load(path));
@@ -615,49 +613,45 @@ void test_scene_document_migrates_schema_six_to_twelve(const std::filesystem::pa
            "Schema 6 migration must retain persistent identities that already exist.");
     const std::string first_result = read_file(path);
     static_cast<void>(ic2d::SceneDocument::migrate_to_current(path));
-    expect(read_file(path) == first_result,
-           "Repeating the schema 6 migration must be idempotent.");
+    expect(read_file(path) == first_result, "Repeating the schema 6 migration must be idempotent.");
 }
 
 void test_rejects_incomplete_dodge_binding(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "incomplete-dodge-animation.scene";
-    std::string contents = valid_scene(
-        "animation_binding=player|dodge_south|player-move|false\n");
+    std::string contents = valid_scene("animation_binding=player|dodge_south|player-move|false\n");
     write_file(path, contents);
     bool rejected = false;
     try {
         static_cast<void>(ic2d::SceneDefinition::load(path));
     } catch (const std::runtime_error& error) {
-        rejected = std::string_view{error.what()}.find("all eight compass") !=
-                   std::string_view::npos;
+        rejected =
+            std::string_view{error.what()}.find("all eight compass") != std::string_view::npos;
     }
     expect(rejected, "A player that opts into dodge art must bind every direction.");
 }
 
 void test_rejects_incomplete_seated_binding(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "incomplete-seated-animation.scene";
-    write_file(path, valid_scene(
-        "animation_binding=player|seated_south|player-idle|false\n"));
+    write_file(path, valid_scene("animation_binding=player|seated_south|player-idle|false\n"));
     bool rejected = false;
     try {
         static_cast<void>(ic2d::SceneDefinition::load(path));
     } catch (const std::runtime_error& error) {
-        rejected = std::string_view{error.what()}.find("both north and south") !=
-                   std::string_view::npos;
+        rejected =
+            std::string_view{error.what()}.find("both north and south") != std::string_view::npos;
     }
     expect(rejected, "A player that opts into seated art must bind both views.");
 }
 
 void test_rejects_incomplete_shooting_binding(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "incomplete-shooting-animation.scene";
-    write_file(path, valid_scene(
-        "animation_binding=player|shoot_south|player-idle|false\n"));
+    write_file(path, valid_scene("animation_binding=player|shoot_south|player-idle|false\n"));
     bool rejected = false;
     try {
         static_cast<void>(ic2d::SceneDefinition::load(path));
     } catch (const std::runtime_error& error) {
-        rejected = std::string_view{error.what()}.find("all four cardinal") !=
-                   std::string_view::npos;
+        rejected =
+            std::string_view{error.what()}.find("all four cardinal") != std::string_view::npos;
     }
     expect(rejected, "A player that opts into shooting art must bind all cardinal views.");
 }
@@ -675,8 +669,7 @@ void test_scene_document_migrates_schema_seven_to_twelve(const std::filesystem::
            "Schema 7 content must migrate to schema 12 without inventing animation records.");
     const std::string first_result = read_file(path);
     static_cast<void>(ic2d::SceneDocument::migrate_to_current(path));
-    expect(read_file(path) == first_result,
-           "Repeating the schema 7 migration must be idempotent.");
+    expect(read_file(path) == first_result, "Repeating the schema 7 migration must be idempotent.");
 }
 
 void test_scene_document_migrates_schema_eight_to_twelve(const std::filesystem::path& root) {
@@ -690,8 +683,7 @@ void test_scene_document_migrates_schema_eight_to_twelve(const std::filesystem::
            "Schema 8 content must migrate to schema 12 without inventing attacker records.");
     const std::string first_result = read_file(path);
     static_cast<void>(ic2d::SceneDocument::migrate_to_current(path));
-    expect(read_file(path) == first_result,
-           "Repeating the schema 8 migration must be idempotent.");
+    expect(read_file(path) == first_result, "Repeating the schema 8 migration must be idempotent.");
 }
 
 void test_scene_document_migrates_schema_nine_to_twelve(const std::filesystem::path& root) {
@@ -705,8 +697,7 @@ void test_scene_document_migrates_schema_nine_to_twelve(const std::filesystem::p
            "Schema 9 content must migrate to schema 12 without inventing depth spans.");
     const std::string first_result = read_file(path);
     static_cast<void>(ic2d::SceneDocument::migrate_to_current(path));
-    expect(read_file(path) == first_result,
-           "Repeating the schema 9 migration must be idempotent.");
+    expect(read_file(path) == first_result, "Repeating the schema 9 migration must be idempotent.");
 }
 
 void test_scene_document_migrates_schema_eleven_to_twelve(const std::filesystem::path& root) {
@@ -734,22 +725,21 @@ void test_scene_parenting(const std::filesystem::path& root) {
     const ic2d::SceneDefinition scene = ic2d::SceneDefinition::load(path);
     const auto player = std::ranges::find(scene.entities(), std::string{"player"},
                                           &ic2d::SceneEntityDefinition::id);
-    const auto prop = std::ranges::find(scene.entities(), std::string{"prop"},
-                                        &ic2d::SceneEntityDefinition::id);
+    const auto prop =
+        std::ranges::find(scene.entities(), std::string{"prop"}, &ic2d::SceneEntityDefinition::id);
     expect(player != scene.entities().end() && prop != scene.entities().end(),
            "The parenting fixture must load both placements.");
-    expect(prop->parent == player->uuid,
-           "A parent record must resolve to the parent identity.");
+    expect(prop->parent == player->uuid, "A parent record must resolve to the parent identity.");
     expect(!player->parent, "An unparented placement must carry no parent.");
 
     // The Hierarchy panel reads the document rather than the definition, so it
     // resolves parents through its own path and needs its own guarantee.
     const ic2d::SceneDocument document = ic2d::SceneDocument::open(path);
     const auto placements = document.entities();
-    const auto document_player = std::ranges::find(placements, std::string{"player"},
-                                                   &ic2d::SceneDocumentEntity::id);
-    const auto document_prop = std::ranges::find(placements, std::string{"prop"},
-                                                 &ic2d::SceneDocumentEntity::id);
+    const auto document_player =
+        std::ranges::find(placements, std::string{"player"}, &ic2d::SceneDocumentEntity::id);
+    const auto document_prop =
+        std::ranges::find(placements, std::string{"prop"}, &ic2d::SceneDocumentEntity::id);
     expect(document_player != placements.end() && document_prop != placements.end(),
            "The document must list both placements.");
     expect(document_prop->parent == document_player->uuid,
@@ -760,8 +750,7 @@ void test_scene_parenting(const std::filesystem::path& root) {
     // Every way of writing a hierarchy that could not be walked is refused at
     // authoring time, so retirement and the outliner never have to defend
     // against one.
-    const auto rejects = [&root](const std::string_view file,
-                                 const std::string& extra,
+    const auto rejects = [&root](const std::string_view file, const std::string& extra,
                                  const std::string_view message) {
         const std::filesystem::path bad = root / file;
         write_file(bad, valid_scene(extra));
@@ -790,8 +779,7 @@ void test_scene_parenting(const std::filesystem::path& root) {
 int run_scene_editor_tests();
 
 int main() {
-    const std::filesystem::path root =
-        std::filesystem::temp_directory_path() / "ic2de-scene-tests";
+    const std::filesystem::path root = std::filesystem::temp_directory_path() / "ic2de-scene-tests";
     std::filesystem::remove_all(root);
     std::filesystem::create_directories(root);
 

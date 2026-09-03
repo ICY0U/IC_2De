@@ -1,8 +1,8 @@
 #include "ic2d/layer_stack.hpp"
 
-#include <limits>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -23,15 +23,9 @@ void expect(const bool condition, const std::string_view message) {
 
 class RecordingLayer final : public ic2d::Layer {
 public:
-    RecordingLayer(
-        std::string layer_name,
-        std::vector<std::string>& log,
-        const bool handles_events = false,
-        std::function<void()> on_event_action = {}
-    )
-        : name_{std::move(layer_name)},
-          log_{&log},
-          handles_events_{handles_events},
+    RecordingLayer(std::string layer_name, std::vector<std::string>& log,
+                   const bool handles_events = false, std::function<void()> on_event_action = {})
+        : name_{std::move(layer_name)}, log_{&log}, handles_events_{handles_events},
           on_event_action_{std::move(on_event_action)} {}
 
     [[nodiscard]] std::string_view name() const noexcept override { return name_; }
@@ -84,14 +78,12 @@ void test_update_and_event_order() {
 
         const std::vector<std::string> expected{
             "update:world", "update:gameplay", "update:tools",
-            "event:tools", "event:gameplay", "event:world",
+            "event:tools",  "event:gameplay",  "event:world",
         };
-        expect(log == expected,
-               "Layers must update bottom-up and receive events top-down.");
+        expect(log == expected, "Layers must update bottom-up and receive events top-down.");
     }
     expect(log.size() >= 3 && log[log.size() - 3] == "detach:tools" &&
-               log[log.size() - 2] == "detach:gameplay" &&
-               log.back() == "detach:world",
+               log[log.size() - 2] == "detach:gameplay" && log.back() == "detach:world",
            "LayerStack destruction must detach owned layers from top to bottom.");
 }
 
@@ -99,8 +91,7 @@ void test_handled_event_stops_propagation() {
     std::vector<std::string> log;
     ic2d::LayerStack stack;
     static_cast<void>(stack.push_layer(std::make_unique<RecordingLayer>("world", log)));
-    static_cast<void>(stack.push_overlay(
-        std::make_unique<RecordingLayer>("modal", log, true)));
+    static_cast<void>(stack.push_overlay(std::make_unique<RecordingLayer>("modal", log, true)));
     log.clear();
 
     const std::vector<ic2d::EngineEvent> events{test_event()};
@@ -112,20 +103,21 @@ void test_handled_event_stops_propagation() {
 void test_structural_changes_are_deferred_until_after_dispatch() {
     std::vector<std::string> log;
     ic2d::LayerStack stack;
-    const ic2d::LayerId world =
-        stack.push_layer(std::make_unique<RecordingLayer>("world", log));
-    static_cast<void>(stack.push_overlay(std::make_unique<RecordingLayer>(
-        "tools", log, false, [&stack, &log, world]() {
+    const ic2d::LayerId world = stack.push_layer(std::make_unique<RecordingLayer>("world", log));
+    static_cast<void>(stack.push_overlay(
+        std::make_unique<RecordingLayer>("tools", log, false, [&stack, &log, world]() {
             static_cast<void>(stack.remove(world));
-            static_cast<void>(stack.push_overlay(
-                std::make_unique<RecordingLayer>("console", log)));
+            static_cast<void>(stack.push_overlay(std::make_unique<RecordingLayer>("console", log)));
         })));
     log.clear();
 
     const std::vector<ic2d::EngineEvent> events{test_event()};
     stack.dispatch(events);
     const std::vector<std::string> first_dispatch{
-        "event:tools", "event:world", "detach:world", "attach:console",
+        "event:tools",
+        "event:world",
+        "detach:world",
+        "attach:console",
     };
     expect(log == first_dispatch && stack.size() == 2,
            "Push and removal requests must apply after the active event batch.");

@@ -137,8 +137,7 @@ void test_snapshot_restore_preserves_authored_state_with_new_runtime_ids() {
     source.flush();
 
     const ic2d::WorldSnapshot snapshot = source.snapshot();
-    expect(snapshot.entities.size() == 2,
-           "A World snapshot must contain every live entity.");
+    expect(snapshot.entities.size() == 2, "A World snapshot must contain every live entity.");
     expect(snapshot.entities.size() == 2 && snapshot.entities[0].uuid.value == 7001 &&
                snapshot.entities[1].uuid.value == 7002,
            "World snapshots must use deterministic persistent-UUID order.");
@@ -153,13 +152,13 @@ void test_snapshot_restore_preserves_authored_state_with_new_runtime_ids() {
     const auto restored_second = restored.find({7002});
     expect(restored.entity_count() == 2 && restored_first && restored_second,
            "Restore must replace the World with entities addressable by stable UUID.");
-    const auto first_transform = restored_first ? restored.transform(*restored_first) : std::nullopt;
+    const auto first_transform =
+        restored_first ? restored.transform(*restored_first) : std::nullopt;
     expect(first_transform && std::abs(first_transform->position.x - 1.0F) < 0.001F,
            "Snapshot data must not alias later source-World mutations.");
     const auto copied = restored.snapshot();
     expect(copied.entities.size() == 2 && copied.entities[1].sprite &&
-               copied.entities[1].sprite->size.x == 20.0F &&
-               copied.entities[1].sprite->layer == 3,
+               copied.entities[1].sprite->size.x == 20.0F && copied.entities[1].sprite->layer == 3,
            "Restore must preserve optional sprite state through the World interface.");
 }
 

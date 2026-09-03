@@ -41,12 +41,11 @@ void expect(const bool condition, const std::string_view message) {
         {
             .walkable_bounds = {0.0F, 0.0F, 100.0F, 100.0F},
             .max_step_height = 0.0F,
-            .areas = {
-                {.bounds = {0.0F, 40.0F, 40.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-                {.bounds = {60.0F, 40.0F, 40.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-            },
+            .areas =
+                {
+                    {.bounds = {0.0F, 40.0F, 40.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                    {.bounds = {60.0F, 40.0F, 40.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                },
         },
         {.cell_size = 20.0F, .agent_half_extents = {}},
     };
@@ -79,7 +78,8 @@ void field_costs_agree_with_a_search() {
 
     const ic2d::NavCell start{0, 4};
     const ic2d::NavPathResult path = ic2d::find_nav_path(grid, start, {0, 0});
-    expect(path.status == ic2d::NavPathStatus::found, "The search finds the route through the gap.");
+    expect(path.status == ic2d::NavPathStatus::found,
+           "The search finds the route through the gap.");
     const float field_cost = field.cost_at({10.0F, 90.0F});
     expect(std::abs(field_cost - path.total_distance) < 0.001F,
            "Field cost matches the searched route distance.");
@@ -94,31 +94,27 @@ void unreachable_and_invalid_goals_are_reported() {
         {
             .walkable_bounds = {0.0F, 0.0F, 100.0F, 100.0F},
             .max_step_height = 0.0F,
-            .areas = {
-                {.bounds = {20.0F, 20.0F, 60.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-                {.bounds = {20.0F, 60.0F, 60.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-                {.bounds = {20.0F, 40.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-                {.bounds = {60.0F, 40.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-            },
+            .areas =
+                {
+                    {.bounds = {20.0F, 20.0F, 60.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                    {.bounds = {20.0F, 60.0F, 60.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                    {.bounds = {20.0F, 40.0F, 20.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                    {.bounds = {60.0F, 40.0F, 20.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                },
         },
         {.cell_size = 20.0F, .agent_half_extents = {}},
     };
     ic2d::FlowField field;
-    expect(field.rebuild(sealed, {2, 2}, {50.0F, 50.0F}), "A sealed goal still builds its own region.");
+    expect(field.rebuild(sealed, {2, 2}, {50.0F, 50.0F}),
+           "A sealed goal still builds its own region.");
     // The goal is walled off, but the outer region is seeded at its own closest
     // approach, so a crowd locked out still flows to the barrier rather than
     // being left directionless and beelining at the target through the wall.
     expect(field.reachable_cell_count() == 17,
            "Every walkable cell receives a route, in its own region.");
     const ic2d::Vec2 outside = field.direction_at({10.0F, 10.0F});
-    expect(outside.x > 0.0F,
-           "A walled-off region steers toward its closest approach to the goal.");
-    expect(std::isfinite(field.cost_at({10.0F, 10.0F})),
-           "A seeded region has finite cost.");
+    expect(outside.x > 0.0F, "A walled-off region steers toward its closest approach to the goal.");
+    expect(std::isfinite(field.cost_at({10.0F, 10.0F})), "A seeded region has finite cost.");
     expect(field.cost_at({50.0F, 50.0F}) == 0.0F, "The goal itself still costs nothing.");
 
     ic2d::FlowField blocked_field;
@@ -126,7 +122,8 @@ void unreachable_and_invalid_goals_are_reported() {
     expect(!blocked_field.built(), "A rejected rebuild leaves the field unbuilt.");
 
     ic2d::FlowField out_of_bounds;
-    expect(!out_of_bounds.rebuild(open_grid(), {99, 99}, {0.0F, 0.0F}), "An out-of-bounds goal is rejected.");
+    expect(!out_of_bounds.rebuild(open_grid(), {99, 99}, {0.0F, 0.0F}),
+           "An out-of-bounds goal is rejected.");
 }
 
 void rebuilding_replaces_the_previous_goal() {
@@ -136,8 +133,7 @@ void rebuilding_replaces_the_previous_goal() {
     expect(field.rebuild(grid, {4, 4}, {90.0F, 90.0F}), "A second goal rebuilds in place.");
     expect(field.goal() == ic2d::NavCell{4, 4}, "The field reports the new goal.");
     const ic2d::Vec2 direction = field.direction_at({10.0F, 10.0F});
-    expect(direction.x > 0.0F && direction.y > 0.0F,
-           "Steering reverses to follow the new goal.");
+    expect(direction.x > 0.0F && direction.y > 0.0F, "Steering reverses to follow the new goal.");
 }
 
 } // namespace
@@ -158,8 +154,7 @@ void blending_removes_the_eight_direction_staircase() {
     const ic2d::Vec2 near_east = field.direction_at({36.0F, 10.0F});
     expect(near_west.x != near_east.x || near_west.y != near_east.y,
            "Directions vary within a cell rather than snapping to it.");
-    expect(near_west.x < 0.0F && near_east.x < 0.0F,
-           "Both samples still travel toward the goal.");
+    expect(near_west.x < 0.0F && near_east.x < 0.0F, "Both samples still travel toward the goal.");
     expect(unit_length(near_west) && unit_length(near_east),
            "Blended directions stay unit length.");
 

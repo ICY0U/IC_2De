@@ -20,10 +20,7 @@ void expect(const bool condition, const std::string_view message) {
     return std::abs(left - right) < 0.001F;
 }
 
-[[nodiscard]] ic2d::NavGrid open_grid(
-    const float width = 60.0F,
-    const float depth = 60.0F
-) {
+[[nodiscard]] ic2d::NavGrid open_grid(const float width = 60.0F, const float depth = 60.0F) {
     return ic2d::NavGrid{
         {.walkable_bounds = {0.0F, 0.0F, width, depth}, .max_step_height = 0.0F},
         {.cell_size = 20.0F, .agent_half_extents = {}},
@@ -49,10 +46,10 @@ void test_hard_block_routes_around_with_stable_tie_breaking() {
         {
             .walkable_bounds = {0.0F, 0.0F, 60.0F, 60.0F},
             .max_step_height = 0.0F,
-            .areas = {
-                {.bounds = {20.0F, 20.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-            },
+            .areas =
+                {
+                    {.bounds = {20.0F, 20.0F, 20.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                },
         },
         {.cell_size = 20.0F, .agent_half_extents = {}},
     };
@@ -74,17 +71,15 @@ void test_corner_trap_and_elevation_barrier_are_unreachable() {
         {
             .walkable_bounds = {0.0F, 0.0F, 40.0F, 40.0F},
             .max_step_height = 0.0F,
-            .areas = {
-                {.bounds = {20.0F, 0.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-                {.bounds = {0.0F, 20.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-            },
+            .areas =
+                {
+                    {.bounds = {20.0F, 0.0F, 20.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                    {.bounds = {0.0F, 20.0F, 20.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                },
         },
         {.cell_size = 20.0F, .agent_half_extents = {}},
     };
-    const ic2d::NavPathResult corner =
-        ic2d::find_nav_path(corner_grid, {0, 0}, {1, 1});
+    const ic2d::NavPathResult corner = ic2d::find_nav_path(corner_grid, {0, 0}, {1, 1});
     expect(corner.status == ic2d::NavPathStatus::unreachable && corner.cells.empty(),
            "A-star must inherit NavGrid's diagonal corner-cutting prohibition.");
 
@@ -92,11 +87,12 @@ void test_corner_trap_and_elevation_barrier_are_unreachable() {
         {
             .walkable_bounds = {0.0F, 0.0F, 40.0F, 20.0F},
             .max_step_height = 5.0F,
-            .areas = {
-                {.bounds = {20.0F, 0.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::elevation,
-                 .elevation = 10.0F},
-            },
+            .areas =
+                {
+                    {.bounds = {20.0F, 0.0F, 20.0F, 20.0F},
+                     .kind = ic2d::GroundAreaKind::elevation,
+                     .elevation = 10.0F},
+                },
         },
         {.cell_size = 20.0F, .agent_half_extents = {}},
     };
@@ -110,10 +106,10 @@ void test_endpoints_fail_explicitly() {
         {
             .walkable_bounds = {0.0F, 0.0F, 60.0F, 20.0F},
             .max_step_height = 0.0F,
-            .areas = {
-                {.bounds = {20.0F, 0.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-            },
+            .areas =
+                {
+                    {.bounds = {20.0F, 0.0F, 20.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                },
         },
         {.cell_size = 20.0F, .agent_half_extents = {}},
     };
@@ -124,29 +120,26 @@ void test_endpoints_fail_explicitly() {
     expect(ic2d::find_nav_path(grid, {0, 0}, {3, 0}).status ==
                ic2d::NavPathStatus::goal_out_of_bounds,
            "An invalid goal cell must have its own result status.");
-    expect(ic2d::find_nav_path(grid, {1, 0}, {2, 0}).status ==
-               ic2d::NavPathStatus::start_blocked,
+    expect(ic2d::find_nav_path(grid, {1, 0}, {2, 0}).status == ic2d::NavPathStatus::start_blocked,
            "A hard-blocked start must fail before search.");
-    expect(ic2d::find_nav_path(grid, {0, 0}, {1, 0}).status ==
-               ic2d::NavPathStatus::goal_blocked,
+    expect(ic2d::find_nav_path(grid, {0, 0}, {1, 0}).status == ic2d::NavPathStatus::goal_blocked,
            "A hard-blocked goal must fail before search.");
 }
 
 void test_world_queries_use_half_open_conversion_and_copy_results() {
     const ic2d::NavGrid grid = open_grid(60.0F, 20.0F);
-    ic2d::NavPathResult path = ic2d::find_nav_path_world(
-        grid, ic2d::Vec2{0.0F, 0.0F}, ic2d::Vec2{59.999F, 19.999F});
+    ic2d::NavPathResult path =
+        ic2d::find_nav_path_world(grid, ic2d::Vec2{0.0F, 0.0F}, ic2d::Vec2{59.999F, 19.999F});
     expect(path.status == ic2d::NavPathStatus::found &&
                path.cells == std::vector<ic2d::NavCell>{{0, 0}, {1, 0}, {2, 0}},
            "World queries must reuse NavGrid's canonical half-open conversion.");
-    expect(ic2d::find_nav_path_world(
-               grid, ic2d::Vec2{60.0F, 10.0F}, ic2d::Vec2{10.0F, 10.0F}).status ==
-               ic2d::NavPathStatus::start_out_of_bounds,
+    expect(ic2d::find_nav_path_world(grid, ic2d::Vec2{60.0F, 10.0F}, ic2d::Vec2{10.0F, 10.0F})
+                   .status == ic2d::NavPathStatus::start_out_of_bounds,
            "The far world edge must report an explicit out-of-bounds start.");
 
     path.cells.clear();
-    const ic2d::NavPathResult second = ic2d::find_nav_path_world(
-        grid, ic2d::Vec2{0.0F, 0.0F}, ic2d::Vec2{59.999F, 19.999F});
+    const ic2d::NavPathResult second =
+        ic2d::find_nav_path_world(grid, ic2d::Vec2{0.0F, 0.0F}, ic2d::Vec2{59.999F, 19.999F});
     expect(second.cells.size() == 3,
            "A returned path must own its cells independently of prior result mutation.");
 }
@@ -155,8 +148,7 @@ void test_same_cell_and_status_names() {
     const ic2d::NavGrid grid = open_grid();
     const ic2d::NavPathResult path = ic2d::find_nav_path(grid, {1, 1}, {1, 1});
     expect(path.status == ic2d::NavPathStatus::found &&
-               path.cells == std::vector<ic2d::NavCell>{{1, 1}} &&
-               near(path.total_distance, 0.0F),
+               path.cells == std::vector<ic2d::NavCell>{{1, 1}} && near(path.total_distance, 0.0F),
            "A valid same-cell query must return one zero-distance cell.");
     expect(ic2d::nav_path_status_name(ic2d::NavPathStatus::found) == "Found" &&
                ic2d::nav_path_status_name(ic2d::NavPathStatus::unreachable) == "Unreachable",
@@ -173,16 +165,13 @@ void test_sealed_region_is_rejected_without_expanding_the_grid() {
         {
             .walkable_bounds = {0.0F, 0.0F, 100.0F, 100.0F},
             .max_step_height = 0.0F,
-            .areas = {
-                {.bounds = {20.0F, 20.0F, 60.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-                {.bounds = {20.0F, 60.0F, 60.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-                {.bounds = {20.0F, 40.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-                {.bounds = {60.0F, 40.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-            },
+            .areas =
+                {
+                    {.bounds = {20.0F, 20.0F, 60.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                    {.bounds = {20.0F, 60.0F, 60.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                    {.bounds = {20.0F, 40.0F, 20.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                    {.bounds = {60.0F, 40.0F, 20.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                },
         },
         {.cell_size = 20.0F, .agent_half_extents = {}},
     };
@@ -190,14 +179,12 @@ void test_sealed_region_is_rejected_without_expanding_the_grid() {
            "A sealed centre and its surroundings are two connected regions.");
     expect(sealed.component_of({2, 2}) != sealed.component_of({0, 0}),
            "The enclosed cell does not share the outer region.");
-    expect(sealed.component_of({1, 1}) == 0U,
-           "A blocked cell belongs to no region.");
+    expect(sealed.component_of({1, 1}) == 0U, "A blocked cell belongs to no region.");
 
     const ic2d::NavPathResult inward = ic2d::find_nav_path(sealed, {0, 0}, {2, 2});
     expect(inward.status == ic2d::NavPathStatus::unreachable && inward.cells.empty(),
            "A route into a sealed region is unreachable.");
-    expect(inward.expanded_cell_count == 0,
-           "An impossible request expands no cells at all.");
+    expect(inward.expanded_cell_count == 0, "An impossible request expands no cells at all.");
 
     const ic2d::NavPathResult around = ic2d::find_nav_path(sealed, {0, 0}, {4, 4});
     expect(around.status == ic2d::NavPathStatus::found,
@@ -297,8 +284,7 @@ void test_obstacle_clearance_pushes_away_without_reversing_intent() {
 
     // A stationary actor pressed against a wall is still pushed clear.
     const ic2d::Vec2 stuck = ic2d::nav_avoid_obstacles(blocked, {18.0F, 30.0F}, {});
-    expect(stuck.x < 0.0F,
-           "A stationary actor beside a wall must still be pushed out of it.");
+    expect(stuck.x < 0.0F, "A stationary actor beside a wall must still be pushed out of it.");
 
     // The grid edge is a wall too, or actors would grind along the boundary.
     const ic2d::Vec2 edge = ic2d::nav_avoid_obstacles(open, {2.0F, 100.0F}, {0.0F, -1.0F});
@@ -309,15 +295,12 @@ void test_obstacle_clearance_pushes_away_without_reversing_intent() {
     // Reversing the intent is what makes an actor leave the radius, be aimed at
     // the wall again, and oscillate; pressing against the wall and letting
     // ground collision stop it is the stable answer.
-    const ic2d::Vec2 head_on =
-        ic2d::nav_avoid_obstacles(blocked, {18.0F, 30.0F}, {1.0F, 0.0F});
-    expect(head_on.x >= 0.0F,
-           "Clearance must not reverse an actor walking straight into a wall.");
+    const ic2d::Vec2 head_on = ic2d::nav_avoid_obstacles(blocked, {18.0F, 30.0F}, {1.0F, 0.0F});
+    expect(head_on.x >= 0.0F, "Clearance must not reverse an actor walking straight into a wall.");
 
     // Rejected settings and positions leave the intent alone rather than
     // inventing a direction.
-    const ic2d::Vec2 outside =
-        ic2d::nav_avoid_obstacles(open, {1000.0F, 1000.0F}, {1.0F, 0.0F});
+    const ic2d::Vec2 outside = ic2d::nav_avoid_obstacles(open, {1000.0F, 1000.0F}, {1.0F, 0.0F});
     expect(near(outside.x, 1.0F) && near(outside.y, 0.0F),
            "A position off the grid must return the desired direction unchanged.");
     const ic2d::Vec2 bad_settings =

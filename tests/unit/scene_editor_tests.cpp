@@ -65,8 +65,8 @@ void editor_write_file(const std::filesystem::path& path, const std::string_view
         "animation_frame=player-idle|4|0|4|8|12|-\n"
         "animation_frame=player-move|0|0|4|8|4|-\n"
         "animation_frame=player-move|4|0|4|8|4|footstep\n";
-    const std::string directions[]{"south",     "southwest", "west", "northwest",
-                                   "north",     "northeast", "east", "southeast"};
+    const std::string directions[]{"south", "southwest", "west", "northwest",
+                                   "north", "northeast", "east", "southeast"};
     bool initial = true;
     for (const std::string& direction : directions) {
         contents += "animation_binding=player|idle_" + direction + "|player-idle|" +
@@ -79,19 +79,15 @@ void editor_write_file(const std::filesystem::path& path, const std::string_view
     return contents;
 }
 
-[[nodiscard]] std::filesystem::path write_editor_scene(
-    const std::filesystem::path& root,
-    const std::string_view name
-) {
+[[nodiscard]] std::filesystem::path write_editor_scene(const std::filesystem::path& root,
+                                                       const std::string_view name) {
     const std::filesystem::path path = root / name;
     editor_write_file(path, editor_scene());
     return path;
 }
 
-[[nodiscard]] std::optional<ic2d::SceneDocumentEntity> find_entity(
-    const ic2d::SceneEditor& editor,
-    const std::string_view id
-) {
+[[nodiscard]] std::optional<ic2d::SceneDocumentEntity> find_entity(const ic2d::SceneEditor& editor,
+                                                                   const std::string_view id) {
     const std::vector<ic2d::SceneDocumentEntity> entities = editor.entities();
     const auto found = std::ranges::find(entities, id, &ic2d::SceneDocumentEntity::id);
     if (found == entities.end()) {
@@ -193,8 +189,8 @@ void test_prefab_instances_are_created_and_destroyed(const std::filesystem::path
                   "A created instance must be inspectable and unbound.");
 
     const ic2d::SceneDefinition runtime_copy = editor.runtime_copy();
-    const auto materialized = std::ranges::find(runtime_copy.entities(), created,
-                                                &ic2d::SceneEntityDefinition::uuid);
+    const auto materialized =
+        std::ranges::find(runtime_copy.entities(), created, &ic2d::SceneEntityDefinition::uuid);
     editor_expect(materialized != runtime_copy.entities().end() &&
                       materialized->sprite.size.x == 8.0F && materialized->sprite.layer == 1 &&
                       materialized->sprite.texture_id == "crate",
@@ -220,8 +216,7 @@ void test_prefab_instances_are_created_and_destroyed(const std::filesystem::path
                       .position = {},
                   }),
                   "Instantiating an undeclared prefab must report failure.");
-    editor_expect(editor.history().size() == 1,
-                  "Only the accepted creation may enter history.");
+    editor_expect(editor.history().size() == 1, "Only the accepted creation may enter history.");
 
     editor_expect(editor.destroy_prefab_instance(created),
                   "A created instance must be removable through the same seam.");
@@ -292,8 +287,8 @@ void test_diverging_from_saved_history_stays_modified(const std::filesystem::pat
 }
 
 void test_bounded_history_drops_the_oldest_command(const std::filesystem::path& root) {
-    ic2d::SceneEditor editor{
-        ic2d::SceneDocument::open(write_editor_scene(root, "bounded.scene")), 2};
+    ic2d::SceneEditor editor{ic2d::SceneDocument::open(write_editor_scene(root, "bounded.scene")),
+                             2};
     editor_expect(editor.rename_entity({4003}, "First"), "The first rename must apply.");
     editor_expect(editor.rename_entity({4003}, "Second"), "The second rename must apply.");
     editor_expect(editor.rename_entity({4003}, "Third"), "The third rename must apply.");
@@ -314,9 +309,7 @@ void test_bounded_history_drops_the_oldest_command(const std::filesystem::path& 
 // Sprite editing is the command that touches the most fields of a record, so
 // it is checked for exact round-tripping, for refusing content it does not own,
 // and for leaving the record clean when a depth span is cleared.
-void test_sprite_edits_round_trip_and_reject_prefab_instances(
-    const std::filesystem::path& root
-) {
+void test_sprite_edits_round_trip_and_reject_prefab_instances(const std::filesystem::path& root) {
     ic2d::SceneEditor editor = ic2d::SceneEditor::open(write_editor_scene(root, "sprite.scene"));
 
     ic2d::SceneDocumentSprite edited{
@@ -351,18 +344,15 @@ void test_sprite_edits_round_trip_and_reject_prefab_instances(
                   "An edited document must still validate as a runtime scene.");
 
     edited.depth_span = 0.0F;
-    editor_expect(editor.set_entity_sprite({4002}, edited),
-                  "Clearing a depth span must apply.");
+    editor_expect(editor.set_entity_sprite({4002}, edited), "Clearing a depth span must apply.");
     const auto cleared = find_entity(editor, "prop");
     editor_expect(cleared && cleared->sprite.depth_span == 0.0F,
                   "A cleared depth span must read back as zero.");
 
-    editor_expect(editor.undo() && editor.undo(),
-                  "Both sprite edits must be undoable.");
+    editor_expect(editor.undo() && editor.undo(), "Both sprite edits must be undoable.");
     const auto restored = find_entity(editor, "prop");
     editor_expect(restored && restored->sprite.size.x == 16.0F &&
-                      restored->sprite.texture_id == "crate" &&
-                      restored->sprite.depth_span == 0.0F,
+                      restored->sprite.texture_id == "crate" && restored->sprite.depth_span == 0.0F,
                   "Undo must restore every original sprite field.");
 
     // A prefab instance draws its template, so editing one placement must not
@@ -399,14 +389,15 @@ void test_entities_are_created_and_destroyed(const std::filesystem::path& root) 
         .id = "north-wall",
         .name = "North wall",
         .position = {0.0F, 0.0F, -40.0F},
-        .sprite = {
-            .size = {64.0F, 24.0F},
-            .normalized_origin = {0.5F, 1.0F},
-            .tint = {190, 92, 72, 255},
-            .layer = 0,
-            .texture_id = {},
-            .depth_span = 0.0F,
-        },
+        .sprite =
+            {
+                .size = {64.0F, 24.0F},
+                .normalized_origin = {0.5F, 1.0F},
+                .tint = {190, 92, 72, 255},
+                .layer = 0,
+                .texture_id = {},
+                .depth_span = 0.0F,
+            },
     };
     const ic2d::EntityUuid created = editor.create_entity(wall);
     editor_expect(created && created.value != 0, "Creating an entity must allocate a stable UUID.");
@@ -457,8 +448,7 @@ void test_entities_are_created_and_destroyed(const std::filesystem::path& root) 
     editor_expect(!find_entity(editor, "broken").has_value(),
                   "A rejected creation must leave no record behind.");
 
-    editor_expect(editor.destroy_entity(created),
-                  "Destroying a plain entity must succeed.");
+    editor_expect(editor.destroy_entity(created), "Destroying a plain entity must succeed.");
     editor_expect(!find_entity(editor, "north-wall").has_value(),
                   "A destroyed entity must leave the document.");
     editor_expect(editor.undo() && find_entity(editor, "north-wall").has_value(),
@@ -479,8 +469,7 @@ void test_entities_are_created_and_destroyed(const std::filesystem::path& root) 
     // The fixture binds animations to the player instance, and the prop is a
     // plain entity nothing references, so the reference guard is checked on a
     // record that does have one.
-    ic2d::SceneEditor bound =
-        ic2d::SceneEditor::open(write_editor_scene(root, "referenced.scene"));
+    ic2d::SceneEditor bound = ic2d::SceneEditor::open(write_editor_scene(root, "referenced.scene"));
     bool referenced_rejected = false;
     try {
         static_cast<void>(bound.destroy_entity({4002}));

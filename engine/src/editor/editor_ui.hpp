@@ -100,12 +100,8 @@ struct Vec3ControlResult {
 
 // Hazel's axis control: a coloured X/Y/Z tab beside each component, where
 // clicking the tab restores the reset value.
-Vec3ControlResult vec3_control(
-    const char* label,
-    float values[3],
-    float reset_value = 0.0F,
-    float speed = 0.5F
-);
+Vec3ControlResult vec3_control(const char* label, float values[3], float reset_value = 0.0F,
+                               float speed = 0.5F);
 
 // --- Chrome ---------------------------------------------------------------
 

@@ -69,10 +69,8 @@ struct CrowdSteer {
 // own result, so the work divides cleanly across threads. Passing a job system
 // spreads it; passing nothing runs it inline. Either way the answer is the
 // same, because ranges are fixed and no actor observes another's result.
-[[nodiscard]] std::vector<CrowdSteer> resolve_crowd_separation(
-    const std::vector<CrowdAgent>& agents,
-    const CrowdSeparationSettings& settings = {},
-    JobSystem* jobs = nullptr
-);
+[[nodiscard]] std::vector<CrowdSteer>
+resolve_crowd_separation(const std::vector<CrowdAgent>& agents,
+                         const CrowdSeparationSettings& settings = {}, JobSystem* jobs = nullptr);
 
 } // namespace ic2d

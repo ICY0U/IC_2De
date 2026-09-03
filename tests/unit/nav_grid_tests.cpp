@@ -21,10 +21,8 @@ void expect(const bool condition, const std::string_view message) {
     return std::abs(left - right) < 0.001F;
 }
 
-[[nodiscard]] bool contains(
-    const std::vector<ic2d::NavGridNeighbor>& neighbors,
-    const ic2d::NavCell cell
-) {
+[[nodiscard]] bool contains(const std::vector<ic2d::NavGridNeighbor>& neighbors,
+                            const ic2d::NavCell cell) {
     for (const ic2d::NavGridNeighbor& neighbor : neighbors) {
         if (neighbor.cell == cell) {
             return true;
@@ -38,16 +36,16 @@ void test_dense_row_major_bake_and_queries() {
         {
             .walkable_bounds = {0.0F, 0.0F, 60.0F, 40.0F},
             .max_step_height = 5.0F,
-            .areas = {
-                {.bounds = {20.0F, 0.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-                {.bounds = {40.0F, 20.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::elevation,
-                 .elevation = 4.0F},
-                {.bounds = {0.0F, 20.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::trigger,
-                 .tag = 7},
-            },
+            .areas =
+                {
+                    {.bounds = {20.0F, 0.0F, 20.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                    {.bounds = {40.0F, 20.0F, 20.0F, 20.0F},
+                     .kind = ic2d::GroundAreaKind::elevation,
+                     .elevation = 4.0F},
+                    {.bounds = {0.0F, 20.0F, 20.0F, 20.0F},
+                     .kind = ic2d::GroundAreaKind::trigger,
+                     .tag = 7},
+                },
         },
         {.cell_size = 20.0F, .agent_half_extents = {}},
     };
@@ -59,8 +57,7 @@ void test_dense_row_major_bake_and_queries() {
            "Only solid areas may structurally remove cells from the graph.");
     expect(snapshot.cells[1].cell == ic2d::NavCell{1, 0} && !snapshot.cells[1].walkable,
            "The solid cell must occupy its deterministic row-major slot.");
-    expect(snapshot.cells[5].cell == ic2d::NavCell{2, 1} &&
-               near(snapshot.cells[5].elevation, 4.0F),
+    expect(snapshot.cells[5].cell == ic2d::NavCell{2, 1} && near(snapshot.cells[5].elevation, 4.0F),
            "The 2.5D snapshot must retain sampled World Y elevation.");
 
     expect(grid.cell_at({0.0F, 0.0F}) == ic2d::NavCell{0, 0} &&
@@ -79,17 +76,16 @@ void test_agent_clearance_hard_blocks_overlapping_cells() {
         {
             .walkable_bounds = {0.0F, 0.0F, 100.0F, 100.0F},
             .max_step_height = 0.0F,
-            .areas = {
-                {.bounds = {40.0F, 0.0F, 20.0F, 100.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-            },
+            .areas =
+                {
+                    {.bounds = {40.0F, 0.0F, 20.0F, 100.0F}, .kind = ic2d::GroundAreaKind::solid},
+                },
         },
         {.cell_size = 20.0F, .agent_half_extents = {10.0F, 6.0F}},
     };
 
     const ic2d::NavGridSnapshot snapshot = grid.snapshot();
-    expect(snapshot.columns == 5 && snapshot.rows == 5 &&
-               snapshot.blocked_cell_count == 5,
+    expect(snapshot.columns == 5 && snapshot.rows == 5 && snapshot.blocked_cell_count == 5,
            "A solid wall must hard-block every footprint-overlapping cell.");
     expect(grid.cell({0, 0})->walkable && grid.cell({4, 4})->walkable,
            "Cells whose actor footprint exactly touches world bounds must remain usable.");
@@ -102,17 +98,16 @@ void test_neighbors_prevent_diagonal_corner_cutting() {
         {
             .walkable_bounds = {0.0F, 0.0F, 60.0F, 60.0F},
             .max_step_height = 0.0F,
-            .areas = {
-                {.bounds = {20.0F, 0.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::solid},
-            },
+            .areas =
+                {
+                    {.bounds = {20.0F, 0.0F, 20.0F, 20.0F}, .kind = ic2d::GroundAreaKind::solid},
+                },
         },
         {.cell_size = 20.0F, .agent_half_extents = {}},
     };
 
     const std::vector<ic2d::NavGridNeighbor> neighbors = grid.neighbors({0, 0});
-    expect(contains(neighbors, {0, 1}),
-           "A free cardinal neighbor must remain traversable.");
+    expect(contains(neighbors, {0, 1}), "A free cardinal neighbor must remain traversable.");
     expect(!contains(neighbors, {1, 0}),
            "A hard-blocked destination must never be returned as a neighbor.");
     expect(!contains(neighbors, {1, 1}),
@@ -126,11 +121,12 @@ void test_height_step_limit_is_part_of_connectivity() {
         {
             .walkable_bounds = {0.0F, 0.0F, 40.0F, 20.0F},
             .max_step_height = 5.0F,
-            .areas = {
-                {.bounds = {20.0F, 0.0F, 20.0F, 20.0F},
-                 .kind = ic2d::GroundAreaKind::elevation,
-                 .elevation = 10.0F},
-            },
+            .areas =
+                {
+                    {.bounds = {20.0F, 0.0F, 20.0F, 20.0F},
+                     .kind = ic2d::GroundAreaKind::elevation,
+                     .elevation = 10.0F},
+                },
         },
         {.cell_size = 20.0F, .agent_half_extents = {}},
     };
@@ -150,8 +146,7 @@ void test_open_grid_neighbor_order_and_distance_are_stable() {
     expect(neighbors.size() == 8 && neighbors.front().cell == ic2d::NavCell{1, 0} &&
                neighbors.back().cell == ic2d::NavCell{0, 0},
            "Neighbors must use the documented clockwise order beginning at negative Z.");
-    expect(near(neighbors.front().distance, 20.0F) &&
-               near(neighbors[1].distance, 28.284271F),
+    expect(near(neighbors.front().distance, 20.0F) && near(neighbors[1].distance, 28.284271F),
            "Neighbor distance must be expressed in world units for later A-star costs.");
 }
 
@@ -169,16 +164,15 @@ void test_invalid_bake_settings_are_rejected() {
         rejected_zero_cell = true;
     }
     try {
-        static_cast<void>(ic2d::NavGrid{
-            ground, {.cell_size = 20.0F, .agent_half_extents = {-1.0F, 0.0F}}});
+        static_cast<void>(
+            ic2d::NavGrid{ground, {.cell_size = 20.0F, .agent_half_extents = {-1.0F, 0.0F}}});
     } catch (const std::invalid_argument&) {
         rejected_negative_clearance = true;
     }
     try {
         static_cast<void>(ic2d::NavGrid{
             ground,
-            {.cell_size = std::numeric_limits<float>::infinity(),
-             .agent_half_extents = {}},
+            {.cell_size = std::numeric_limits<float>::infinity(), .agent_half_extents = {}},
         });
     } catch (const std::invalid_argument&) {
         rejected_non_finite = true;

@@ -20,10 +20,7 @@ std::string_view actor_debug_flag_name(const ActorDebugFlag flag) noexcept {
     return "unknown";
 }
 
-bool ActorDebugSnapshot::enabled(
-    const EntityUuid actor,
-    const ActorDebugFlag flag
-) const noexcept {
+bool ActorDebugSnapshot::enabled(const EntityUuid actor, const ActorDebugFlag flag) const noexcept {
     const auto found = std::ranges::find(actors, actor, &ActorDebugStateSnapshot::actor);
     return found != actors.end() && found->enabled(flag);
 }
@@ -39,11 +36,8 @@ ActorDebugOverrides::~ActorDebugOverrides() = default;
 ActorDebugOverrides::ActorDebugOverrides(ActorDebugOverrides&&) noexcept = default;
 ActorDebugOverrides& ActorDebugOverrides::operator=(ActorDebugOverrides&&) noexcept = default;
 
-bool ActorDebugOverrides::set(
-    const EntityUuid actor,
-    const ActorDebugFlag flag,
-    const bool enabled
-) noexcept {
+bool ActorDebugOverrides::set(const EntityUuid actor, const ActorDebugFlag flag,
+                              const bool enabled) noexcept {
     if (!actor || flag == ActorDebugFlag::count) {
         return false;
     }
@@ -68,16 +62,13 @@ bool ActorDebugOverrides::set(
     return true;
 }
 
-bool ActorDebugOverrides::enabled(
-    const EntityUuid actor,
-    const ActorDebugFlag flag
-) const noexcept {
+bool ActorDebugOverrides::enabled(const EntityUuid actor,
+                                  const ActorDebugFlag flag) const noexcept {
     if (!actor || flag == ActorDebugFlag::count) {
         return false;
     }
     const auto found = impl_->actors.find(actor.value);
-    return found != impl_->actors.end() &&
-           found->second[static_cast<std::size_t>(flag)];
+    return found != impl_->actors.end() && found->second[static_cast<std::size_t>(flag)];
 }
 
 bool ActorDebugOverrides::any(const EntityUuid actor) const noexcept {

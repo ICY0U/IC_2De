@@ -41,11 +41,8 @@ public:
     explicit GroundMap(GroundMapDefinition definition);
 
     [[nodiscard]] float elevation_at(const Vec2& ground_position) const noexcept;
-    [[nodiscard]] GroundMoveResult move(
-        const Vec3& start,
-        const Vec2& desired_ground_position,
-        const Vec2& half_extents
-    ) const;
+    [[nodiscard]] GroundMoveResult move(const Vec3& start, const Vec2& desired_ground_position,
+                                        const Vec2& half_extents) const;
 
 private:
     RectXZ walkable_bounds_{};

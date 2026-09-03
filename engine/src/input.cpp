@@ -1,6 +1,5 @@
 #include "ic2d/input.hpp"
 
-
 #include <cmath>
 
 namespace ic2d {
@@ -30,13 +29,20 @@ void bound_axis_pair(float& horizontal, float& depth) noexcept {
 
 std::string_view gameplay_action_name(const GameplayAction action) noexcept {
     switch (action) {
-        case GameplayAction::fire: return "Fire";
-        case GameplayAction::reload: return "Reload";
-        case GameplayAction::dodge: return "Dodge";
-        case GameplayAction::interact: return "Interact";
-        case GameplayAction::swap_weapon: return "Swap weapon";
-        case GameplayAction::choose_extraction: return "Choose extraction";
-        case GameplayAction::count: break;
+    case GameplayAction::fire:
+        return "Fire";
+    case GameplayAction::reload:
+        return "Reload";
+    case GameplayAction::dodge:
+        return "Dodge";
+    case GameplayAction::interact:
+        return "Interact";
+    case GameplayAction::swap_weapon:
+        return "Swap weapon";
+    case GameplayAction::choose_extraction:
+        return "Choose extraction";
+    case GameplayAction::count:
+        break;
     }
     return "Unknown";
 }
@@ -79,18 +85,20 @@ InputFrame InputTracker::update(const InputSample& sample) noexcept {
         .pause = transition(previous_.pause, sample.pause),
         .step_simulation = transition(previous_.step_simulation, sample.step_simulation),
         .reset = transition(previous_.reset, sample.reset),
-        .cycle_render_pacing = transition(previous_.cycle_render_pacing, sample.cycle_render_pacing),
-        .toggle_gpu_background = transition(previous_.toggle_gpu_background, sample.toggle_gpu_background),
-        .toggle_post_process = transition(previous_.toggle_post_process, sample.toggle_post_process),
-        .toggle_debug_visuals = transition(previous_.toggle_debug_visuals, sample.toggle_debug_visuals),
+        .cycle_render_pacing =
+            transition(previous_.cycle_render_pacing, sample.cycle_render_pacing),
+        .toggle_gpu_background =
+            transition(previous_.toggle_gpu_background, sample.toggle_gpu_background),
+        .toggle_post_process =
+            transition(previous_.toggle_post_process, sample.toggle_post_process),
+        .toggle_debug_visuals =
+            transition(previous_.toggle_debug_visuals, sample.toggle_debug_visuals),
         .toggle_editor = transition(previous_.toggle_editor, sample.toggle_editor),
     };
     previous_ = sample;
     return frame;
 }
 
-void InputTracker::reset() noexcept {
-    previous_ = {};
-}
+void InputTracker::reset() noexcept { previous_ = {}; }
 
 } // namespace ic2d

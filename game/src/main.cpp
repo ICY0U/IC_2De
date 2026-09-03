@@ -38,11 +38,8 @@ namespace {
 }
 
 template <typename Value>
-[[nodiscard]] bool parse_count(
-    const std::string_view argument,
-    const std::string_view prefix,
-    Value& output
-) {
+[[nodiscard]] bool parse_count(const std::string_view argument, const std::string_view prefix,
+                               Value& output) {
     if (!argument.starts_with(prefix)) {
         return false;
     }
@@ -288,8 +285,7 @@ int main(const int argc, const char* const argv[]) {
         } else if (argument.starts_with("--scene=")) {
             // An explicit scene overrides the adjacent-manifest fallback so a
             // launcher button can open the performance scene directly.
-            config.development_scene_path =
-                argument.substr(std::string{"--scene="}.size());
+            config.development_scene_path = argument.substr(std::string{"--scene="}.size());
             config.runtime_project_manifest.clear();
         } else if (argument.starts_with("--stress=")) {
             // Headless and interactive performance runs select their own
@@ -338,11 +334,12 @@ int main(const int argc, const char* const argv[]) {
                 std::cerr << "Invalid FPS cap. Use --fps=0 or a positive integer.\n";
                 return 64;
             }
-            config.render_pacing = requested_fps == 0
-                                       ? ic2d::RenderPacingConfig{.mode = ic2d::RenderPacingMode::uncapped,
-                                                                 .fixed_hz = 0}
-                                       : ic2d::RenderPacingConfig{.mode = ic2d::RenderPacingMode::fixed_hz,
-                                                                 .fixed_hz = requested_fps};
+            config.render_pacing =
+                requested_fps == 0
+                    ? ic2d::RenderPacingConfig{.mode = ic2d::RenderPacingMode::uncapped,
+                                               .fixed_hz = 0}
+                    : ic2d::RenderPacingConfig{.mode = ic2d::RenderPacingMode::fixed_hz,
+                                               .fixed_hz = requested_fps};
         } else if (argument.starts_with("--renderdoc-capture-interval=")) {
             double requested_interval = 0.0;
             if (!parse_renderdoc_interval(argument, requested_interval)) {
@@ -352,42 +349,48 @@ int main(const int argc, const char* const argv[]) {
             }
             config.renderdoc_capture_interval_seconds = requested_interval;
         } else if (argument == "--help") {
-            std::cout << "IC_2DE Testbed\n"
-                         "  --uncapped      Disable the render-rate cap (default).\n"
-                         "  --monitor-hz    Synchronize presentation to the active monitor (VSync).\n"
-                         "  --fps=N         Apply an optional render cap; zero is uncapped.\n"
-                         "  --validate-content  Validate adjacent/source content and exit.\n"
-                          "  --editor        Open the development editor shell at startup (F2 toggles).\n"
-                         "  --editor-layout=PATH  Override the per-user editor workspace file.\n"
-                         "  --scene=PATH    Load an authored .scene file instead of the default.\n"
-                         "  --stress=N      Spawn N total stress-test Runners at startup.\n"
-                         "  --ticks=N       Close after N fixed ticks; zero runs until quit.\n"
-                         "  --digest        Report the gameplay state digest hash at exit.\n"
-                         "  --capture=PATH  Write a screenshot to PATH.\n"
-                         "  --capture-tick=N  Fixed tick at which to capture.\n"
-                         "  --no-debug-visuals  Start with debug channels hidden (F1 toggles).\n"
-                         "  --no-post-process  Bypass the external post-process shader (F7 toggles).\n"
-                         "  --renderdoc-capture-interval=S  Auto-capture every S seconds when running\n"
-                         "                                   under RenderDoc (default 5; 0 disables).\n"
-                         "  --smoke-window  Capture a frame and close after 120 fixed ticks.\n"
-                         "  --smoke-movement  Move diagonally for 300 ticks to verify XYZ projection and camera.\n"
-                         "  --smoke-left    Move left and capture the west-facing animation.\n"
-                         "  --smoke-crosshair  Move north, aim east, and capture the editor crosshair.\n"
-                         "  --smoke-projectile  Fire east and capture fixed-tick projectile travel.\n"
-                         "  --smoke-held-fire  Hold fire through three cooldown-ready ticks.\n"
-                         "  --smoke-run-and-gun  Move north while aiming and firing east.\n"
-                         "  --smoke-projectile-impact  Fire at the crate and require one impact.\n"
-                         "  --smoke-target-death  Fire three deterministic hits into the NPC target.\n"
-                         "  --smoke-dodge  Verify one exact-distance directional dodge and its active window.\n"
-                         "  --smoke-gameplay-replay  Replay combat, dodge, and attacker state with a digest.\n"
-                         "  --smoke-restart-recovery  Restart after a kill and require another kill.\n"
-                         "  --smoke-moving-attacker  Require deterministic acquire, pursuit, and player damage.\n"
-                          "  --smoke-nav-grid  Display the read-only 2.5D hard-blocked navigation grid.\n"
-                          "  --smoke-nav-path  Display the copied deterministic A-star reference path.\n"
-                          "  --smoke-runner-path  Follow a bounded-repath route toward the player.\n"
-                          "  --smoke-enemy-stress  Run 50 real navigation/AI/physics/render Runners.\n"
-                          "  --smoke-crowd-kill  Require a body-less crowd actor to be shot and retired.\n"
-                         "  --smoke-editor-hot-swap  Capture and close after a live editor texture replacement.\n";
+            std::cout
+                << "IC_2DE Testbed\n"
+                   "  --uncapped      Disable the render-rate cap (default).\n"
+                   "  --monitor-hz    Synchronize presentation to the active monitor (VSync).\n"
+                   "  --fps=N         Apply an optional render cap; zero is uncapped.\n"
+                   "  --validate-content  Validate adjacent/source content and exit.\n"
+                   "  --editor        Open the development editor shell at startup (F2 toggles).\n"
+                   "  --editor-layout=PATH  Override the per-user editor workspace file.\n"
+                   "  --scene=PATH    Load an authored .scene file instead of the default.\n"
+                   "  --stress=N      Spawn N total stress-test Runners at startup.\n"
+                   "  --ticks=N       Close after N fixed ticks; zero runs until quit.\n"
+                   "  --digest        Report the gameplay state digest hash at exit.\n"
+                   "  --capture=PATH  Write a screenshot to PATH.\n"
+                   "  --capture-tick=N  Fixed tick at which to capture.\n"
+                   "  --no-debug-visuals  Start with debug channels hidden (F1 toggles).\n"
+                   "  --no-post-process  Bypass the external post-process shader (F7 toggles).\n"
+                   "  --renderdoc-capture-interval=S  Auto-capture every S seconds when running\n"
+                   "                                   under RenderDoc (default 5; 0 disables).\n"
+                   "  --smoke-window  Capture a frame and close after 120 fixed ticks.\n"
+                   "  --smoke-movement  Move diagonally for 300 ticks to verify XYZ projection and "
+                   "camera.\n"
+                   "  --smoke-left    Move left and capture the west-facing animation.\n"
+                   "  --smoke-crosshair  Move north, aim east, and capture the editor crosshair.\n"
+                   "  --smoke-projectile  Fire east and capture fixed-tick projectile travel.\n"
+                   "  --smoke-held-fire  Hold fire through three cooldown-ready ticks.\n"
+                   "  --smoke-run-and-gun  Move north while aiming and firing east.\n"
+                   "  --smoke-projectile-impact  Fire at the crate and require one impact.\n"
+                   "  --smoke-target-death  Fire three deterministic hits into the NPC target.\n"
+                   "  --smoke-dodge  Verify one exact-distance directional dodge and its active "
+                   "window.\n"
+                   "  --smoke-gameplay-replay  Replay combat, dodge, and attacker state with a "
+                   "digest.\n"
+                   "  --smoke-restart-recovery  Restart after a kill and require another kill.\n"
+                   "  --smoke-moving-attacker  Require deterministic acquire, pursuit, and player "
+                   "damage.\n"
+                   "  --smoke-nav-grid  Display the read-only 2.5D hard-blocked navigation grid.\n"
+                   "  --smoke-nav-path  Display the copied deterministic A-star reference path.\n"
+                   "  --smoke-runner-path  Follow a bounded-repath route toward the player.\n"
+                   "  --smoke-enemy-stress  Run 50 real navigation/AI/physics/render Runners.\n"
+                   "  --smoke-crowd-kill  Require a body-less crowd actor to be shot and retired.\n"
+                   "  --smoke-editor-hot-swap  Capture and close after a live editor texture "
+                   "replacement.\n";
             return 0;
         }
     }
@@ -396,8 +399,8 @@ int main(const int argc, const char* const argv[]) {
     // opens a window. None of them is a person sitting in front of the editor,
     // so none of them opens paused or takes the window chrome over, however it
     // reached this point.
-    if (!config.capture_path.empty() || config.max_fixed_ticks != 0 ||
-        config.max_frames != 0 || config.validate_content_only) {
+    if (!config.capture_path.empty() || config.max_fixed_ticks != 0 || config.max_frames != 0 ||
+        config.validate_content_only) {
         config.interactive_editor_session = false;
     }
 

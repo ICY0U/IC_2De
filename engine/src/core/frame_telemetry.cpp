@@ -9,10 +9,8 @@
 namespace ic2d {
 namespace {
 
-[[nodiscard]] double percentile(
-    const std::span<const double> sorted_samples,
-    const double fraction
-) noexcept {
+[[nodiscard]] double percentile(const std::span<const double> sorted_samples,
+                                const double fraction) noexcept {
     if (sorted_samples.empty()) {
         return 0.0;
     }
@@ -24,8 +22,7 @@ namespace {
 } // namespace
 
 FrameTimeSeries::FrameTimeSeries(const std::size_t capacity)
-    : samples_(capacity, 0.0),
-      scratch_(capacity, 0.0) {
+    : samples_(capacity, 0.0), scratch_(capacity, 0.0) {
     if (capacity == 0U) {
         throw std::invalid_argument{"Frame telemetry capacity must be greater than zero."};
     }
@@ -61,9 +58,7 @@ FrameTimingSummary FrameTimeSeries::summary() const {
     };
 }
 
-std::size_t FrameTimeSeries::capacity() const noexcept {
-    return samples_.size();
-}
+std::size_t FrameTimeSeries::capacity() const noexcept { return samples_.size(); }
 
 void FrameTimeSeries::clear() noexcept {
     next_index_ = 0U;

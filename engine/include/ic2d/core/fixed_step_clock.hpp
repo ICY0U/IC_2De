@@ -12,11 +12,8 @@ struct TickPlan {
 
 class FixedStepClock final {
 public:
-    explicit FixedStepClock(
-        double fixed_step_seconds,
-        double max_frame_seconds = 0.25,
-        std::uint32_t max_steps_per_frame = 8
-    );
+    explicit FixedStepClock(double fixed_step_seconds, double max_frame_seconds = 0.25,
+                            std::uint32_t max_steps_per_frame = 8);
 
     [[nodiscard]] TickPlan advance(double frame_seconds) noexcept;
     void reset() noexcept;

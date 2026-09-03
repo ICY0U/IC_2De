@@ -16,10 +16,8 @@ namespace {
            quoted_text(placement.instance_id);
 }
 
-[[nodiscard]] std::string instance_id_of(
-    const std::vector<SceneDocumentEntity>& entities,
-    const EntityUuid uuid
-) {
+[[nodiscard]] std::string instance_id_of(const std::vector<SceneDocumentEntity>& entities,
+                                         const EntityUuid uuid) {
     const auto found = std::ranges::find(entities, uuid, &SceneDocumentEntity::uuid);
     return found == entities.end() ? std::string{} : found->id;
 }
@@ -61,10 +59,10 @@ bool SceneEditor::rename_entity(const EntityUuid uuid, const std::string_view na
         return false;
     }
     commit(std::move(candidate), {
-        .kind = SceneEditKind::rename_entity,
-        .uuid = uuid,
-        .label = "Rename entity to " + quoted_text(name),
-    });
+                                     .kind = SceneEditKind::rename_entity,
+                                     .uuid = uuid,
+                                     .label = "Rename entity to " + quoted_text(name),
+                                 });
     return true;
 }
 
@@ -73,27 +71,26 @@ bool SceneEditor::move_unbound_entity(const EntityUuid uuid, const Vec3 position
     if (!candidate.set_unbound_entity_position(uuid, position)) {
         return false;
     }
-    commit(std::move(candidate), {
-        .kind = SceneEditKind::move_entity,
-        .uuid = uuid,
-        .label = "Move entity " + quoted_text(instance_id_of(document_.entities(), uuid)),
-    });
+    commit(std::move(candidate),
+           {
+               .kind = SceneEditKind::move_entity,
+               .uuid = uuid,
+               .label = "Move entity " + quoted_text(instance_id_of(document_.entities(), uuid)),
+           });
     return true;
 }
 
-bool SceneEditor::set_entity_sprite(
-    const EntityUuid uuid,
-    const SceneDocumentSprite& sprite
-) {
+bool SceneEditor::set_entity_sprite(const EntityUuid uuid, const SceneDocumentSprite& sprite) {
     SceneDocument candidate = document_;
     if (!candidate.set_entity_sprite(uuid, sprite)) {
         return false;
     }
-    commit(std::move(candidate), {
-        .kind = SceneEditKind::edit_entity_sprite,
-        .uuid = uuid,
-        .label = "Edit sprite of " + quoted_text(instance_id_of(document_.entities(), uuid)),
-    });
+    commit(std::move(candidate),
+           {
+               .kind = SceneEditKind::edit_entity_sprite,
+               .uuid = uuid,
+               .label = "Edit sprite of " + quoted_text(instance_id_of(document_.entities(), uuid)),
+           });
     return true;
 }
 
@@ -111,10 +108,10 @@ EntityUuid SceneEditor::create_entity(const SceneEntityPlacement& placement) {
     }
     require_valid(candidate);
     commit(std::move(candidate), {
-        .kind = SceneEditKind::create_entity,
-        .uuid = created,
-        .label = "Create entity " + quoted_text(placement.id),
-    });
+                                     .kind = SceneEditKind::create_entity,
+                                     .uuid = created,
+                                     .label = "Create entity " + quoted_text(placement.id),
+                                 });
     return created;
 }
 
@@ -126,10 +123,10 @@ bool SceneEditor::destroy_entity(const EntityUuid uuid) {
     }
     require_valid(candidate);
     commit(std::move(candidate), {
-        .kind = SceneEditKind::destroy_entity,
-        .uuid = uuid,
-        .label = "Destroy entity " + quoted_text(removed),
-    });
+                                     .kind = SceneEditKind::destroy_entity,
+                                     .uuid = uuid,
+                                     .label = "Destroy entity " + quoted_text(removed),
+                                 });
     return true;
 }
 
@@ -140,10 +137,10 @@ EntityUuid SceneEditor::create_prefab_instance(const ScenePrefabPlacement& place
         return {};
     }
     commit(std::move(candidate), {
-        .kind = SceneEditKind::create_prefab_instance,
-        .uuid = created,
-        .label = placement_label(placement),
-    });
+                                     .kind = SceneEditKind::create_prefab_instance,
+                                     .uuid = created,
+                                     .label = placement_label(placement),
+                                 });
     return created;
 }
 
@@ -154,10 +151,10 @@ bool SceneEditor::destroy_prefab_instance(const EntityUuid uuid) {
         return false;
     }
     commit(std::move(candidate), {
-        .kind = SceneEditKind::destroy_prefab_instance,
-        .uuid = uuid,
-        .label = "Destroy prefab instance " + quoted_text(instance_id),
-    });
+                                     .kind = SceneEditKind::destroy_prefab_instance,
+                                     .uuid = uuid,
+                                     .label = "Destroy prefab instance " + quoted_text(instance_id),
+                                 });
     return true;
 }
 
@@ -209,9 +206,7 @@ std::size_t SceneEditor::undone_count() const noexcept { return redo_.size(); }
 
 std::uint64_t SceneEditor::revision() const noexcept { return current_revision_; }
 
-bool SceneEditor::modified() const noexcept {
-    return current_revision_ != saved_revision_;
-}
+bool SceneEditor::modified() const noexcept { return current_revision_ != saved_revision_; }
 
 SceneDefinition SceneEditor::runtime_copy() const { return document_.runtime_copy(); }
 

@@ -47,8 +47,7 @@ void test_ground_quads_are_immutable_and_ordered() {
         .points = {{{20.0F, 20.0F}, {30.0F, 20.0F}, {30.0F, 30.0F}, {20.0F, 30.0F}}},
     });
     const auto frame = queue.finish();
-    expect(frame.ground_quads().size() == 2,
-           "Finished frame must retain every ground submission.");
+    expect(frame.ground_quads().size() == 2, "Finished frame must retain every ground submission.");
     expect(frame.ground_quads().size() == 2 && frame.ground_quads()[0].stable_id == 2 &&
                frame.ground_quads()[1].stable_id == 1,
            "Ground surfaces must retain authored submission order.");
@@ -64,8 +63,8 @@ void test_frame_orders_layer_then_depth_then_id() {
     const auto sprites = frame.sprites();
 
     expect(sprites.size() == 3, "Finished frame must contain every submission.");
-    expect(sprites.size() == 3 && sprites[0].stable_id == 10 &&
-               sprites[1].stable_id == 20 && sprites[2].stable_id == 30,
+    expect(sprites.size() == 3 && sprites[0].stable_id == 10 && sprites[1].stable_id == 20 &&
+               sprites[2].stable_id == 30,
            "Frame must sort by layer, then projected depth, then stable ID.");
 }
 

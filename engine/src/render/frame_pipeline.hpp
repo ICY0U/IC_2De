@@ -28,11 +28,8 @@ struct FramePipelineDiagnostics2D {
 // shaders, uniform locations, coordinate flips, and release order stay private.
 class FramePipeline2D final {
 public:
-    FramePipeline2D(
-        int width,
-        int height,
-        const std::filesystem::path& post_process_fragment_shader
-    );
+    FramePipeline2D(int width, int height,
+                    const std::filesystem::path& post_process_fragment_shader);
     ~FramePipeline2D();
 
     FramePipeline2D(const FramePipeline2D&) = delete;

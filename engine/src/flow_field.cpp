@@ -38,11 +38,7 @@ std::size_t FlowField::offset(const NavCell cell) const noexcept {
            static_cast<std::size_t>(cell.column);
 }
 
-bool FlowField::rebuild(
-    const NavGrid& grid,
-    const NavCell goal,
-    const Vec2 goal_position
-) {
+bool FlowField::rebuild(const NavGrid& grid, const NavCell goal, const Vec2 goal_position) {
     const NavGridSnapshot& topology = grid.topology();
     bounds_ = topology.bounds;
     cell_size_ = topology.cell_size;
@@ -142,8 +138,7 @@ bool FlowField::rebuild(
             const float south = sampled_cost({column, row + 1}, own_cost);
             // Cost rises away from the goal, so travel is the negative gradient.
             const Vec2 downhill{west - east, north - south};
-            const float length =
-                std::sqrt(downhill.x * downhill.x + downhill.y * downhill.y);
+            const float length = std::sqrt(downhill.x * downhill.x + downhill.y * downhill.y);
             if (length > 0.0F) {
                 direction_[cell_offset] = {downhill.x / length, downhill.y / length};
             }
@@ -188,8 +183,7 @@ Vec2 FlowField::direction_at(const Vec2 world_position) const noexcept {
                 // dragging the blend toward a direction it does not have.
                 continue;
             }
-            const float weight_x =
-                column_step == 0 ? 1.0F - fraction_x : fraction_x;
+            const float weight_x = column_step == 0 ? 1.0F - fraction_x : fraction_x;
             const float weight_z = row_step == 0 ? 1.0F - fraction_z : fraction_z;
             const float weight = weight_x * weight_z;
             blended.x += direction.x * weight;
@@ -202,10 +196,8 @@ Vec2 FlowField::direction_at(const Vec2 world_position) const noexcept {
     }
     // Nothing usable nearby: fall back to the cell the position sits in.
     const NavCell cell{
-        static_cast<std::int32_t>(
-            std::floor((world_position.x - bounds_.x) / cell_size_)),
-        static_cast<std::int32_t>(
-            std::floor((world_position.y - bounds_.z) / cell_size_)),
+        static_cast<std::int32_t>(std::floor((world_position.x - bounds_.x) / cell_size_)),
+        static_cast<std::int32_t>(std::floor((world_position.y - bounds_.z) / cell_size_)),
     };
     return contains(cell) ? direction_[offset(cell)] : Vec2{};
 }
@@ -216,10 +208,8 @@ float FlowField::cost_at(const Vec2 world_position) const noexcept {
         return std::numeric_limits<float>::infinity();
     }
     const NavCell cell{
-        static_cast<std::int32_t>(
-            std::floor((world_position.x - bounds_.x) / cell_size_)),
-        static_cast<std::int32_t>(
-            std::floor((world_position.y - bounds_.z) / cell_size_)),
+        static_cast<std::int32_t>(std::floor((world_position.x - bounds_.x) / cell_size_)),
+        static_cast<std::int32_t>(std::floor((world_position.y - bounds_.z) / cell_size_)),
     };
     return contains(cell) ? cost_[offset(cell)] : std::numeric_limits<float>::infinity();
 }

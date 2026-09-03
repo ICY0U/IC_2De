@@ -30,17 +30,14 @@ struct GpuBackdrop::Impl {
     int resolution_location{-1};
 };
 
-GpuBackdrop::GpuBackdrop()
-    : impl_{std::make_unique<Impl>()} {
+GpuBackdrop::GpuBackdrop() : impl_{std::make_unique<Impl>()} {
     impl_->shader = LoadShaderFromMemory(nullptr, backdrop_fragment_shader);
     if (IsShaderValid(impl_->shader)) {
         impl_->resolution_location = GetShaderLocation(impl_->shader, "resolution");
     }
 }
 
-GpuBackdrop::~GpuBackdrop() {
-    release();
-}
+GpuBackdrop::~GpuBackdrop() { release(); }
 
 bool GpuBackdrop::available() const noexcept {
     return impl_ && IsShaderValid(impl_->shader) && impl_->resolution_location >= 0;

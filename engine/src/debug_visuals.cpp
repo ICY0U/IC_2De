@@ -44,10 +44,7 @@ bool debug_channel_implemented(const DebugChannel channel) noexcept {
     return channel != DebugChannel::lights;
 }
 
-ColorRgba8 debug_elevation_tint(
-    const float elevation,
-    const float maximum_elevation
-) noexcept {
+ColorRgba8 debug_elevation_tint(const float elevation, const float maximum_elevation) noexcept {
     const float span = maximum_elevation > 0.0F ? maximum_elevation : 1.0F;
     const float raw_ratio = elevation / span;
     const float ratio = std::isfinite(raw_ratio) ? std::clamp(raw_ratio, 0.0F, 1.0F) : 0.0F;
@@ -76,10 +73,7 @@ bool DebugVisuals::channel_selected(const DebugChannel channel) const noexcept {
     return selected_[index_of(channel)];
 }
 
-void DebugVisuals::set_channel_selected(
-    const DebugChannel channel,
-    const bool selected
-) noexcept {
+void DebugVisuals::set_channel_selected(const DebugChannel channel, const bool selected) noexcept {
     selected_[index_of(channel)] = selected && debug_channel_implemented(channel);
 }
 

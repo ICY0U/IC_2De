@@ -44,7 +44,8 @@ constexpr std::uint32_t supported_schema_version = 1;
 } // namespace
 
 RuntimeProject RuntimeProject::load(const std::filesystem::path& manifest_path) {
-    const std::filesystem::path absolute_manifest = std::filesystem::absolute(manifest_path).lexically_normal();
+    const std::filesystem::path absolute_manifest =
+        std::filesystem::absolute(manifest_path).lexically_normal();
     std::ifstream stream{absolute_manifest};
     if (!stream) {
         throw std::runtime_error{"Runtime project manifest could not be opened: " +
@@ -76,7 +77,8 @@ RuntimeProject RuntimeProject::load(const std::filesystem::path& manifest_path) 
     constexpr std::string_view required_keys[]{"schema", "name", "asset_directory", "start_scene"};
     for (const std::string_view key : required_keys) {
         if (!values.contains(std::string{key})) {
-            throw std::runtime_error{"Runtime project is missing required setting: " + std::string{key}};
+            throw std::runtime_error{"Runtime project is missing required setting: " +
+                                     std::string{key}};
         }
     }
     if (values.size() != std::size(required_keys)) {
@@ -100,7 +102,8 @@ RuntimeProject RuntimeProject::load(const std::filesystem::path& manifest_path) 
     }
     const std::filesystem::path asset_root = project.project_directory_ / project.asset_directory_;
     if (!std::filesystem::is_directory(asset_root)) {
-        throw std::runtime_error{"Runtime project asset directory is missing: " + asset_root.string()};
+        throw std::runtime_error{"Runtime project asset directory is missing: " +
+                                 asset_root.string()};
     }
     const std::filesystem::path scene_path = project.start_scene_path();
     if (!std::filesystem::is_regular_file(scene_path)) {
@@ -109,17 +112,11 @@ RuntimeProject RuntimeProject::load(const std::filesystem::path& manifest_path) 
     return project;
 }
 
-std::uint32_t RuntimeProject::schema_version() const noexcept {
-    return schema_version_;
-}
+std::uint32_t RuntimeProject::schema_version() const noexcept { return schema_version_; }
 
-const std::string& RuntimeProject::name() const noexcept {
-    return name_;
-}
+const std::string& RuntimeProject::name() const noexcept { return name_; }
 
-const std::string& RuntimeProject::start_scene() const noexcept {
-    return start_scene_;
-}
+const std::string& RuntimeProject::start_scene() const noexcept { return start_scene_; }
 
 const std::filesystem::path& RuntimeProject::project_directory() const noexcept {
     return project_directory_;
@@ -133,7 +130,8 @@ std::filesystem::path RuntimeProject::start_scene_path() const {
     return resolve_asset(start_scene_);
 }
 
-std::filesystem::path RuntimeProject::resolve_asset(const std::filesystem::path& relative_path) const {
+std::filesystem::path
+RuntimeProject::resolve_asset(const std::filesystem::path& relative_path) const {
     if (!safe_relative_path(relative_path)) {
         throw std::invalid_argument{"Asset paths must remain relative to the runtime project."};
     }

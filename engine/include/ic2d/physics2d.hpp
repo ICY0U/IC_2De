@@ -121,24 +121,17 @@ public:
 
     [[nodiscard]] PhysicsBodyId create_box(const PhysicsBoxDefinition& definition);
     [[nodiscard]] bool destroy_body(PhysicsBodyId body) noexcept;
-    [[nodiscard]] bool set_transform(
-        PhysicsBodyId body,
-        const Vec2& center,
-        float rotation_radians = 0.0F
-    );
+    [[nodiscard]] bool set_transform(PhysicsBodyId body, const Vec2& center,
+                                     float rotation_radians = 0.0F);
     [[nodiscard]] bool set_linear_velocity(PhysicsBodyId body, const Vec2& velocity);
-    [[nodiscard]] bool set_kinematic_target(
-        PhysicsBodyId body,
-        const Vec2& center,
-        float time_step_seconds
-    );
+    [[nodiscard]] bool set_kinematic_target(PhysicsBodyId body, const Vec2& center,
+                                            float time_step_seconds);
 
     [[nodiscard]] std::optional<PhysicsBodySnapshot> snapshot(PhysicsBodyId body) const noexcept;
     // Returns the nearest accepted body along start -> end. Filtering and
     // ignored identity remain engine-owned; no Box2D type leaves this seam.
-    [[nodiscard]] std::optional<PhysicsSegmentHit> cast_segment(
-        const PhysicsSegmentQuery& query
-    ) const;
+    [[nodiscard]] std::optional<PhysicsSegmentHit>
+    cast_segment(const PhysicsSegmentQuery& query) const;
     [[nodiscard]] PhysicsStepResult step(float time_step_seconds);
     [[nodiscard]] std::vector<PhysicsFootprint> debug_footprints() const;
 

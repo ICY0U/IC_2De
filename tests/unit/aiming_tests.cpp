@@ -71,8 +71,8 @@ int main() {
 
         // The projectile spawn resolves its origin through the same function,
         // which is the only reason the two can never disagree.
-        const ic2d::Vec3 spawn = ic2d::muzzle_origin({0.0F, 0.0F, 0.0F}, snapshot.direction,
-                                                     aiming.config().muzzle);
+        const ic2d::Vec3 spawn =
+            ic2d::muzzle_origin({0.0F, 0.0F, 0.0F}, snapshot.direction, aiming.config().muzzle);
         aim_expect(near(spawn.x, snapshot.origin.x) && near(spawn.y, snapshot.origin.y) &&
                        near(spawn.z, snapshot.origin.z),
                    "A shot must leave from exactly the origin the aim resolved.");
@@ -144,7 +144,8 @@ int main() {
         strong.stick_world = {1.0F, 0.0F};
         ic2d::AimingInputs light = at_origin();
         light.stick_world = {0.45F, 0.0F};
-        const float fast = degrees_between({0.0F, 1.0F}, full.resolve(strong, no_targets).direction);
+        const float fast =
+            degrees_between({0.0F, 1.0F}, full.resolve(strong, no_targets).direction);
         const float slow =
             degrees_between({0.0F, 1.0F}, partial.resolve(light, no_targets).direction);
         aim_expect(slow > 0.0F && slow < fast,
@@ -161,8 +162,7 @@ int main() {
         inputs.pointer_active = true;
         inputs.pointer_world_point = ic2d::Vec3{100.0F, 0.0F, 0.0F};
         const ic2d::AimingSnapshot& snapshot = aiming.resolve(inputs, targets);
-        aim_expect(snapshot.assisted_target.has_value() &&
-                       snapshot.assisted_target->value == 77,
+        aim_expect(snapshot.assisted_target.has_value() && snapshot.assisted_target->value == 77,
                    "A target inside the cone must be assisted toward.");
 
         const ic2d::Vec2 raw{1.0F, 0.0F};
@@ -180,8 +180,8 @@ int main() {
     // A target outside the cone or beyond range must be ignored entirely.
     {
         const std::array<ic2d::AimTarget, 2> targets{
-            ic2d::AimTarget{.actor = {1}, .position = {100.0F, 0.0F, 90.0F}},   // wide
-            ic2d::AimTarget{.actor = {2}, .position = {5000.0F, 0.0F, 0.0F}},   // far
+            ic2d::AimTarget{.actor = {1}, .position = {100.0F, 0.0F, 90.0F}}, // wide
+            ic2d::AimTarget{.actor = {2}, .position = {5000.0F, 0.0F, 0.0F}}, // far
         };
         ic2d::Aiming aiming;
         ic2d::AimingInputs inputs = at_origin();

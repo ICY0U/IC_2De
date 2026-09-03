@@ -69,8 +69,7 @@ int main() {
                "An actor outside every radius must have no candidate.");
         expect(interaction.snapshot().performed_count == 0,
                "A press with no candidate must consume nothing.");
-        expect(interaction.drain_events().empty(),
-               "A press with no candidate must emit no event.");
+        expect(interaction.drain_events().empty(), "A press with no candidate must emit no event.");
     }
 
     // In range of two, the nearer one is offered.
@@ -118,8 +117,7 @@ int main() {
         std::vector<ic2d::InteractionPerformedEvent> second = interaction.drain_events();
         expect(second.size() == 1 && second.front().entity.value == 10,
                "The next press must use the next item, not the consumed one.");
-        expect(interaction.snapshot().remaining_count == 1,
-               "Only the far item may remain.");
+        expect(interaction.snapshot().remaining_count == 1, "Only the far item may remain.");
 
         static_cast<void>(interaction.fixed_update(4, player, {14.0F, 0.0F, 0.0F}, true));
         expect(interaction.drain_events().empty(),
@@ -187,8 +185,7 @@ int main() {
         static_cast<void>(interaction.load(items));
         expect(interaction.fixed_update(1, player, {10.0F, 0.0F, 0.0F}, true),
                "A press with an item in range must be spent.");
-        expect(interaction.snapshot().performed_count == 1,
-               "One press must use exactly one item.");
+        expect(interaction.snapshot().performed_count == 1, "One press must use exactly one item.");
     }
 
     // A tick that is offered nothing has no press to spend.
@@ -209,8 +206,7 @@ int main() {
         const std::uint32_t taken = combat.resupply(player, 30);
         expect(taken == 30, "A resupply below the ceiling must take every round.");
         const ic2d::WeaponSnapshot before = combat.snapshot().weapon;
-        expect(before.reserve_ammo == 78,
-               "Resupply must add to the authored starting reserve.");
+        expect(before.reserve_ammo == 78, "Resupply must add to the authored starting reserve.");
 
         const std::uint32_t topped = combat.resupply(player, 100000);
         expect(topped == 240 - 78, "Resupply must stop at the reserve ceiling.");

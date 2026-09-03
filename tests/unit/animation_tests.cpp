@@ -17,21 +17,19 @@ void expect(const bool condition, const std::string_view message) {
     }
 }
 
-[[nodiscard]] ic2d::AnimationClip clip(
-    std::string id,
-    const ic2d::AnimationLoopMode loop_mode,
-    const std::uint32_t duration = 2
-) {
+[[nodiscard]] ic2d::AnimationClip clip(std::string id, const ic2d::AnimationLoopMode loop_mode,
+                                       const std::uint32_t duration = 2) {
     return {
         .id = std::move(id),
         .loop_mode = loop_mode,
-        .frames = {
-            {.source = {0.0F, 0.0F, 16.0F, 16.0F}, .duration_ticks = duration},
-            {.source = {16.0F, 0.0F, 16.0F, 16.0F},
-             .duration_ticks = duration,
-             .events = {"step"}},
-            {.source = {32.0F, 0.0F, 16.0F, 16.0F}, .duration_ticks = duration},
-        },
+        .frames =
+            {
+                {.source = {0.0F, 0.0F, 16.0F, 16.0F}, .duration_ticks = duration},
+                {.source = {16.0F, 0.0F, 16.0F, 16.0F},
+                 .duration_ticks = duration,
+                 .events = {"step"}},
+                {.source = {32.0F, 0.0F, 16.0F, 16.0F}, .duration_ticks = duration},
+            },
     };
 }
 
@@ -41,8 +39,7 @@ void test_loop_timing_and_events() {
     expect(player.advance(1).empty(), "A partial frame must not emit events.");
     const auto events = player.advance(1);
     expect(player.sample().frame_index == 1, "Exact duration must enter the next frame.");
-    expect(events.size() == 1 && events.front().name == "step" &&
-               events.front().frame_index == 1,
+    expect(events.size() == 1 && events.front().name == "step" && events.front().frame_index == 1,
            "Entering an authored event frame must emit one owned event.");
     static_cast<void>(player.advance(4));
     expect(player.sample().frame_index == 0, "Loop playback must wrap to frame zero.");
@@ -69,11 +66,9 @@ void test_sample_retains_authored_horizontal_flip() {
 }
 
 void test_ping_pong_handles_large_advances() {
-    ic2d::AnimationPlayer player{
-        {clip("idle", ic2d::AnimationLoopMode::ping_pong, 1)}, "idle"};
+    ic2d::AnimationPlayer player{{clip("idle", ic2d::AnimationLoopMode::ping_pong, 1)}, "idle"};
     static_cast<void>(player.advance(4));
-    expect(player.sample().frame_index == 0,
-           "Ping-pong playback must traverse 0, 1, 2, 1, 0.");
+    expect(player.sample().frame_index == 0, "Ping-pong playback must traverse 0, 1, 2, 1, 0.");
     static_cast<void>(player.advance(5));
     expect(player.sample().frame_index == 1,
            "Large advances must preserve deterministic ping-pong direction.");
@@ -115,8 +110,7 @@ void test_direction_changes_preserve_cycle_phase() {
     ic2d::AnimationPlayer player{std::move(clips), "walk-south"};
 
     static_cast<void>(player.advance(3));
-    expect(player.sample().frame_index == 1,
-           "The source gait must reach the middle of its cycle.");
+    expect(player.sample().frame_index == 1, "The source gait must reach the middle of its cycle.");
     expect(player.play("walk-east", ic2d::AnimationTransitionMode::preserve_cycle_phase),
            "Changing locomotion direction must select the new clip.");
     expect(player.sample().clip_id == "walk-east" && player.sample().frame_index == 1,
@@ -139,8 +133,8 @@ void test_invalid_definitions_fail_at_construction() {
 
     rejected = false;
     try {
-        static_cast<void>(ic2d::AnimationPlayer{
-            {clip("known", ic2d::AnimationLoopMode::loop)}, "missing"});
+        static_cast<void>(
+            ic2d::AnimationPlayer{{clip("known", ic2d::AnimationLoopMode::loop)}, "missing"});
     } catch (const std::invalid_argument&) {
         rejected = true;
     }

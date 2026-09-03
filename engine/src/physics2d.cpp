@@ -28,7 +28,8 @@ namespace {
 }
 
 [[nodiscard]] bool less(const PhysicsBodyId left, const PhysicsBodyId right) noexcept {
-    return left.slot < right.slot || (left.slot == right.slot && left.generation < right.generation);
+    return left.slot < right.slot ||
+           (left.slot == right.slot && left.generation < right.generation);
 }
 
 } // namespace
@@ -49,8 +50,7 @@ struct PhysicsWorld::Impl {
         std::unique_ptr<BodyRecord> body;
     };
 
-    explicit Impl(const PhysicsWorldConfig& requested_config)
-        : config{requested_config} {
+    explicit Impl(const PhysicsWorldConfig& requested_config) : config{requested_config} {
         const bool valid_config = std::isfinite(config.pixels_per_metre) &&
                                   config.pixels_per_metre > 0.0F &&
                                   finite(config.gravity_pixels_per_second_squared) &&
@@ -118,13 +118,8 @@ struct PhysicsWorld::Impl {
         };
     }
 
-    void append_event(
-        std::vector<PhysicsEvent>& output,
-        const PhysicsEventKind kind,
-        BodyRecord* body_a,
-        BodyRecord* body_b,
-        const bool preserve_order
-    ) const {
+    void append_event(std::vector<PhysicsEvent>& output, const PhysicsEventKind kind,
+                      BodyRecord* body_a, BodyRecord* body_b, const bool preserve_order) const {
         if (body_a == nullptr || body_b == nullptr) {
             return;
         }
@@ -154,22 +149,18 @@ PhysicsWorld::PhysicsWorld(PhysicsWorld&&) noexcept = default;
 PhysicsWorld& PhysicsWorld::operator=(PhysicsWorld&&) noexcept = default;
 
 PhysicsBodyId PhysicsWorld::create_box(const PhysicsBoxDefinition& definition) {
-    const bool valid_definition = finite(definition.center) && finite(definition.half_extents) &&
-                                  finite(definition.linear_velocity) &&
-                                  definition.half_extents.x > 0.0F &&
-                                  definition.half_extents.y > 0.0F &&
-                                  std::isfinite(definition.rotation_radians) &&
-                                  std::isfinite(definition.angular_velocity_radians) &&
-                                  std::isfinite(definition.linear_damping) &&
-                                  definition.linear_damping >= 0.0F &&
-                                  std::isfinite(definition.angular_damping) &&
-                                  definition.angular_damping >= 0.0F &&
-                                  std::isfinite(definition.gravity_scale) &&
-                                  std::isfinite(definition.density) && definition.density >= 0.0F &&
-                                  std::isfinite(definition.friction) && definition.friction >= 0.0F &&
-                                  std::isfinite(definition.restitution) &&
-                                  definition.restitution >= 0.0F && definition.restitution <= 1.0F &&
-                                  definition.category_bits != 0;
+    const bool valid_definition =
+        finite(definition.center) && finite(definition.half_extents) &&
+        finite(definition.linear_velocity) && definition.half_extents.x > 0.0F &&
+        definition.half_extents.y > 0.0F && std::isfinite(definition.rotation_radians) &&
+        std::isfinite(definition.angular_velocity_radians) &&
+        std::isfinite(definition.linear_damping) && definition.linear_damping >= 0.0F &&
+        std::isfinite(definition.angular_damping) && definition.angular_damping >= 0.0F &&
+        std::isfinite(definition.gravity_scale) && std::isfinite(definition.density) &&
+        definition.density >= 0.0F && std::isfinite(definition.friction) &&
+        definition.friction >= 0.0F && std::isfinite(definition.restitution) &&
+        definition.restitution >= 0.0F && definition.restitution <= 1.0F &&
+        definition.category_bits != 0;
     if (!valid_definition) {
         throw std::invalid_argument{"Physics box definition is invalid."};
     }
@@ -241,11 +232,8 @@ bool PhysicsWorld::destroy_body(const PhysicsBodyId body) noexcept {
     return true;
 }
 
-bool PhysicsWorld::set_transform(
-    const PhysicsBodyId body,
-    const Vec2& center,
-    const float rotation_radians
-) {
+bool PhysicsWorld::set_transform(const PhysicsBodyId body, const Vec2& center,
+                                 const float rotation_radians) {
     if (!finite(center) || !std::isfinite(rotation_radians)) {
         throw std::invalid_argument{"Physics transform must be finite."};
     }
@@ -269,13 +257,11 @@ bool PhysicsWorld::set_linear_velocity(const PhysicsBodyId body, const Vec2& vel
     return true;
 }
 
-bool PhysicsWorld::set_kinematic_target(
-    const PhysicsBodyId body,
-    const Vec2& center,
-    const float time_step_seconds
-) {
+bool PhysicsWorld::set_kinematic_target(const PhysicsBodyId body, const Vec2& center,
+                                        const float time_step_seconds) {
     if (!finite(center) || !std::isfinite(time_step_seconds) || time_step_seconds <= 0.0F) {
-        throw std::invalid_argument{"Kinematic targets require a finite target and positive time step."};
+        throw std::invalid_argument{
+            "Kinematic targets require a finite target and positive time step."};
     }
     Impl::BodyRecord* record = impl_->find(body);
     if (record == nullptr || record->motion != PhysicsMotionType::kinematic_body) {
@@ -293,10 +279,7 @@ bool PhysicsWorld::set_kinematic_target(
         b2Body_SetAngularVelocity(record->body_id, 0.0F);
         return true;
     }
-    b2Body_SetTargetTransform(
-        record->body_id,
-        {target_position, current.q},
-        time_step_seconds);
+    b2Body_SetTargetTransform(record->body_id, {target_position, current.q}, time_step_seconds);
     return true;
 }
 
@@ -308,9 +291,8 @@ std::optional<PhysicsBodySnapshot> PhysicsWorld::snapshot(const PhysicsBodyId bo
     return impl_->make_snapshot(*record);
 }
 
-std::optional<PhysicsSegmentHit> PhysicsWorld::cast_segment(
-    const PhysicsSegmentQuery& query
-) const {
+std::optional<PhysicsSegmentHit>
+PhysicsWorld::cast_segment(const PhysicsSegmentQuery& query) const {
     if (!finite(query.start) || !finite(query.end) || query.category_bits == 0 ||
         query.mask_bits == 0) {
         throw std::invalid_argument{"Physics segment queries require finite points and filters."};
@@ -334,15 +316,12 @@ std::optional<PhysicsSegmentHit> PhysicsWorld::cast_segment(
         .ignored_body = query.ignored_body,
         .include_sensors = query.include_sensors,
     };
-    const auto accept_hit = [](const b2ShapeId shape_id, const b2Vec2 point,
-                               const b2Vec2 normal, const float fraction,
-                               void* raw_context) -> float {
+    const auto accept_hit = [](const b2ShapeId shape_id, const b2Vec2 point, const b2Vec2 normal,
+                               const float fraction, void* raw_context) -> float {
         auto& cast = *static_cast<CastContext*>(raw_context);
-        const auto* record = static_cast<const Impl::BodyRecord*>(
-            b2Shape_GetUserData(shape_id));
+        const auto* record = static_cast<const Impl::BodyRecord*>(b2Shape_GetUserData(shape_id));
         if (record == nullptr || cast.impl->find(record->public_id) != record ||
-            record->public_id == cast.ignored_body ||
-            (!cast.include_sensors && record->sensor)) {
+            record->public_id == cast.ignored_body || (!cast.include_sensors && record->sensor)) {
             return -1.0F;
         }
         cast.hit = PhysicsSegmentHit{
@@ -355,16 +334,13 @@ std::optional<PhysicsSegmentHit> PhysicsWorld::cast_segment(
         return fraction;
     };
 
-    static_cast<void>(b2World_CastRay(
-        impl_->world_id,
-        impl_->to_metres(query.start),
-        impl_->to_metres(translation_pixels),
-        b2QueryFilter{
-            .categoryBits = query.category_bits,
-            .maskBits = query.mask_bits,
-        },
-        accept_hit,
-        &context));
+    static_cast<void>(b2World_CastRay(impl_->world_id, impl_->to_metres(query.start),
+                                      impl_->to_metres(translation_pixels),
+                                      b2QueryFilter{
+                                          .categoryBits = query.category_bits,
+                                          .maskBits = query.mask_bits,
+                                      },
+                                      accept_hit, &context));
     return context.hit;
 }
 
@@ -387,12 +363,14 @@ PhysicsStepResult PhysicsWorld::step(const float time_step_seconds) {
     for (int index = 0; index < contacts.beginCount; ++index) {
         const b2ContactBeginTouchEvent& event = contacts.beginEvents[index];
         impl_->append_event(result.events, PhysicsEventKind::contact_begin,
-                            impl_->from_shape(event.shapeIdA), impl_->from_shape(event.shapeIdB), false);
+                            impl_->from_shape(event.shapeIdA), impl_->from_shape(event.shapeIdB),
+                            false);
     }
     for (int index = 0; index < contacts.endCount; ++index) {
         const b2ContactEndTouchEvent& event = contacts.endEvents[index];
         impl_->append_event(result.events, PhysicsEventKind::contact_end,
-                            impl_->from_shape(event.shapeIdA), impl_->from_shape(event.shapeIdB), false);
+                            impl_->from_shape(event.shapeIdA), impl_->from_shape(event.shapeIdB),
+                            false);
     }
 
     const b2SensorEvents sensors = b2World_GetSensorEvents(impl_->world_id);

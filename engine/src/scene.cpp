@@ -38,13 +38,10 @@ struct ImportedAsepriteDefinition {
     return value.substr(first, last - first + 1);
 }
 
-[[noreturn]] void fail(
-    const std::filesystem::path& path,
-    const std::size_t line,
-    const std::string& message
-) {
-    throw std::runtime_error{
-        "Scene " + path.string() + (line > 0 ? ":" + std::to_string(line) : "") + ": " + message};
+[[noreturn]] void fail(const std::filesystem::path& path, const std::size_t line,
+                       const std::string& message) {
+    throw std::runtime_error{"Scene " + path.string() +
+                             (line > 0 ? ":" + std::to_string(line) : "") + ": " + message};
 }
 
 [[nodiscard]] std::vector<std::string_view> fields(const std::string_view value) {
@@ -63,12 +60,8 @@ struct ImportedAsepriteDefinition {
 }
 
 template <typename Number>
-[[nodiscard]] Number number(
-    const std::string_view value,
-    const std::filesystem::path& path,
-    const std::size_t line,
-    const std::string_view field_name
-) {
+[[nodiscard]] Number number(const std::string_view value, const std::filesystem::path& path,
+                            const std::size_t line, const std::string_view field_name) {
     Number parsed{};
     const auto conversion = std::from_chars(value.data(), value.data() + value.size(), parsed);
     if (value.empty() || conversion.ec != std::errc{} ||
@@ -83,12 +76,8 @@ template <typename Number>
     return parsed;
 }
 
-[[nodiscard]] bool boolean(
-    const std::string_view value,
-    const std::filesystem::path& path,
-    const std::size_t line,
-    const std::string_view field_name
-) {
+[[nodiscard]] bool boolean(const std::string_view value, const std::filesystem::path& path,
+                           const std::size_t line, const std::string_view field_name) {
     if (value == "true") {
         return true;
     }
@@ -98,11 +87,9 @@ template <typename Number>
     fail(path, line, std::string{field_name} + " must be true or false.");
 }
 
-[[nodiscard]] std::uint8_t color_channel(
-    const std::string_view value,
-    const std::filesystem::path& path,
-    const std::size_t line
-) {
+[[nodiscard]] std::uint8_t color_channel(const std::string_view value,
+                                         const std::filesystem::path& path,
+                                         const std::size_t line) {
     const std::uint32_t parsed = number<std::uint32_t>(value, path, line, "color channel");
     if (parsed > 255U) {
         fail(path, line, "Color channels must be between 0 and 255.");
@@ -137,24 +124,19 @@ template <typename Number>
     return true;
 }
 
-void require_field_count(
-    const std::vector<std::string_view>& parsed_fields,
-    const std::size_t expected,
-    const std::filesystem::path& path,
-    const std::size_t line,
-    const std::string_view record_name
-) {
+void require_field_count(const std::vector<std::string_view>& parsed_fields,
+                         const std::size_t expected, const std::filesystem::path& path,
+                         const std::size_t line, const std::string_view record_name) {
     if (parsed_fields.size() != expected) {
-        fail(path, line, std::string{record_name} + " requires " + std::to_string(expected) +
-                             " pipe-separated fields.");
+        fail(path, line,
+             std::string{record_name} + " requires " + std::to_string(expected) +
+                 " pipe-separated fields.");
     }
 }
 
-[[nodiscard]] SceneTextureSampling texture_sampling(
-    const std::string_view value,
-    const std::filesystem::path& path,
-    const std::size_t line
-) {
+[[nodiscard]] SceneTextureSampling texture_sampling(const std::string_view value,
+                                                    const std::filesystem::path& path,
+                                                    const std::size_t line) {
     if (value == "pixel") {
         return SceneTextureSampling::pixel;
     }
@@ -164,11 +146,9 @@ void require_field_count(
     fail(path, line, "Texture sampling must be pixel or smooth.");
 }
 
-[[nodiscard]] PhysicsMotionType motion_type(
-    const std::string_view value,
-    const std::filesystem::path& path,
-    const std::size_t line
-) {
+[[nodiscard]] PhysicsMotionType motion_type(const std::string_view value,
+                                            const std::filesystem::path& path,
+                                            const std::size_t line) {
     if (value == "static") {
         return PhysicsMotionType::static_body;
     }
@@ -181,11 +161,9 @@ void require_field_count(
     fail(path, line, "Physics motion must be static, kinematic, or dynamic.");
 }
 
-[[nodiscard]] ScenePhysicsRole physics_role(
-    const std::string_view value,
-    const std::filesystem::path& path,
-    const std::size_t line
-) {
+[[nodiscard]] ScenePhysicsRole physics_role(const std::string_view value,
+                                            const std::filesystem::path& path,
+                                            const std::size_t line) {
     if (value == "player") {
         return ScenePhysicsRole::player;
     }
@@ -201,15 +179,12 @@ void require_field_count(
     if (value == "generic") {
         return ScenePhysicsRole::generic;
     }
-    fail(path, line,
-         "Physics role must be player, primary_prop, enemy, attacker, or generic.");
+    fail(path, line, "Physics role must be player, primary_prop, enemy, attacker, or generic.");
 }
 
-[[nodiscard]] AnimationLoopMode animation_loop_mode(
-    const std::string_view value,
-    const std::filesystem::path& path,
-    const std::size_t line
-) {
+[[nodiscard]] AnimationLoopMode animation_loop_mode(const std::string_view value,
+                                                    const std::filesystem::path& path,
+                                                    const std::size_t line) {
     if (value == "once") {
         return AnimationLoopMode::once;
     }
@@ -222,11 +197,9 @@ void require_field_count(
     fail(path, line, "Animation loop mode must be once, loop, or ping_pong.");
 }
 
-[[nodiscard]] LocomotionState locomotion_state(
-    const std::string_view value,
-    const std::filesystem::path& path,
-    const std::size_t line
-) {
+[[nodiscard]] LocomotionState locomotion_state(const std::string_view value,
+                                               const std::filesystem::path& path,
+                                               const std::size_t line) {
     if (value == "idle_south") {
         return LocomotionState::idle_south;
     }
@@ -327,14 +300,13 @@ void require_field_count(
         return LocomotionState::explode_south;
     }
     fail(path, line,
-         "Animation state must be an eight-way idle/move/dodge state, seated north/south, a cardinal shoot state, or hurt/death/explode south.");
+         "Animation state must be an eight-way idle/move/dodge state, seated north/south, a "
+         "cardinal shoot state, or hurt/death/explode south.");
 }
 
-[[nodiscard]] std::vector<std::string> animation_events(
-    const std::string_view value,
-    const std::filesystem::path& path,
-    const std::size_t line
-) {
+[[nodiscard]] std::vector<std::string> animation_events(const std::string_view value,
+                                                        const std::filesystem::path& path,
+                                                        const std::size_t line) {
     if (value == "-") {
         return {};
     }
@@ -371,15 +343,11 @@ void require_field_count(
     return result;
 }
 
-void validate_sprite(
-    const SceneSpriteDefinition& sprite,
-    const std::filesystem::path& path,
-    const std::size_t line,
-    const std::unordered_set<std::string>& texture_ids
-) {
-    if (sprite.size.x <= 0.0F || sprite.size.y <= 0.0F ||
-        sprite.normalized_origin.x < 0.0F || sprite.normalized_origin.x > 1.0F ||
-        sprite.normalized_origin.y < 0.0F || sprite.normalized_origin.y > 1.0F) {
+void validate_sprite(const SceneSpriteDefinition& sprite, const std::filesystem::path& path,
+                     const std::size_t line, const std::unordered_set<std::string>& texture_ids) {
+    if (sprite.size.x <= 0.0F || sprite.size.y <= 0.0F || sprite.normalized_origin.x < 0.0F ||
+        sprite.normalized_origin.x > 1.0F || sprite.normalized_origin.y < 0.0F ||
+        sprite.normalized_origin.y > 1.0F) {
         fail(path, line, "Sprite size and normalized origin are invalid.");
     }
     if (!sprite.texture_id.empty() && !texture_ids.contains(sprite.texture_id)) {
@@ -389,13 +357,10 @@ void validate_sprite(
 
 // Sprite fields have one shape wherever they appear: width, height, origin X,
 // origin Y, RGBA, layer, and texture id.
-[[nodiscard]] SceneSpriteDefinition sprite_definition(
-    const std::vector<std::string_view>& parsed_fields,
-    const std::size_t base,
-    const std::filesystem::path& path,
-    const std::size_t line,
-    const std::unordered_set<std::string>& texture_ids
-) {
+[[nodiscard]] SceneSpriteDefinition
+sprite_definition(const std::vector<std::string_view>& parsed_fields, const std::size_t base,
+                  const std::filesystem::path& path, const std::size_t line,
+                  const std::unordered_set<std::string>& texture_ids) {
     SceneSpriteDefinition sprite;
     sprite.size = {
         number<float>(parsed_fields[base], path, line, "sprite width"),
@@ -412,8 +377,7 @@ void validate_sprite(
         color_channel(parsed_fields[base + 7], path, line),
     };
     sprite.layer = number<std::int32_t>(parsed_fields[base + 8], path, line, "sprite layer");
-    sprite.texture_id =
-        parsed_fields[base + 9] == "-" ? "" : std::string{parsed_fields[base + 9]};
+    sprite.texture_id = parsed_fields[base + 9] == "-" ? "" : std::string{parsed_fields[base + 9]};
     validate_sprite(sprite, path, line, texture_ids);
     return sprite;
 }
@@ -424,17 +388,15 @@ struct PrefabOverride {
     std::size_t line{0};
 };
 
-void apply_prefab_override(
-    SceneSpriteDefinition& sprite,
-    const PrefabOverride& override_record,
-    const std::filesystem::path& path
-) {
+void apply_prefab_override(SceneSpriteDefinition& sprite, const PrefabOverride& override_record,
+                           const std::filesystem::path& path) {
     const auto values = comma_fields(override_record.value);
     const std::size_t line = override_record.line;
     const auto require_values = [&](const std::size_t expected) {
         if (values.size() != expected) {
-            fail(path, line, "Prefab override " + override_record.field + " requires " +
-                                 std::to_string(expected) + " comma-separated values.");
+            fail(path, line,
+                 "Prefab override " + override_record.field + " requires " +
+                     std::to_string(expected) + " comma-separated values.");
         }
     };
     if (override_record.field == "sprite_size") {
@@ -464,16 +426,15 @@ void apply_prefab_override(
         require_values(1);
         sprite.texture_id = values[0] == "-" ? "" : std::string{values[0]};
     } else {
-        fail(path, line, "Prefab override field must be sprite_size, sprite_origin, tint, "
-                         "layer, or texture.");
+        fail(path, line,
+             "Prefab override field must be sprite_size, sprite_origin, tint, "
+             "layer, or texture.");
     }
 }
 
-[[nodiscard]] GroundAreaKind ground_kind(
-    const std::string_view value,
-    const std::filesystem::path& path,
-    const std::size_t line
-) {
+[[nodiscard]] GroundAreaKind ground_kind(const std::string_view value,
+                                         const std::filesystem::path& path,
+                                         const std::size_t line) {
     if (value == "solid") {
         return GroundAreaKind::solid;
     }
@@ -486,11 +447,9 @@ void apply_prefab_override(
     fail(path, line, "Ground area kind must be solid, elevation, or trigger.");
 }
 
-[[nodiscard]] const AuthoredValue& required(
-    const std::unordered_map<std::string, AuthoredValue>& settings,
-    const std::string_view key,
-    const std::filesystem::path& path
-) {
+[[nodiscard]] const AuthoredValue&
+required(const std::unordered_map<std::string, AuthoredValue>& settings, const std::string_view key,
+         const std::filesystem::path& path) {
     const auto found = settings.find(std::string{key});
     if (found == settings.end()) {
         fail(path, 0, "Missing required setting: " + std::string{key});
@@ -524,9 +483,12 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
     std::vector<AuthoredValue> interactable_records;
     std::vector<AuthoredValue> parent_records;
     const std::unordered_set<std::string> singleton_keys{
-        "schema", "id", "world_space", "ground_plane", "elevation_axis",
-        "walkable_bounds", "max_step_height", "camera", "physics",
-        "ground_filter", "trigger_filter", "player_speed",
+        "schema",          "id",
+        "world_space",     "ground_plane",
+        "elevation_axis",  "walkable_bounds",
+        "max_step_height", "camera",
+        "physics",         "ground_filter",
+        "trigger_filter",  "player_speed",
     };
 
     std::string line;
@@ -584,7 +546,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
     SceneDefinition scene;
     scene.source_path_ = absolute_path;
     const AuthoredValue& schema = required(settings, "schema", absolute_path);
-    scene.schema_version_ = number<std::uint32_t>(schema.value, absolute_path, schema.line, "schema");
+    scene.schema_version_ =
+        number<std::uint32_t>(schema.value, absolute_path, schema.line, "schema");
     if (scene.schema_version_ != supported_schema_version) {
         fail(absolute_path, schema.line,
              "Unsupported schema version " + std::to_string(scene.schema_version_) + ".");
@@ -620,8 +583,10 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
     const AuthoredValue& camera = required(settings, "camera", absolute_path);
     const auto camera_fields = fields(camera.value);
     require_field_count(camera_fields, 4, absolute_path, camera.line, "camera");
-    scene.camera_.yaw_degrees = number<float>(camera_fields[0], absolute_path, camera.line, "camera yaw");
-    scene.camera_.pitch_degrees = number<float>(camera_fields[1], absolute_path, camera.line, "camera pitch");
+    scene.camera_.yaw_degrees =
+        number<float>(camera_fields[0], absolute_path, camera.line, "camera yaw");
+    scene.camera_.pitch_degrees =
+        number<float>(camera_fields[1], absolute_path, camera.line, "camera pitch");
     scene.camera_.pixels_per_world_unit =
         number<float>(camera_fields[2], absolute_path, camera.line, "camera scale");
     scene.camera_.zoom = number<float>(camera_fields[3], absolute_path, camera.line, "camera zoom");
@@ -643,12 +608,11 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         number<float>(physics_fields[5], absolute_path, physics.line, "world boundary thickness");
 
     const auto parse_filter = [&absolute_path](const AuthoredValue& authored,
-                                                std::uint64_t& category,
-                                                std::uint64_t& mask) {
+                                               std::uint64_t& category, std::uint64_t& mask) {
         const auto parsed_fields = fields(authored.value);
         require_field_count(parsed_fields, 2, absolute_path, authored.line, "collision filter");
-        category = number<std::uint64_t>(
-            parsed_fields[0], absolute_path, authored.line, "category bits");
+        category =
+            number<std::uint64_t>(parsed_fields[0], absolute_path, authored.line, "category bits");
         mask = number<std::uint64_t>(parsed_fields[1], absolute_path, authored.line, "mask bits");
         if (category == 0) {
             fail(absolute_path, authored.line, "Collision category bits cannot be zero.");
@@ -659,7 +623,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
     parse_filter(required(settings, "trigger_filter", absolute_path),
                  scene.simulation_.trigger_category_bits, scene.simulation_.trigger_mask_bits);
     const AuthoredValue& speed = required(settings, "player_speed", absolute_path);
-    scene.simulation_.player_speed = number<float>(speed.value, absolute_path, speed.line, "player speed");
+    scene.simulation_.player_speed =
+        number<float>(speed.value, absolute_path, speed.line, "player speed");
 
     std::unordered_set<std::string> texture_ids;
     for (const AuthoredValue& record : texture_records) {
@@ -688,9 +653,12 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         } else if (parsed_fields[1] == "checker") {
             require_field_count(parsed_fields, 14, absolute_path, record.line, "checker texture");
             texture.kind = SceneTextureKind::checker;
-            texture.width = number<int>(parsed_fields[2], absolute_path, record.line, "texture width");
-            texture.height = number<int>(parsed_fields[3], absolute_path, record.line, "texture height");
-            texture.cell_size = number<int>(parsed_fields[4], absolute_path, record.line, "cell size");
+            texture.width =
+                number<int>(parsed_fields[2], absolute_path, record.line, "texture width");
+            texture.height =
+                number<int>(parsed_fields[3], absolute_path, record.line, "texture height");
+            texture.cell_size =
+                number<int>(parsed_fields[4], absolute_path, record.line, "cell size");
             texture.first_color = {
                 color_channel(parsed_fields[5], absolute_path, record.line),
                 color_channel(parsed_fields[6], absolute_path, record.line),
@@ -710,8 +678,10 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         } else if (parsed_fields[1] == "radial") {
             require_field_count(parsed_fields, 13, absolute_path, record.line, "radial texture");
             texture.kind = SceneTextureKind::radial;
-            texture.width = number<int>(parsed_fields[2], absolute_path, record.line, "texture width");
-            texture.height = number<int>(parsed_fields[3], absolute_path, record.line, "texture height");
+            texture.width =
+                number<int>(parsed_fields[2], absolute_path, record.line, "texture width");
+            texture.height =
+                number<int>(parsed_fields[3], absolute_path, record.line, "texture height");
             texture.first_color = {
                 color_channel(parsed_fields[4], absolute_path, record.line),
                 color_channel(parsed_fields[5], absolute_path, record.line),
@@ -787,15 +757,18 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         const auto parsed_fields = fields(record.value);
         require_field_count(parsed_fields, 7, absolute_path, record.line, "ground_area");
         scene.ground_.areas.push_back({
-            .bounds = {
-                number<float>(parsed_fields[1], absolute_path, record.line, "ground X"),
-                number<float>(parsed_fields[2], absolute_path, record.line, "ground Z"),
-                number<float>(parsed_fields[3], absolute_path, record.line, "ground width"),
-                number<float>(parsed_fields[4], absolute_path, record.line, "ground depth"),
-            },
+            .bounds =
+                {
+                    number<float>(parsed_fields[1], absolute_path, record.line, "ground X"),
+                    number<float>(parsed_fields[2], absolute_path, record.line, "ground Z"),
+                    number<float>(parsed_fields[3], absolute_path, record.line, "ground width"),
+                    number<float>(parsed_fields[4], absolute_path, record.line, "ground depth"),
+                },
             .kind = ground_kind(parsed_fields[0], absolute_path, record.line),
-            .elevation = number<float>(parsed_fields[5], absolute_path, record.line, "ground elevation"),
-            .tag = number<std::uint32_t>(parsed_fields[6], absolute_path, record.line, "ground tag"),
+            .elevation =
+                number<float>(parsed_fields[5], absolute_path, record.line, "ground elevation"),
+            .tag =
+                number<std::uint32_t>(parsed_fields[6], absolute_path, record.line, "ground tag"),
         });
     }
 
@@ -820,11 +793,12 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
             number<float>(parsed_fields[5], absolute_path, record.line, "body half width"),
             number<float>(parsed_fields[6], absolute_path, record.line, "body half depth"),
         };
-        body.box.category_bits =
-            number<std::uint64_t>(parsed_fields[7], absolute_path, record.line, "body category bits");
+        body.box.category_bits = number<std::uint64_t>(parsed_fields[7], absolute_path, record.line,
+                                                       "body category bits");
         body.box.mask_bits =
             number<std::uint64_t>(parsed_fields[8], absolute_path, record.line, "body mask bits");
-        body.box.tag = number<std::uint32_t>(parsed_fields[9], absolute_path, record.line, "body tag");
+        body.box.tag =
+            number<std::uint32_t>(parsed_fields[9], absolute_path, record.line, "body tag");
         body.box.sensor = boolean(parsed_fields[10], absolute_path, record.line, "body sensor");
         body.box.fixed_rotation =
             boolean(parsed_fields[11], absolute_path, record.line, "fixed rotation");
@@ -833,7 +807,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         body.box.angular_damping =
             number<float>(parsed_fields[13], absolute_path, record.line, "angular damping");
         body.box.density = number<float>(parsed_fields[14], absolute_path, record.line, "density");
-        body.box.friction = number<float>(parsed_fields[15], absolute_path, record.line, "friction");
+        body.box.friction =
+            number<float>(parsed_fields[15], absolute_path, record.line, "friction");
         body.box.gravity_scale = 0.0F;
         if (body.role == ScenePhysicsRole::player) {
             ++player_count;
@@ -853,7 +828,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         scene.physics_bodies_.push_back(std::move(body));
     }
     if (player_count != 1 || primary_prop_count != 1) {
-        fail(absolute_path, 0, "A scene requires exactly one player and one primary_prop physics body.");
+        fail(absolute_path, 0,
+             "A scene requires exactly one player and one primary_prop physics body.");
     }
 
     std::unordered_map<std::string, std::size_t> prefab_indices;
@@ -863,8 +839,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         require_field_count(parsed_fields, 13, absolute_path, record.line, "prefab");
         ScenePrefabDefinition prefab;
         prefab.id = parsed_fields[0];
-        prefab.uuid = {number<std::uint64_t>(
-            parsed_fields[1], absolute_path, record.line, "prefab UUID")};
+        prefab.uuid = {
+            number<std::uint64_t>(parsed_fields[1], absolute_path, record.line, "prefab UUID")};
         prefab.name = parsed_fields[2];
         if (!valid_id(prefab.id) || prefab_indices.contains(prefab.id) || !prefab.uuid ||
             prefab.name.empty() || !identity_uuids.insert(prefab.uuid.value).second) {
@@ -910,9 +886,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
     for (const AuthoredValue& record : prefab_instance_records) {
         placements.push_back({&record, true});
     }
-    std::ranges::sort(placements, {}, [](const PlacementRecord& placement) {
-        return placement.record->line;
-    });
+    std::ranges::sort(placements, {},
+                      [](const PlacementRecord& placement) { return placement.record->line; });
 
     std::unordered_map<std::string, std::size_t> entity_indices;
     std::unordered_set<std::string> referenced_bodies;
@@ -924,8 +899,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         if (placement.from_prefab) {
             require_field_count(parsed_fields, 8, absolute_path, record.line, "prefab_instance");
             entity.id = parsed_fields[0];
-            entity.uuid = {number<std::uint64_t>(
-                parsed_fields[1], absolute_path, record.line, "prefab instance UUID")};
+            entity.uuid = {number<std::uint64_t>(parsed_fields[1], absolute_path, record.line,
+                                                 "prefab instance UUID")};
             entity.prefab_id = parsed_fields[2];
             entity.name = parsed_fields[3];
             entity.physics_binding = parsed_fields[4] == "-" ? "" : std::string{parsed_fields[4]};
@@ -957,8 +932,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
                      "entity requires 17 pipe-separated fields, or 18 with a depth span.");
             }
             entity.id = parsed_fields[0];
-            entity.uuid = {number<std::uint64_t>(
-                parsed_fields[1], absolute_path, record.line, "entity UUID")};
+            entity.uuid = {
+                number<std::uint64_t>(parsed_fields[1], absolute_path, record.line, "entity UUID")};
             entity.name = parsed_fields[2];
             entity.physics_binding = parsed_fields[3] == "-" ? "" : std::string{parsed_fields[3]};
             entity.position = {
@@ -969,8 +944,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
             entity.sprite =
                 sprite_definition(parsed_fields, 7, absolute_path, record.line, texture_ids);
             if (parsed_fields.size() == 18) {
-                entity.sprite.depth_span = number<float>(
-                    parsed_fields[17], absolute_path, record.line, "entity depth span");
+                entity.sprite.depth_span = number<float>(parsed_fields[17], absolute_path,
+                                                         record.line, "entity depth span");
                 if (!(entity.sprite.depth_span >= 0.0F)) {
                     fail(absolute_path, record.line,
                          "Entity depth span must be zero or a positive world distance.");
@@ -986,8 +961,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         if (!entity.physics_binding.empty()) {
             const auto body = body_indices.find(entity.physics_binding);
             if (body == body_indices.end()) {
-                fail(absolute_path, record.line, "Entity references an unknown physics body: " +
-                                                     entity.physics_binding);
+                fail(absolute_path, record.line,
+                     "Entity references an unknown physics body: " + entity.physics_binding);
             }
             const Vec2 body_center = scene.physics_bodies_[body->second].box.center;
             if (std::abs(entity.position.x - body_center.x) > 0.001F ||
@@ -1007,8 +982,7 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         }
     }
     for (const ScenePhysicsBodyDefinition& body : scene.physics_bodies_) {
-        if ((body.role == ScenePhysicsRole::player ||
-             body.role == ScenePhysicsRole::primary_prop ||
+        if ((body.role == ScenePhysicsRole::player || body.role == ScenePhysicsRole::primary_prop ||
              body.role == ScenePhysicsRole::attacker) &&
             !referenced_bodies.contains(body.id)) {
             fail(absolute_path, 0,
@@ -1036,10 +1010,11 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         const auto parsed_fields = fields(record.value);
         require_field_count(parsed_fields, 3, absolute_path, record.line, "animation_clip");
         SceneAnimationClipDefinition clip_definition{
-            .clip = {
-                .id = std::string{parsed_fields[0]},
-                .loop_mode = animation_loop_mode(parsed_fields[2], absolute_path, record.line),
-            },
+            .clip =
+                {
+                    .id = std::string{parsed_fields[0]},
+                    .loop_mode = animation_loop_mode(parsed_fields[2], absolute_path, record.line),
+                },
             .texture_id = std::string{parsed_fields[1]},
         };
         if (!valid_id(clip_definition.clip.id) ||
@@ -1050,8 +1025,7 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
             fail(absolute_path, record.line,
                  "Animation clip references an unknown texture: " + clip_definition.texture_id);
         }
-        animation_clip_indices.emplace(
-            clip_definition.clip.id, scene.animation_clips_.size());
+        animation_clip_indices.emplace(clip_definition.clip.id, scene.animation_clips_.size());
         animation_clip_lines.emplace(clip_definition.clip.id, record.line);
         scene.animation_clips_.push_back(std::move(clip_definition));
     }
@@ -1065,14 +1039,15 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
                  "Animation frame references an unknown clip: " + std::string{parsed_fields[0]});
         }
         scene.animation_clips_[clip->second].clip.frames.push_back({
-            .source = {
-                number<float>(parsed_fields[1], absolute_path, record.line, "frame X"),
-                number<float>(parsed_fields[2], absolute_path, record.line, "frame Y"),
-                number<float>(parsed_fields[3], absolute_path, record.line, "frame width"),
-                number<float>(parsed_fields[4], absolute_path, record.line, "frame height"),
-            },
-            .duration_ticks = number<std::uint32_t>(
-                parsed_fields[5], absolute_path, record.line, "frame duration ticks"),
+            .source =
+                {
+                    number<float>(parsed_fields[1], absolute_path, record.line, "frame X"),
+                    number<float>(parsed_fields[2], absolute_path, record.line, "frame Y"),
+                    number<float>(parsed_fields[3], absolute_path, record.line, "frame width"),
+                    number<float>(parsed_fields[4], absolute_path, record.line, "frame height"),
+                },
+            .duration_ticks = number<std::uint32_t>(parsed_fields[5], absolute_path, record.line,
+                                                    "frame duration ticks"),
             .events = animation_events(parsed_fields[6], absolute_path, record.line),
         });
     }
@@ -1111,8 +1086,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         const bool initial = boolean(parsed_fields[3], absolute_path, record.line, "initial state");
         auto binding = animation_binding_indices.find(entity_id);
         if (binding == animation_binding_indices.end()) {
-            binding = animation_binding_indices.emplace(
-                entity_id, scene.animation_bindings_.size()).first;
+            binding = animation_binding_indices.emplace(entity_id, scene.animation_bindings_.size())
+                          .first;
             scene.animation_bindings_.push_back({.entity_id = entity_id});
         }
         SceneAnimationBindingDefinition& definition = scene.animation_bindings_[binding->second];
@@ -1132,8 +1107,7 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
     }
     for (const SceneAnimationBindingDefinition& binding : scene.animation_bindings_) {
         if (!animation_initial_entities.contains(binding.entity_id)) {
-            fail(absolute_path, 0,
-                 "Animation binding has no initial state: " + binding.entity_id);
+            fail(absolute_path, 0, "Animation binding has no initial state: " + binding.entity_id);
         }
         bool missing_core_state = false;
         for (std::size_t index = 0; index < locomotion_core_state_count; ++index) {
@@ -1146,15 +1120,14 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         }
         bool has_any_dodge = false;
         bool has_all_dodge = true;
-        for (std::size_t index = locomotion_core_state_count;
-             index < locomotion_action_state_begin; ++index) {
+        for (std::size_t index = locomotion_core_state_count; index < locomotion_action_state_begin;
+             ++index) {
             has_any_dodge = has_any_dodge || !binding.state_clips[index].empty();
             has_all_dodge = has_all_dodge && !binding.state_clips[index].empty();
         }
         if (has_any_dodge && !has_all_dodge) {
             fail(absolute_path, 0,
-                 "Dodge animation bindings require all eight compass states: " +
-                     binding.entity_id);
+                 "Dodge animation bindings require all eight compass states: " + binding.entity_id);
         }
 
         constexpr std::size_t seated_begin = locomotion_action_state_begin;
@@ -1186,8 +1159,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
 
         bool has_any_reaction = false;
         bool has_all_reactions = true;
-        for (std::size_t index = locomotion_reaction_state_begin;
-             index < locomotion_state_count; ++index) {
+        for (std::size_t index = locomotion_reaction_state_begin; index < locomotion_state_count;
+             ++index) {
             has_any_reaction = has_any_reaction || !binding.state_clips[index].empty();
             has_all_reactions = has_all_reactions && !binding.state_clips[index].empty();
         }
@@ -1224,8 +1197,7 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         // One parent per child keeps the hierarchy a forest, so retiring a
         // parent has exactly one meaning and the outliner has one tree to draw.
         if (!parented_entities.insert(child_id).second) {
-            fail(absolute_path, record.line,
-                 "An entity may name only one parent: " + child_id);
+            fail(absolute_path, record.line, "An entity may name only one parent: " + child_id);
         }
         scene.entities_[child->second].parent = scene.entities_[parent->second].uuid;
     }
@@ -1237,8 +1209,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
             if (cursor == entity.uuid) {
                 fail(absolute_path, 0, "Entity parenting must not form a cycle: " + entity.id);
             }
-            const auto next = std::ranges::find(scene.entities_, cursor,
-                                                &SceneEntityDefinition::uuid);
+            const auto next =
+                std::ranges::find(scene.entities_, cursor, &SceneEntityDefinition::uuid);
             cursor = next == scene.entities_.end() ? EntityUuid{} : next->parent;
         }
     }
@@ -1316,8 +1288,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         for (const ScenePhysicsBodyDefinition& body : scene.physics_bodies_) {
             static_cast<void>(validated_physics.create_box(body.box));
         }
-        const auto player = std::ranges::find(
-            scene.physics_bodies_, ScenePhysicsRole::player, &ScenePhysicsBodyDefinition::role);
+        const auto player = std::ranges::find(scene.physics_bodies_, ScenePhysicsRole::player,
+                                              &ScenePhysicsBodyDefinition::role);
         scene.camera_.focus = {
             player->box.center.x,
             validated_ground.elevation_at(player->box.center),
@@ -1337,9 +1309,8 @@ std::uint32_t SceneDefinition::schema_version() const noexcept { return schema_v
 const std::string& SceneDefinition::id() const noexcept { return id_; }
 const std::filesystem::path& SceneDefinition::source_path() const noexcept { return source_path_; }
 
-std::filesystem::path SceneDefinition::resolve_asset(
-    const std::filesystem::path& relative_path
-) const {
+std::filesystem::path
+SceneDefinition::resolve_asset(const std::filesystem::path& relative_path) const {
     if (!safe_relative_path(relative_path)) {
         throw std::invalid_argument{"Scene asset paths must be safe and relative."};
     }
@@ -1347,14 +1318,22 @@ std::filesystem::path SceneDefinition::resolve_asset(
 }
 
 const GroundMapDefinition& SceneDefinition::ground() const noexcept { return ground_; }
-const SceneSimulationDefinition& SceneDefinition::simulation() const noexcept { return simulation_; }
+const SceneSimulationDefinition& SceneDefinition::simulation() const noexcept {
+    return simulation_;
+}
 const Camera25DState& SceneDefinition::camera() const noexcept { return camera_; }
-const std::vector<SceneTextureDefinition>& SceneDefinition::textures() const noexcept { return textures_; }
+const std::vector<SceneTextureDefinition>& SceneDefinition::textures() const noexcept {
+    return textures_;
+}
 const std::vector<ScenePhysicsBodyDefinition>& SceneDefinition::physics_bodies() const noexcept {
     return physics_bodies_;
 }
-const std::vector<ScenePrefabDefinition>& SceneDefinition::prefabs() const noexcept { return prefabs_; }
-const std::vector<SceneEntityDefinition>& SceneDefinition::entities() const noexcept { return entities_; }
+const std::vector<ScenePrefabDefinition>& SceneDefinition::prefabs() const noexcept {
+    return prefabs_;
+}
+const std::vector<SceneEntityDefinition>& SceneDefinition::entities() const noexcept {
+    return entities_;
+}
 
 const std::vector<SceneInteractableDefinition>& SceneDefinition::interactables() const noexcept {
     return interactables_;
@@ -1362,7 +1341,8 @@ const std::vector<SceneInteractableDefinition>& SceneDefinition::interactables()
 const std::vector<SceneAnimationClipDefinition>& SceneDefinition::animation_clips() const noexcept {
     return animation_clips_;
 }
-const std::vector<SceneAnimationBindingDefinition>& SceneDefinition::animation_bindings() const noexcept {
+const std::vector<SceneAnimationBindingDefinition>&
+SceneDefinition::animation_bindings() const noexcept {
     return animation_bindings_;
 }
 const std::vector<SceneAutoAnimationDefinition>& SceneDefinition::auto_animations() const noexcept {

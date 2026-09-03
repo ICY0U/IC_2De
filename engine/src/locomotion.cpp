@@ -8,7 +8,7 @@ namespace ic2d {
 namespace {
 
 constexpr float cardinal_sector_ratio = 0.41421356237F; // tan(22.5 degrees)
-constexpr float facing_retention_dot = 0.86602540378F; // cos(30 degrees)
+constexpr float facing_retention_dot = 0.86602540378F;  // cos(30 degrees)
 
 [[nodiscard]] std::size_t facing_index(const LocomotionState state) noexcept {
     const auto index = static_cast<std::underlying_type_t<LocomotionState>>(state);
@@ -39,14 +39,8 @@ constexpr float facing_retention_dot = 0.86602540378F; // cos(30 degrees)
 [[nodiscard]] Vec2 facing_direction(const LocomotionState state) noexcept {
     constexpr float diagonal = 0.70710678118F;
     constexpr Vec2 directions[locomotion_facing_count]{
-        {0.0F, 1.0F},
-        {-diagonal, diagonal},
-        {-1.0F, 0.0F},
-        {-diagonal, -diagonal},
-        {0.0F, -1.0F},
-        {diagonal, -diagonal},
-        {1.0F, 0.0F},
-        {diagonal, diagonal},
+        {0.0F, 1.0F},  {-diagonal, diagonal}, {-1.0F, 0.0F}, {-diagonal, -diagonal},
+        {0.0F, -1.0F}, {diagonal, -diagonal}, {1.0F, 0.0F},  {diagonal, diagonal},
     };
     return directions[facing_index(state)];
 }
@@ -62,19 +56,16 @@ LocomotionState locomotion_facing(const Vec2 direction) noexcept {
     const float horizontal = std::abs(direction.x);
     const float vertical = std::abs(direction.y);
     if (horizontal <= vertical * cardinal_sector_ratio) {
-        return direction.y < 0.0F ? LocomotionState::idle_north
-                                  : LocomotionState::idle_south;
+        return direction.y < 0.0F ? LocomotionState::idle_north : LocomotionState::idle_south;
     }
     if (vertical <= horizontal * cardinal_sector_ratio) {
-        return direction.x < 0.0F ? LocomotionState::idle_west
-                                  : LocomotionState::idle_east;
+        return direction.x < 0.0F ? LocomotionState::idle_west : LocomotionState::idle_east;
     }
     if (direction.y < 0.0F) {
         return direction.x < 0.0F ? LocomotionState::idle_northwest
                                   : LocomotionState::idle_northeast;
     }
-    return direction.x < 0.0F ? LocomotionState::idle_southwest
-                              : LocomotionState::idle_southeast;
+    return direction.x < 0.0F ? LocomotionState::idle_southwest : LocomotionState::idle_southeast;
 }
 
 LocomotionState idle_locomotion(const LocomotionState state) noexcept {
@@ -91,20 +82,18 @@ LocomotionState dodging_locomotion(const LocomotionState state) noexcept {
 
 bool is_dodging_locomotion(const LocomotionState state) noexcept {
     const auto index = static_cast<std::underlying_type_t<LocomotionState>>(state);
-    return index >= static_cast<std::underlying_type_t<LocomotionState>>(
-                        locomotion_core_state_count) &&
-           index < static_cast<std::underlying_type_t<LocomotionState>>(
-                       locomotion_action_state_begin);
+    return index >=
+               static_cast<std::underlying_type_t<LocomotionState>>(locomotion_core_state_count) &&
+           index <
+               static_cast<std::underlying_type_t<LocomotionState>>(locomotion_action_state_begin);
 }
 
 LocomotionState seated_locomotion(const LocomotionState state) noexcept {
-    return facing_index(state) == 4 ? LocomotionState::seated_north
-                                    : LocomotionState::seated_south;
+    return facing_index(state) == 4 ? LocomotionState::seated_north : LocomotionState::seated_south;
 }
 
 bool is_seated_locomotion(const LocomotionState state) noexcept {
-    return state == LocomotionState::seated_south ||
-           state == LocomotionState::seated_north;
+    return state == LocomotionState::seated_south || state == LocomotionState::seated_north;
 }
 
 LocomotionState shooting_locomotion(const LocomotionState state) noexcept {
@@ -125,17 +114,12 @@ LocomotionState shooting_locomotion(const LocomotionState state) noexcept {
 }
 
 bool is_shooting_locomotion(const LocomotionState state) noexcept {
-    return state == LocomotionState::shoot_south ||
-           state == LocomotionState::shoot_west ||
-           state == LocomotionState::shoot_north ||
-           state == LocomotionState::shoot_east;
+    return state == LocomotionState::shoot_south || state == LocomotionState::shoot_west ||
+           state == LocomotionState::shoot_north || state == LocomotionState::shoot_east;
 }
 
-LocomotionState locomotion_state(
-    const LocomotionState previous_facing,
-    const Vec2 facing_direction,
-    const bool moving
-) noexcept {
+LocomotionState locomotion_state(const LocomotionState previous_facing, const Vec2 facing_direction,
+                                 const bool moving) noexcept {
     const bool usable_direction = std::isfinite(facing_direction.x) &&
                                   std::isfinite(facing_direction.y) &&
                                   (facing_direction.x != 0.0F || facing_direction.y != 0.0F);
@@ -144,10 +128,9 @@ LocomotionState locomotion_state(
         const float length = std::sqrt(facing_direction.x * facing_direction.x +
                                        facing_direction.y * facing_direction.y);
         const Vec2 retained_direction = ic2d::facing_direction(facing);
-        const float retained_dot =
-            (facing_direction.x * retained_direction.x +
-             facing_direction.y * retained_direction.y) /
-            length;
+        const float retained_dot = (facing_direction.x * retained_direction.x +
+                                    facing_direction.y * retained_direction.y) /
+                                   length;
         // The previous 45-degree sector gets a 7.5-degree retention margin.
         // Mouse noise must leave that wider cone before the facing changes.
         if (retained_dot < facing_retention_dot) {

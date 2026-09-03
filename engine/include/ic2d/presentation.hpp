@@ -11,11 +11,7 @@ struct CanvasViewport {
 };
 
 // Fits a virtual canvas continuously inside an output while preserving aspect ratio.
-[[nodiscard]] CanvasViewport compute_canvas_viewport(
-    int output_width,
-    int output_height,
-    int canvas_width,
-    int canvas_height
-) noexcept;
+[[nodiscard]] CanvasViewport compute_canvas_viewport(int output_width, int output_height,
+                                                     int canvas_width, int canvas_height) noexcept;
 
 } // namespace ic2d

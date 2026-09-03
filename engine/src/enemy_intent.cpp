@@ -19,8 +19,8 @@ namespace {
            std::isfinite(definition.acquisition_range) && definition.acquisition_range > 0.0F &&
            std::isfinite(definition.attack_range) && definition.attack_range > 0.0F &&
            definition.attack_range <= definition.acquisition_range &&
-           definition.attack_cooldown_ticks > 0 &&
-           std::isfinite(definition.attack_damage) && definition.attack_damage > 0.0F;
+           definition.attack_cooldown_ticks > 0 && std::isfinite(definition.attack_damage) &&
+           definition.attack_damage > 0.0F;
 }
 
 } // namespace
@@ -54,15 +54,12 @@ bool EnemyIntent::register_actor(const EnemyIntentDefinition& definition) noexce
     if (impl_->tick != 0 || !valid(definition)) {
         return false;
     }
-    return impl_->actors.emplace(
-        definition.actor.value,
-        Impl::ActorState{.definition = definition}).second;
+    return impl_->actors.emplace(definition.actor.value, Impl::ActorState{.definition = definition})
+        .second;
 }
 
-void EnemyIntent::fixed_update(
-    const std::uint64_t tick,
-    const std::vector<EnemyPerception>& perceptions
-) {
+void EnemyIntent::fixed_update(const std::uint64_t tick,
+                               const std::vector<EnemyPerception>& perceptions) {
     if (tick != impl_->tick + 1) {
         throw std::invalid_argument{"EnemyIntent fixed ticks must be one-based and sequential."};
     }
@@ -78,18 +75,19 @@ void EnemyIntent::fixed_update(
         // exactly as it was.
         const auto registered = impl_->actors.find(perception.actor.value);
         if (!perception.actor || !perception.target || !finite(perception.actor_position) ||
-            !finite(perception.target_position) ||
-            registered == impl_->actors.end() ||
+            !finite(perception.target_position) || registered == impl_->actors.end() ||
             perception.target != registered->second.definition.target ||
             !perception_by_actor.emplace(perception.actor.value, &perception).second) {
-            throw std::invalid_argument{"EnemyIntent perceptions require unique identities and finite positions."};
+            throw std::invalid_argument{
+                "EnemyIntent perceptions require unique identities and finite positions."};
         }
     }
 
     for (auto& [actor_id, actor] : impl_->actors) {
         const auto found = perception_by_actor.find(actor_id);
         if (found == perception_by_actor.end()) {
-            throw std::invalid_argument{"EnemyIntent perception identities must match registered definitions."};
+            throw std::invalid_argument{
+                "EnemyIntent perception identities must match registered definitions."};
         }
         const EnemyPerception& perception = *found->second;
         const Vec2 delta{

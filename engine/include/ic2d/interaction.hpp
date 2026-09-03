@@ -98,12 +98,8 @@ public:
     // held rather than throwing it away on the tick it arrived: pressing just
     // before the prompt appears, or holding the key while walking up to an
     // item, must still use the item once it is actually reachable.
-    [[nodiscard]] bool fixed_update(
-        std::uint64_t tick,
-        EntityUuid actor,
-        Vec3 actor_position,
-        bool requested
-    );
+    [[nodiscard]] bool fixed_update(std::uint64_t tick, EntityUuid actor, Vec3 actor_position,
+                                    bool requested);
 
     [[nodiscard]] const InteractionSnapshot& snapshot() const noexcept;
     [[nodiscard]] std::vector<InteractionPerformedEvent> drain_events();

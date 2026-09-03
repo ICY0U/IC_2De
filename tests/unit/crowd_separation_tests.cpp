@@ -112,8 +112,7 @@ void personal_space_overrides_pursuit_at_close_range() {
 
     const std::vector<ic2d::CrowdSteer> padded = ic2d::resolve_crowd_separation(
         closing,
-        {.radius = 34.0F, .strength = 1.5F, .personal_space = 26.0F,
-         .contact_strength = 8.0F});
+        {.radius = 34.0F, .strength = 1.5F, .personal_space = 26.0F, .contact_strength = 8.0F});
     expect(padded.front().direction.x < 0.0F,
            "Inside personal space the push must beat pursuit and open the gap.");
     expect(padded.back().direction.x > 0.0F,
@@ -131,8 +130,7 @@ void personal_space_overrides_pursuit_at_close_range() {
     };
     const std::vector<ic2d::CrowdSteer> approach = ic2d::resolve_crowd_separation(
         approaching,
-        {.radius = 34.0F, .strength = 1.5F, .personal_space = 26.0F,
-         .contact_strength = 8.0F});
+        {.radius = 34.0F, .strength = 1.5F, .personal_space = 26.0F, .contact_strength = 8.0F});
     expect(approach.front().direction.x > 0.0F,
            "Beyond personal space actors must still be free to close in.");
 }

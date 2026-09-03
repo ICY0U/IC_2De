@@ -37,8 +37,7 @@ void EditorCamera::pan(const Vec2 canvas_delta, const Camera25DState& gameplay) 
         return;
     }
     detach_from(gameplay);
-    const Vec3 world_delta =
-        canvas_ground_offset_to_world(canvas_delta, resolve(gameplay));
+    const Vec3 world_delta = canvas_ground_offset_to_world(canvas_delta, resolve(gameplay));
 
     // The world follows the pointer, so the focus moves against the drag.
     focus_.x -= world_delta.x;
@@ -55,8 +54,8 @@ void EditorCamera::zoom(const float notches, const Camera25DState& gameplay) noe
 }
 
 void EditorCamera::frame(const Vec3 world_position, const Camera25DState& gameplay) noexcept {
-    if (!valid(gameplay) || !std::isfinite(world_position.x) ||
-        !std::isfinite(world_position.y) || !std::isfinite(world_position.z)) {
+    if (!valid(gameplay) || !std::isfinite(world_position.x) || !std::isfinite(world_position.y) ||
+        !std::isfinite(world_position.z)) {
         return;
     }
     detach_from(gameplay);

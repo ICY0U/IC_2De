@@ -46,8 +46,7 @@ struct WorseOpenEntry {
 };
 
 [[nodiscard]] bool contains(const NavGridSnapshot& grid, const NavCell cell) noexcept {
-    return cell.column >= 0 && cell.row >= 0 &&
-           cell.column < grid.columns && cell.row < grid.rows;
+    return cell.column >= 0 && cell.row >= 0 && cell.column < grid.columns && cell.row < grid.rows;
 }
 
 [[nodiscard]] std::size_t offset(const NavGridSnapshot& grid, const NavCell cell) noexcept {
@@ -55,25 +54,18 @@ struct WorseOpenEntry {
            static_cast<std::size_t>(cell.column);
 }
 
-[[nodiscard]] float octile_distance(
-    const NavCell from,
-    const NavCell to,
-    const float cell_size
-) noexcept {
+[[nodiscard]] float octile_distance(const NavCell from, const NavCell to,
+                                    const float cell_size) noexcept {
     const std::int32_t delta_column = std::abs(to.column - from.column);
     const std::int32_t delta_row = std::abs(to.row - from.row);
     const std::int32_t diagonal_steps = std::min(delta_column, delta_row);
-    const std::int32_t cardinal_steps =
-        std::max(delta_column, delta_row) - diagonal_steps;
+    const std::int32_t cardinal_steps = std::max(delta_column, delta_row) - diagonal_steps;
     constexpr float diagonal_scale = 1.4142135623730950488F;
-    return cell_size *
-           (static_cast<float>(cardinal_steps) +
-            static_cast<float>(diagonal_steps) * diagonal_scale);
+    return cell_size * (static_cast<float>(cardinal_steps) +
+                        static_cast<float>(diagonal_steps) * diagonal_scale);
 }
 
-[[nodiscard]] NavPathResult failed(const NavPathStatus status) {
-    return {.status = status};
-}
+[[nodiscard]] NavPathResult failed(const NavPathStatus status) { return {.status = status}; }
 
 } // namespace
 
@@ -95,11 +87,7 @@ std::string_view nav_path_status_name(const NavPathStatus status) noexcept {
     return "Unknown";
 }
 
-NavPathResult find_nav_path(
-    const NavGrid& grid,
-    const NavCell start,
-    const NavCell goal
-) {
+NavPathResult find_nav_path(const NavGrid& grid, const NavCell start, const NavCell goal) {
     // Borrowed, not copied: a search must not pay for duplicating every cell
     // in the grid before it has even looked at the request.
     const NavGridSnapshot& topology = grid.topology();
@@ -171,8 +159,7 @@ NavPathResult find_nav_path(
             next.distance = candidate_distance;
             next.parent = current_entry.cell;
             next.has_parent = true;
-            const float heuristic =
-                octile_distance(neighbor.cell, goal, topology.cell_size);
+            const float heuristic = octile_distance(neighbor.cell, goal, topology.cell_size);
             open.push({
                 .estimated_total = candidate_distance + heuristic,
                 .heuristic = heuristic,
@@ -184,15 +171,10 @@ NavPathResult find_nav_path(
     return result;
 }
 
-Vec2 nav_avoid_obstacles(
-    const NavGrid& grid,
-    const Vec2 position,
-    const Vec2 desired,
-    const NavClearanceSettings settings
-) {
-    if (!std::isfinite(position.x) || !std::isfinite(position.y) ||
-        !std::isfinite(desired.x) || !std::isfinite(desired.y) ||
-        !std::isfinite(settings.radius) || !(settings.radius > 0.0F) ||
+Vec2 nav_avoid_obstacles(const NavGrid& grid, const Vec2 position, const Vec2 desired,
+                         const NavClearanceSettings settings) {
+    if (!std::isfinite(position.x) || !std::isfinite(position.y) || !std::isfinite(desired.x) ||
+        !std::isfinite(desired.y) || !std::isfinite(settings.radius) || !(settings.radius > 0.0F) ||
         !std::isfinite(settings.strength) || settings.strength < 0.0F) {
         return desired;
     }
@@ -208,8 +190,7 @@ Vec2 nav_avoid_obstacles(
 
     // Only the cells the radius can reach are examined, so the cost is a small
     // constant rather than a function of the map.
-    const auto span = static_cast<std::int32_t>(
-        std::ceil(settings.radius / topology.cell_size));
+    const auto span = static_cast<std::int32_t>(std::ceil(settings.radius / topology.cell_size));
     Vec2 push{};
     // How firmly the nearest obstacle is felt, on the same zero-at-the-radius
     // scale as the push itself. Every term below is faded by it, so an actor
@@ -226,12 +207,12 @@ Vec2 nav_avoid_obstacles(
             if (!solid) {
                 continue;
             }
-            const Vec2 centre =
-                found ? found->center
-                      : Vec2{topology.bounds.x +
-                                 (static_cast<float>(column) + 0.5F) * topology.cell_size,
-                             topology.bounds.z +
-                                 (static_cast<float>(row) + 0.5F) * topology.cell_size};
+            const Vec2 centre = found
+                                    ? found->center
+                                    : Vec2{topology.bounds.x + (static_cast<float>(column) + 0.5F) *
+                                                                   topology.cell_size,
+                                           topology.bounds.z + (static_cast<float>(row) + 0.5F) *
+                                                                   topology.cell_size};
             const Vec2 away{position.x - centre.x, position.y - centre.y};
             const float distance = std::sqrt(away.x * away.x + away.y * away.y);
             if (!(distance > 0.0001F) || distance >= settings.radius) {
@@ -280,8 +261,7 @@ Vec2 nav_avoid_obstacles(
     // the opposing component leaves the sideways part, so the actor rounds the
     // corner, and leaves nothing at all when it is head-on into a flat wall,
     // where pressing against it and stopping is the honest answer.
-    const float desired_length =
-        std::sqrt(desired.x * desired.x + desired.y * desired.y);
+    const float desired_length = std::sqrt(desired.x * desired.x + desired.y * desired.y);
     if (desired_length > 0.0001F) {
         const Vec2 intent{desired.x / desired_length, desired.y / desired_length};
         const float against = steered.x * intent.x + steered.y * intent.y;
@@ -298,11 +278,7 @@ Vec2 nav_avoid_obstacles(
     return {steered.x / length, steered.y / length};
 }
 
-bool nav_line_of_sight(
-    const NavGrid& grid,
-    const Vec2 from_world,
-    const Vec2 to_world
-) {
+bool nav_line_of_sight(const NavGrid& grid, const Vec2 from_world, const Vec2 to_world) {
     if (!std::isfinite(from_world.x) || !std::isfinite(from_world.y) ||
         !std::isfinite(to_world.x) || !std::isfinite(to_world.y)) {
         return false;
@@ -337,9 +313,9 @@ bool nav_line_of_sight(
     // Distance along the segment, in units of the segment's own length, to the
     // next boundary in each axis and between successive boundaries.
     constexpr float never = std::numeric_limits<float>::infinity();
-    const auto axis_entry = [&](const float origin, const float direction,
-                                const float minimum, const std::int32_t index,
-                                const std::int32_t step, float& next, float& stride) {
+    const auto axis_entry = [&](const float origin, const float direction, const float minimum,
+                                const std::int32_t index, const std::int32_t step, float& next,
+                                float& stride) {
         if (step == 0) {
             next = never;
             stride = never;
@@ -355,15 +331,13 @@ bool nav_line_of_sight(
     float next_z = never;
     float stride_x = never;
     float stride_z = never;
-    axis_entry(from_world.x, delta_x, topology.bounds.x, start->column, step_column,
-               next_x, stride_x);
-    axis_entry(from_world.y, delta_z, topology.bounds.z, start->row, step_row,
-               next_z, stride_z);
+    axis_entry(from_world.x, delta_x, topology.bounds.x, start->column, step_column, next_x,
+               stride_x);
+    axis_entry(from_world.y, delta_z, topology.bounds.z, start->row, step_row, next_z, stride_z);
 
     NavCell current = *start;
     float current_elevation = start_cell->elevation;
-    const auto walkable_at = [&](const NavCell cell,
-                                 float& elevation) -> bool {
+    const auto walkable_at = [&](const NavCell cell, float& elevation) -> bool {
         const std::optional<NavGridCell> found = grid.cell(cell);
         if (!found || !found->walkable) {
             return false;
@@ -416,11 +390,8 @@ bool nav_line_of_sight(
     return false;
 }
 
-NavPathResult find_nav_path_world(
-    const NavGrid& grid,
-    const Vec2 start_world,
-    const Vec2 goal_world
-) {
+NavPathResult find_nav_path_world(const NavGrid& grid, const Vec2 start_world,
+                                  const Vec2 goal_world) {
     const std::optional<NavCell> start = grid.cell_at(start_world);
     if (!start) {
         return failed(NavPathStatus::start_out_of_bounds);

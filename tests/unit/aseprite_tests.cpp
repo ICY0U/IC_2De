@@ -55,8 +55,9 @@ void test_imports_golden_json_array() {
 
 void test_rejects_hash_format_and_unsafe_images(const std::filesystem::path& root) {
     const std::filesystem::path hash_path = root / "hash.json";
-    write_file(hash_path,
-               R"({"frames":{"hero":{}},"meta":{"image":"hero.png","size":{"w":1,"h":1},"frameTags":[]}})");
+    write_file(
+        hash_path,
+        R"({"frames":{"hero":{}},"meta":{"image":"hero.png","size":{"w":1,"h":1},"frameTags":[]}})");
     bool rejected = false;
     try {
         static_cast<void>(ic2d::import_aseprite_json(hash_path));
@@ -66,8 +67,9 @@ void test_rejects_hash_format_and_unsafe_images(const std::filesystem::path& roo
     expect(rejected, "Hash-format exports must fail with the required CLI format.");
 
     const std::filesystem::path unsafe_path = root / "unsafe.json";
-    write_file(unsafe_path,
-               R"({"frames":[{"frame":{"x":0,"y":0,"w":1,"h":1},"duration":1}],"meta":{"image":"../hero.png","size":{"w":1,"h":1},"frameTags":[{"name":"idle","from":0,"to":0}]}})");
+    write_file(
+        unsafe_path,
+        R"({"frames":[{"frame":{"x":0,"y":0,"w":1,"h":1},"duration":1}],"meta":{"image":"../hero.png","size":{"w":1,"h":1},"frameTags":[{"name":"idle","from":0,"to":0}]}})");
     rejected = false;
     try {
         static_cast<void>(ic2d::import_aseprite_json(unsafe_path));
@@ -79,22 +81,24 @@ void test_rejects_hash_format_and_unsafe_images(const std::filesystem::path& roo
 
 void test_rejects_unsupported_packing(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "rotated.json";
-    write_file(path,
-               R"({"frames":[{"frame":{"x":0,"y":0,"w":1,"h":1},"rotated":true,"duration":1}],"meta":{"image":"hero.png","size":{"w":1,"h":1},"frameTags":[{"name":"idle","from":0,"to":0,"direction":"forward"}]}})");
+    write_file(
+        path,
+        R"({"frames":[{"frame":{"x":0,"y":0,"w":1,"h":1},"rotated":true,"duration":1}],"meta":{"image":"hero.png","size":{"w":1,"h":1},"frameTags":[{"name":"idle","from":0,"to":0,"direction":"forward"}]}})");
     bool rejected = false;
     try {
         static_cast<void>(ic2d::import_aseprite_json(path));
     } catch (const std::runtime_error& error) {
-        rejected = std::string_view{error.what()}.find("Rotated or trimmed") !=
-                   std::string_view::npos;
+        rejected =
+            std::string_view{error.what()}.find("Rotated or trimmed") != std::string_view::npos;
     }
     expect(rejected, "Unsupported packed-frame transforms must fail at import.");
 }
 
 void test_imports_ic2de_once_loop_extension(const std::filesystem::path& root) {
     const std::filesystem::path path = root / "once.json";
-    write_file(path,
-               R"({"frames":[{"frame":{"x":0,"y":0,"w":1,"h":1},"duration":100}],"meta":{"image":"hero.png","size":{"w":1,"h":1},"frameTags":[{"name":"death","from":0,"to":0,"direction":"forward","ic2d_loop_mode":"once"}]}})");
+    write_file(
+        path,
+        R"({"frames":[{"frame":{"x":0,"y":0,"w":1,"h":1},"duration":100}],"meta":{"image":"hero.png","size":{"w":1,"h":1},"frameTags":[{"name":"death","from":0,"to":0,"direction":"forward","ic2d_loop_mode":"once"}]}})");
     const ic2d::AsepriteImportResult imported = ic2d::import_aseprite_json(path, 60);
     expect(imported.clips.size() == 1 &&
                imported.clips.front().loop_mode == ic2d::AnimationLoopMode::once,

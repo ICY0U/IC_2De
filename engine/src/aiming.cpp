@@ -44,13 +44,10 @@ namespace {
 
 } // namespace
 
-Vec3 muzzle_origin(
-    const Vec3 actor_position,
-    const Vec2 aim_direction,
-    const MuzzleGeometry geometry
-) noexcept {
-    if (!finite(actor_position) || !finite(aim_direction) ||
-        !std::isfinite(geometry.forward) || !std::isfinite(geometry.height)) {
+Vec3 muzzle_origin(const Vec3 actor_position, const Vec2 aim_direction,
+                   const MuzzleGeometry geometry) noexcept {
+    if (!finite(actor_position) || !finite(aim_direction) || !std::isfinite(geometry.forward) ||
+        !std::isfinite(geometry.height)) {
         return actor_position;
     }
     const Vec2 direction = normalized(aim_direction);
@@ -63,10 +60,8 @@ Vec3 muzzle_origin(
 
 void Aiming::reset() noexcept { snapshot_ = AimingSnapshot{}; }
 
-const AimingSnapshot& Aiming::resolve(
-    const AimingInputs& inputs,
-    const std::span<const AimTarget> targets
-) {
+const AimingSnapshot& Aiming::resolve(const AimingInputs& inputs,
+                                      const std::span<const AimTarget> targets) {
     // A rejected frame holds the previous aim rather than snapping to a
     // default, because a weapon that resets its facing on one bad sample reads
     // as a glitch.
@@ -78,9 +73,8 @@ const AimingSnapshot& Aiming::resolve(
         return snapshot_;
     }
 
-    const Vec2 held = length_of(snapshot_.direction) > 0.00001F
-                          ? normalized(snapshot_.direction)
-                          : Vec2{0.0F, 1.0F};
+    const Vec2 held = length_of(snapshot_.direction) > 0.00001F ? normalized(snapshot_.direction)
+                                                                : Vec2{0.0F, 1.0F};
 
     // --- what the player asked for ------------------------------------------
     Vec2 requested = held;
@@ -117,9 +111,8 @@ const AimingSnapshot& Aiming::resolve(
         const float deflection = std::clamp(length_of(inputs.stick_world), 0.0F, 1.0F);
         const float span = std::max(1.0F - config_.stick_dead_zone, 0.0001F);
         const float eased = std::clamp((deflection - config_.stick_dead_zone) / span, 0.0F, 1.0F);
-        const float maximum_turn =
-            radians(config_.stick_turn_degrees_per_second) * eased * eased *
-            std::max(inputs.delta_seconds, 0.0F);
+        const float maximum_turn = radians(config_.stick_turn_degrees_per_second) * eased * eased *
+                                   std::max(inputs.delta_seconds, 0.0F);
         const float wanted = signed_angle(held, requested);
         if (maximum_turn > 0.0F && std::abs(wanted) > maximum_turn) {
             direction = rotated(held, std::copysign(maximum_turn, wanted));
@@ -158,9 +151,8 @@ const AimingSnapshot& Aiming::resolve(
             }
         }
         if (assisted) {
-            const float correction =
-                signed_angle(direction, best_direction) * std::clamp(config_.assist_strength,
-                                                                     0.0F, 1.0F);
+            const float correction = signed_angle(direction, best_direction) *
+                                     std::clamp(config_.assist_strength, 0.0F, 1.0F);
             direction = normalized(rotated(direction, correction));
         }
     }
@@ -171,16 +163,15 @@ const AimingSnapshot& Aiming::resolve(
     direction = normalized(direction);
 
     // --- where it points -----------------------------------------------------
-    const float distance = assisted             ? assisted_distance
-                           : pointer_distance   ? *pointer_distance
-                                                : config_.stick_aim_distance;
+    const float distance = assisted           ? assisted_distance
+                           : pointer_distance ? *pointer_distance
+                                              : config_.stick_aim_distance;
     const Vec3 origin = muzzle_origin(inputs.actor_position, direction, config_.muzzle);
 
     snapshot_ = AimingSnapshot{
         .direction = direction,
         .origin = origin,
-        .aim_point = {inputs.actor_position.x + direction.x * distance,
-                      inputs.actor_position.y,
+        .aim_point = {inputs.actor_position.x + direction.x * distance, inputs.actor_position.y,
                       inputs.actor_position.z + direction.y * distance},
         .distance = distance,
         .assisted_target = assisted,

@@ -1,5 +1,5 @@
-#include "ic2d/editor.hpp"
 #include "editor/editor_layout.hpp"
+#include "ic2d/editor.hpp"
 
 #include <chrono>
 #include <filesystem>
@@ -28,12 +28,10 @@ int main() {
            "A held gizmo drag must own the frame so dragging cannot also fire.");
 
     const auto nonce = std::chrono::steady_clock::now().time_since_epoch().count();
-    const std::filesystem::path test_root =
-        std::filesystem::temp_directory_path() /
-        ("ic2de-editor-layout-test-" + std::to_string(nonce));
+    const std::filesystem::path test_root = std::filesystem::temp_directory_path() /
+                                            ("ic2de-editor-layout-test-" + std::to_string(nonce));
     const std::filesystem::path requested = test_root / "nested" / "layout.ini";
-    const std::filesystem::path resolved =
-        ic2d::editor_detail::resolve_layout_path(requested);
+    const std::filesystem::path resolved = ic2d::editor_detail::resolve_layout_path(requested);
     expect(resolved.is_absolute() && resolved.filename() == "layout.ini",
            "An explicit workspace override must resolve to one absolute file.");
 

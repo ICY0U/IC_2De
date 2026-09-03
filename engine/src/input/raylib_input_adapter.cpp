@@ -35,7 +35,8 @@ InputSample RaylibInputAdapter::sample() noexcept {
             stick_depth = 0.0F;
         }
 
-        const float dpad_right = IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT) ? 1.0F : 0.0F;
+        const float dpad_right =
+            IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT) ? 1.0F : 0.0F;
         const float dpad_left = IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT) ? 1.0F : 0.0F;
         const float dpad_down = IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN) ? 1.0F : 0.0F;
         const float dpad_up = IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_FACE_UP) ? 1.0F : 0.0F;
@@ -57,8 +58,7 @@ InputSample RaylibInputAdapter::sample() noexcept {
         gamepad_dodge = IsGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
         gamepad_interact = IsGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT);
         gamepad_swap_weapon = IsGamepadButtonDown(0, GAMEPAD_BUTTON_RIGHT_FACE_UP);
-        gamepad_choose_extraction =
-            IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_TRIGGER_1);
+        gamepad_choose_extraction = IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_TRIGGER_1);
     }
 
     const Vector2 mouse_delta = GetMouseDelta();
@@ -88,15 +88,11 @@ InputSample RaylibInputAdapter::sample() noexcept {
         .pointer_active = pointer_aim_active_,
     };
     sample.gameplay.set(GameplayAction::fire, mouse_fire || gamepad_fire);
-    sample.gameplay.set(GameplayAction::reload,
-                        IsKeyDown(KEY_R) || gamepad_reload);
-    sample.gameplay.set(GameplayAction::dodge,
-                        IsKeyDown(KEY_SPACE) || gamepad_dodge);
-    sample.gameplay.set(GameplayAction::interact,
-                        IsKeyDown(KEY_E) || gamepad_interact);
+    sample.gameplay.set(GameplayAction::reload, IsKeyDown(KEY_R) || gamepad_reload);
+    sample.gameplay.set(GameplayAction::dodge, IsKeyDown(KEY_SPACE) || gamepad_dodge);
+    sample.gameplay.set(GameplayAction::interact, IsKeyDown(KEY_E) || gamepad_interact);
     sample.gameplay.set(GameplayAction::swap_weapon,
-                        IsKeyDown(KEY_Q) || GetMouseWheelMove() != 0.0F ||
-                            gamepad_swap_weapon);
+                        IsKeyDown(KEY_Q) || GetMouseWheelMove() != 0.0F || gamepad_swap_weapon);
     sample.gameplay.set(GameplayAction::choose_extraction,
                         IsKeyDown(KEY_X) || gamepad_choose_extraction);
     return sample;

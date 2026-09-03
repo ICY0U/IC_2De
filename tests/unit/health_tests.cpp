@@ -76,16 +76,14 @@ void test_duplicate_hit_identity_cannot_apply_damage_twice() {
     health.fixed_update(1);
 
     const ic2d::HealthSnapshot snapshot = health.snapshot();
-    expect(snapshot.targets.size() == 1 &&
-               near(snapshot.targets.front().current_health, 36.0F),
+    expect(snapshot.targets.size() == 1 && near(snapshot.targets.front().current_health, 36.0F),
            "A duplicated projectile impact must remove health exactly once.");
-    expect(snapshot.applied_hit_count == 1 &&
-               snapshot.rejected_duplicate_hit_count == 1 &&
+    expect(snapshot.applied_hit_count == 1 && snapshot.rejected_duplicate_hit_count == 1 &&
                health.drain_events().size() == 1,
            "Duplicate rejection must be observable without emitting another damage event.");
-    expect(snapshot.accepted_hits.size() == 1 &&
-               snapshot.accepted_hits.front() == impact.hit,
-           "A copied Health snapshot must retain the accepted hit namespace that affects future rejection.");
+    expect(snapshot.accepted_hits.size() == 1 && snapshot.accepted_hits.front() == impact.hit,
+           "A copied Health snapshot must retain the accepted hit namespace that affects future "
+           "rejection.");
     expect(snapshot.next_event_sequence == 2,
            "A copied Health snapshot must retain the next deterministic event identity.");
 }

@@ -22,8 +22,7 @@ namespace {
     if (!finite(direction)) {
         return false;
     }
-    const float length = std::sqrt(
-        direction.x * direction.x + direction.y * direction.y);
+    const float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
     if (!(length > 0.0001F)) {
         return false;
     }
@@ -82,17 +81,14 @@ struct Combat::Impl {
             const auto held = held_fire.find(actor_value);
             snapshot.actors.push_back({
                 .actor = EntityUuid{actor_value},
-                .aim_direction = aim != aim_directions.end()
-                                     ? aim->second
-                                     : Vec2{0.0F, 1.0F},
+                .aim_direction = aim != aim_directions.end() ? aim->second : Vec2{0.0F, 1.0F},
                 .weapon = weapon,
                 .dodge = dodge != dodges.end() ? dodge->second : DodgeSnapshot{},
                 .fire_held = held != held_fire.end() && held->second,
             });
         }
-        std::ranges::sort(snapshot.actors, {}, [](const CombatActorSnapshot& actor) {
-            return actor.actor.value;
-        });
+        std::ranges::sort(snapshot.actors, {},
+                          [](const CombatActorSnapshot& actor) { return actor.actor.value; });
         snapshot.next_event_sequence = next_sequence;
         snapshot.next_projectile_id = next_projectile_id;
     }
@@ -111,11 +107,16 @@ struct Combat::Impl {
 
 std::string_view combat_intent_name(const CombatIntent intent) noexcept {
     switch (intent) {
-        case CombatIntent::fire: return "Fire";
-        case CombatIntent::reload: return "Reload";
-        case CombatIntent::dodge: return "Dodge";
-        case CombatIntent::swap_weapon: return "Swap weapon";
-        case CombatIntent::count: break;
+    case CombatIntent::fire:
+        return "Fire";
+    case CombatIntent::reload:
+        return "Reload";
+    case CombatIntent::dodge:
+        return "Dodge";
+    case CombatIntent::swap_weapon:
+        return "Swap weapon";
+    case CombatIntent::count:
+        break;
     }
     return "Unknown";
 }
@@ -127,18 +128,14 @@ void CombatCommand::request(const CombatIntent intent, const bool requested_valu
     }
 }
 
-void CombatCommand::set_fire_held(const bool held) noexcept {
-    fire_held_update_ = held;
-}
+void CombatCommand::set_fire_held(const bool held) noexcept { fire_held_update_ = held; }
 
 bool CombatCommand::requested(const CombatIntent intent) const noexcept {
     const std::size_t index = intent_index(intent);
     return index < intents_.size() && intents_[index];
 }
 
-std::optional<bool> CombatCommand::fire_held_update() const noexcept {
-    return fire_held_update_;
-}
+std::optional<bool> CombatCommand::fire_held_update() const noexcept { return fire_held_update_; }
 
 bool CombatCommand::empty() const noexcept {
     if (aim_direction || fire_held_update_) {
@@ -175,8 +172,7 @@ bool Combat::submit(const CombatCommand& command) noexcept {
             aim.y /= length;
         }
     }
-    if (accepted.dodge_direction &&
-        !normalize_direction(*accepted.dodge_direction)) {
+    if (accepted.dodge_direction && !normalize_direction(*accepted.dodge_direction)) {
         return false;
     }
 
@@ -184,11 +180,9 @@ bool Combat::submit(const CombatCommand& command) noexcept {
     // only the newest consecutive aim-only sample for an actor, while leaving
     // commands containing action edges or held-state transitions in strict FIFO
     // order. A later mouse sample must never overwrite an LMB release.
-    if (accepted.aim_direction && !has_ordered_action(accepted) &&
-        !impl_->pending.empty()) {
+    if (accepted.aim_direction && !has_ordered_action(accepted) && !impl_->pending.empty()) {
         CombatCommand& newest = impl_->pending.back();
-        if (newest.actor == accepted.actor && newest.aim_direction &&
-            !has_ordered_action(newest)) {
+        if (newest.actor == accepted.actor && newest.aim_direction && !has_ordered_action(newest)) {
             newest = std::move(accepted);
             return true;
         }
@@ -302,8 +296,7 @@ void Combat::fixed_update(const std::uint64_t tick) {
                 .aim_direction = actor_aim,
             });
             ++impl_->snapshot.emitted_intent_count;
-            if (intent == CombatIntent::fire && !weapon.reloading &&
-                weapon.magazine_ammo > 0 &&
+            if (intent == CombatIntent::fire && !weapon.reloading && weapon.magazine_ammo > 0 &&
                 weapon.fire_cooldown_ticks_remaining == 0) {
                 --weapon.magazine_ammo;
                 weapon.fire_cooldown_ticks_remaining = needle_pistol.fire_cooldown_ticks;
@@ -325,8 +318,7 @@ void Combat::fixed_update(const std::uint64_t tick) {
                     }
                     dodge.direction = direction;
                     dodge.active_ticks_remaining = player_dodge.duration_ticks;
-                    dodge.invulnerable_ticks_remaining =
-                        player_dodge.invulnerability_ticks;
+                    dodge.invulnerable_ticks_remaining = player_dodge.invulnerability_ticks;
                     dodge.cooldown_ticks_remaining = player_dodge.cooldown_ticks;
                     dodge.active = true;
                     dodge.invulnerable = true;

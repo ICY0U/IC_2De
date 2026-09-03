@@ -8,9 +8,8 @@
 namespace ic2d::editor_detail {
 namespace {
 
-[[nodiscard]] std::filesystem::path normalized_absolute(
-    const std::filesystem::path& path
-) noexcept {
+[[nodiscard]] std::filesystem::path
+normalized_absolute(const std::filesystem::path& path) noexcept {
     std::error_code error;
     const std::filesystem::path absolute = std::filesystem::absolute(path, error);
     return error ? path.lexically_normal() : absolute.lexically_normal();
@@ -30,15 +29,13 @@ namespace {
 #else
     const char* value = std::getenv(name);
     return value != nullptr && *value != '\0' ? std::filesystem::path{value}
-                                               : std::filesystem::path{};
+                                              : std::filesystem::path{};
 #endif
 }
 
 } // namespace
 
-std::filesystem::path resolve_layout_path(
-    const std::filesystem::path& override_path
-) noexcept {
+std::filesystem::path resolve_layout_path(const std::filesystem::path& override_path) noexcept {
     if (!override_path.empty()) {
         return normalized_absolute(override_path);
     }
@@ -66,8 +63,8 @@ bool layout_file_is_usable(const std::filesystem::path& path) noexcept {
         if (!input) {
             return false;
         }
-        const std::string bytes{
-            std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{}};
+        const std::string bytes{std::istreambuf_iterator<char>{input},
+                                std::istreambuf_iterator<char>{}};
         return bytes.find("[Docking][Data]") != std::string::npos &&
                bytes.find("DockSpace") != std::string::npos;
     } catch (...) {
@@ -75,10 +72,7 @@ bool layout_file_is_usable(const std::filesystem::path& path) noexcept {
     }
 }
 
-bool prepare_layout_path(
-    const std::filesystem::path& path,
-    std::string& diagnostic
-) noexcept {
+bool prepare_layout_path(const std::filesystem::path& path, std::string& diagnostic) noexcept {
     diagnostic.clear();
     if (path.empty() || path.filename().empty()) {
         diagnostic = "Layout persistence requires a file path.";
@@ -96,10 +90,7 @@ bool prepare_layout_path(
     return true;
 }
 
-bool remove_layout_file(
-    const std::filesystem::path& path,
-    std::string& diagnostic
-) noexcept {
+bool remove_layout_file(const std::filesystem::path& path, std::string& diagnostic) noexcept {
     diagnostic.clear();
     if (path.empty()) {
         diagnostic = "Layout persistence has no configured file.";

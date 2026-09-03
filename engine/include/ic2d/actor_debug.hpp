@@ -40,8 +40,7 @@ struct ActorDebugStateSnapshot {
     std::array<bool, actor_debug_flag_count> flags{};
 
     [[nodiscard]] bool enabled(ActorDebugFlag flag) const noexcept {
-        return flag != ActorDebugFlag::count &&
-               flags[static_cast<std::size_t>(flag)];
+        return flag != ActorDebugFlag::count && flags[static_cast<std::size_t>(flag)];
     }
 };
 

@@ -61,8 +61,7 @@ void test_snapshot_is_canonical_and_answers_for_absent_actors() {
     ic2d::ActorDebugOverrides overrides;
     // Set in descending identity order; the snapshot must not reflect that.
     expect(overrides.set(runner, ic2d::ActorDebugFlag::frozen, true), "Setup must hold.");
-    expect(overrides.set(player, ic2d::ActorDebugFlag::infinite_ammo, true),
-           "Setup must hold.");
+    expect(overrides.set(player, ic2d::ActorDebugFlag::infinite_ammo, true), "Setup must hold.");
     const ic2d::ActorDebugSnapshot snapshot = overrides.snapshot();
     expect(snapshot.actors.size() == 2 && snapshot.overridden_actor_count == 2,
            "Every overridden actor must appear exactly once.");
@@ -89,8 +88,7 @@ void test_invalid_requests_change_nothing() {
 void test_clearing_releases_one_actor_or_every_actor() {
     ic2d::ActorDebugOverrides overrides;
     expect(overrides.set(runner, ic2d::ActorDebugFlag::frozen, true), "Setup must hold.");
-    expect(overrides.set(player, ic2d::ActorDebugFlag::invulnerable, true),
-           "Setup must hold.");
+    expect(overrides.set(player, ic2d::ActorDebugFlag::invulnerable, true), "Setup must hold.");
     expect(overrides.clear(runner), "Clearing a held actor must report that it did.");
     expect(!overrides.clear(runner), "Clearing an actor twice must report nothing to do.");
     expect(overrides.enabled(player, ic2d::ActorDebugFlag::invulnerable),

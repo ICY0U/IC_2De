@@ -32,9 +32,9 @@ void automated_run_expect(const bool condition, const std::string_view message) 
 }
 
 void test_complete_run_passes() {
-    automated_run_expect(
-        ic2d::evaluate_automated_run(complete_run()) == ic2d::AutomatedRunExit::passed,
-        "A run that observed every automated check must pass.");
+    automated_run_expect(ic2d::evaluate_automated_run(complete_run()) ==
+                             ic2d::AutomatedRunExit::passed,
+                         "A run that observed every automated check must pass.");
 }
 
 void test_interactive_run_ignores_gameplay_checks() {
@@ -45,26 +45,23 @@ void test_interactive_run_ignores_gameplay_checks() {
         "A run without automated movement must not fail gameplay checks nothing drove.");
 
     observations.texture_lifetime_valid = false;
-    automated_run_expect(
-        ic2d::evaluate_automated_run(observations) ==
-            ic2d::AutomatedRunExit::texture_lifetime_failed,
-        "Resource checks still apply to an interactive run.");
+    automated_run_expect(ic2d::evaluate_automated_run(observations) ==
+                             ic2d::AutomatedRunExit::texture_lifetime_failed,
+                         "Resource checks still apply to an interactive run.");
 }
 
 void test_ground_map_gaps_are_reported() {
     ic2d::AutomatedRunObservations without_collision = complete_run();
     without_collision.collision_observed = false;
-    automated_run_expect(
-        ic2d::evaluate_automated_run(without_collision) ==
-            ic2d::AutomatedRunExit::ground_map_incomplete,
-        "An automated run that never collided must report the ground-map gap.");
+    automated_run_expect(ic2d::evaluate_automated_run(without_collision) ==
+                             ic2d::AutomatedRunExit::ground_map_incomplete,
+                         "An automated run that never collided must report the ground-map gap.");
 
     ic2d::AutomatedRunObservations without_elevation = complete_run();
     without_elevation.elevation_observed = false;
-    automated_run_expect(
-        ic2d::evaluate_automated_run(without_elevation) ==
-            ic2d::AutomatedRunExit::ground_map_incomplete,
-        "An automated run that never climbed must report the ground-map gap.");
+    automated_run_expect(ic2d::evaluate_automated_run(without_elevation) ==
+                             ic2d::AutomatedRunExit::ground_map_incomplete,
+                         "An automated run that never climbed must report the ground-map gap.");
 }
 
 void test_physics_gaps_are_reported() {
@@ -83,38 +80,35 @@ void test_physics_gaps_are_reported() {
 void test_animation_gaps_are_reported() {
     ic2d::AutomatedRunObservations without_event = complete_run();
     without_event.animation_event_observed = false;
-    automated_run_expect(
-        ic2d::evaluate_automated_run(without_event) ==
-            ic2d::AutomatedRunExit::animation_incomplete,
-        "A run with no animation frame event must report the animation gap.");
+    automated_run_expect(ic2d::evaluate_automated_run(without_event) ==
+                             ic2d::AutomatedRunExit::animation_incomplete,
+                         "A run with no animation frame event must report the animation gap.");
 
     ic2d::AutomatedRunObservations without_identity = complete_run();
     without_identity.animation_identity_observed = false;
-    automated_run_expect(
-        ic2d::evaluate_automated_run(without_identity) ==
-            ic2d::AutomatedRunExit::animation_incomplete,
-        "A frame event without stable identity must report the animation gap.");
+    automated_run_expect(ic2d::evaluate_automated_run(without_identity) ==
+                             ic2d::AutomatedRunExit::animation_incomplete,
+                         "A frame event without stable identity must report the animation gap.");
 
     ic2d::AutomatedRunObservations without_diagonal = complete_run();
     without_diagonal.diagonal_animation_observed = false;
-    automated_run_expect(
-        ic2d::evaluate_automated_run(without_diagonal) ==
-            ic2d::AutomatedRunExit::locomotion_incomplete,
-        "A run with no diagonal clip must report the locomotion gap separately.");
+    automated_run_expect(ic2d::evaluate_automated_run(without_diagonal) ==
+                             ic2d::AutomatedRunExit::locomotion_incomplete,
+                         "A run with no diagonal clip must report the locomotion gap separately.");
 }
 
 void test_resource_and_capture_failures() {
     ic2d::AutomatedRunObservations leaked = complete_run();
     leaked.texture_lifetime_valid = false;
-    automated_run_expect(
-        ic2d::evaluate_automated_run(leaked) == ic2d::AutomatedRunExit::texture_lifetime_failed,
-        "A leaked texture must fail a run that otherwise passed.");
+    automated_run_expect(ic2d::evaluate_automated_run(leaked) ==
+                             ic2d::AutomatedRunExit::texture_lifetime_failed,
+                         "A leaked texture must fail a run that otherwise passed.");
 
     ic2d::AutomatedRunObservations uncaptured = complete_run();
     uncaptured.smoke_capture_failed = true;
-    automated_run_expect(
-        ic2d::evaluate_automated_run(uncaptured) == ic2d::AutomatedRunExit::smoke_capture_failed,
-        "A missing smoke capture must fail the run.");
+    automated_run_expect(ic2d::evaluate_automated_run(uncaptured) ==
+                             ic2d::AutomatedRunExit::smoke_capture_failed,
+                         "A missing smoke capture must fail the run.");
 }
 
 void test_gameplay_gaps_outrank_resource_gaps() {
@@ -122,10 +116,9 @@ void test_gameplay_gaps_outrank_resource_gaps() {
     observations.collision_observed = false;
     observations.texture_lifetime_valid = false;
     observations.smoke_capture_failed = true;
-    automated_run_expect(
-        ic2d::evaluate_automated_run(observations) ==
-            ic2d::AutomatedRunExit::ground_map_incomplete,
-        "The first failed check in order must decide the verdict.");
+    automated_run_expect(ic2d::evaluate_automated_run(observations) ==
+                             ic2d::AutomatedRunExit::ground_map_incomplete,
+                         "The first failed check in order must decide the verdict.");
 }
 
 // These numbers are consumed by packaging and the replay scripts.

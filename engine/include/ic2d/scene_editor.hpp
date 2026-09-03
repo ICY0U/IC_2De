@@ -37,10 +37,7 @@ public:
     static constexpr std::size_t default_history_limit = 64;
 
     [[nodiscard]] static SceneEditor open(const std::filesystem::path& path);
-    explicit SceneEditor(
-        SceneDocument document,
-        std::size_t history_limit = default_history_limit
-    );
+    explicit SceneEditor(SceneDocument document, std::size_t history_limit = default_history_limit);
 
     [[nodiscard]] const SceneDocument& document() const noexcept;
     [[nodiscard]] std::vector<SceneDocumentEntity> entities() const;

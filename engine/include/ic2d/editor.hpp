@@ -2,16 +2,16 @@
 
 #include "ic2d/actor_debug.hpp"
 #include "ic2d/aiming.hpp"
-#include "ic2d/debug_visuals.hpp"
 #include "ic2d/combat.hpp"
+#include "ic2d/debug_visuals.hpp"
 #include "ic2d/enemy_intent.hpp"
 #include "ic2d/gameplay_state.hpp"
 #include "ic2d/health.hpp"
-#include "ic2d/interaction.hpp"
 #include "ic2d/identity.hpp"
 #include "ic2d/input.hpp"
-#include "ic2d/nav_grid.hpp"
+#include "ic2d/interaction.hpp"
 #include "ic2d/nav_agent.hpp"
+#include "ic2d/nav_grid.hpp"
 #include "ic2d/nav_pathfinding.hpp"
 #include "ic2d/projectiles.hpp"
 #include "ic2d/scene_editor.hpp"
@@ -29,11 +29,8 @@ namespace ic2d {
 
 // Backend-independent editor focus policy, kept public so the exact input
 // routing regression can be exercised without creating a GPU window.
-[[nodiscard]] bool editor_blocks_gameplay_input(
-    bool wants_text_input,
-    bool item_active,
-    bool gizmo_active
-) noexcept;
+[[nodiscard]] bool editor_blocks_gameplay_input(bool wants_text_input, bool item_active,
+                                                bool gizmo_active) noexcept;
 
 // Whether the scene in front of an author is being edited or played.
 //
@@ -270,12 +267,8 @@ public:
 
     // Call once per frame inside an active drawing pass. Does nothing and
     // returns no actions while the shell is hidden or unavailable.
-    [[nodiscard]] EditorActions draw(
-        SceneEditor& scene_editor,
-        DebugVisuals& debug_visuals,
-        const EditorStats& stats,
-        const EditorCanvas& canvas
-    );
+    [[nodiscard]] EditorActions draw(SceneEditor& scene_editor, DebugVisuals& debug_visuals,
+                                     const EditorStats& stats, const EditorCanvas& canvas);
 
 private:
     struct Impl;

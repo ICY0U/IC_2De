@@ -21,10 +21,8 @@ bool valid(const Camera25DState& camera) noexcept {
            camera.pixels_per_world_unit > 0.0F && std::isfinite(camera.zoom) && camera.zoom > 0.0F;
 }
 
-ProjectedPoint25D project_world_point(
-    const Vec3& world_position,
-    const Camera25DState& camera
-) noexcept {
+ProjectedPoint25D project_world_point(const Vec3& world_position,
+                                      const Camera25DState& camera) noexcept {
     if (!valid(camera)) {
         return {};
     }
@@ -39,18 +37,17 @@ ProjectedPoint25D project_world_point(
     const float scale = camera.pixels_per_world_unit * camera.zoom;
 
     return {
-        .position = {
-            right * scale,
-            (forward * std::sin(pitch) - delta_y * std::cos(pitch)) * scale,
-        },
+        .position =
+            {
+                right * scale,
+                (forward * std::sin(pitch) - delta_y * std::cos(pitch)) * scale,
+            },
         .depth = forward,
     };
 }
 
-Vec3 canvas_ground_offset_to_world(
-    const Vec2 canvas_offset,
-    const Camera25DState& camera
-) noexcept {
+Vec3 canvas_ground_offset_to_world(const Vec2 canvas_offset,
+                                   const Camera25DState& camera) noexcept {
     if (!valid(camera) || !std::isfinite(canvas_offset.x) || !std::isfinite(canvas_offset.y)) {
         return {};
     }
@@ -63,16 +60,12 @@ Vec3 canvas_ground_offset_to_world(
         Vec2{canvas_offset.x / scale, canvas_offset.y / (scale * pitch_sine)}, camera);
 }
 
-DepthSlicePlan plan_depth_slices(
-    const float center_z,
-    const float depth_span,
-    const float sprite_height,
-    const float pitch_degrees
-) noexcept {
+DepthSlicePlan plan_depth_slices(const float center_z, const float depth_span,
+                                 const float sprite_height, const float pitch_degrees) noexcept {
     const DepthSlicePlan single{.count = 1, .step = 0.0F, .first_center_z = center_z};
     if (!std::isfinite(center_z) || !std::isfinite(depth_span) || depth_span <= 0.0F ||
-        !std::isfinite(sprite_height) || sprite_height <= 0.0F ||
-        !std::isfinite(pitch_degrees) || pitch_degrees <= 0.0F || pitch_degrees > 90.0F) {
+        !std::isfinite(sprite_height) || sprite_height <= 0.0F || !std::isfinite(pitch_degrees) ||
+        pitch_degrees <= 0.0F || pitch_degrees > 90.0F) {
         return single;
     }
 
@@ -97,10 +90,8 @@ DepthSlicePlan plan_depth_slices(
     };
 }
 
-Vec3 camera_ground_direction_to_world(
-    const Vec2& camera_direction,
-    const Camera25DState& camera
-) noexcept {
+Vec3 camera_ground_direction_to_world(const Vec2& camera_direction,
+                                      const Camera25DState& camera) noexcept {
     if (!std::isfinite(camera.yaw_degrees) || !std::isfinite(camera_direction.x) ||
         !std::isfinite(camera_direction.y)) {
         return {};
@@ -114,10 +105,8 @@ Vec3 camera_ground_direction_to_world(
     };
 }
 
-Vec2 world_ground_direction_to_camera(
-    const Vec2& world_direction,
-    const Camera25DState& camera
-) noexcept {
+Vec2 world_ground_direction_to_camera(const Vec2& world_direction,
+                                      const Camera25DState& camera) noexcept {
     if (!std::isfinite(camera.yaw_degrees) || !std::isfinite(world_direction.x) ||
         !std::isfinite(world_direction.y)) {
         return {};
@@ -130,13 +119,9 @@ Vec2 world_ground_direction_to_camera(
     };
 }
 
-Vec3 canvas_ground_point(
-    const Vec2 canvas_point,
-    const float ground_elevation,
-    const int canvas_width,
-    const int canvas_height,
-    const Camera25DState& camera
-) noexcept {
+Vec3 canvas_ground_point(const Vec2 canvas_point, const float ground_elevation,
+                         const int canvas_width, const int canvas_height,
+                         const Camera25DState& camera) noexcept {
     if (!valid(camera) || canvas_width <= 0 || canvas_height <= 0 ||
         !std::isfinite(canvas_point.x) || !std::isfinite(canvas_point.y) ||
         !std::isfinite(ground_elevation)) {
@@ -166,13 +151,9 @@ Vec3 canvas_ground_point(
     };
 }
 
-Vec2 canvas_ground_direction(
-    const Vec3& world_origin,
-    const Vec2& canvas_point,
-    const int canvas_width,
-    const int canvas_height,
-    const Camera25DState& camera
-) noexcept {
+Vec2 canvas_ground_direction(const Vec3& world_origin, const Vec2& canvas_point,
+                             const int canvas_width, const int canvas_height,
+                             const Camera25DState& camera) noexcept {
     if (!valid(camera) || canvas_width <= 0 || canvas_height <= 0 ||
         !std::isfinite(world_origin.x) || !std::isfinite(world_origin.y) ||
         !std::isfinite(world_origin.z) || !std::isfinite(canvas_point.x) ||
@@ -184,15 +165,13 @@ Vec2 canvas_ground_direction(
     const float scale = camera.pixels_per_world_unit * camera.zoom;
     const float pitch_scale = std::sin(radians(camera.pitch_degrees)) * scale;
     const Vec2 camera_direction{
-        (canvas_point.x - static_cast<float>(canvas_width) * 0.5F -
-         projected_origin.position.x) /
+        (canvas_point.x - static_cast<float>(canvas_width) * 0.5F - projected_origin.position.x) /
             scale,
-        (canvas_point.y - static_cast<float>(canvas_height) * 0.5F -
-         projected_origin.position.y) /
+        (canvas_point.y - static_cast<float>(canvas_height) * 0.5F - projected_origin.position.y) /
             pitch_scale,
     };
-    const float length = std::sqrt(
-        camera_direction.x * camera_direction.x + camera_direction.y * camera_direction.y);
+    const float length = std::sqrt(camera_direction.x * camera_direction.x +
+                                   camera_direction.y * camera_direction.y);
     if (!(length > 0.0001F)) {
         return {};
     }
@@ -202,10 +181,8 @@ Vec2 canvas_ground_direction(
     return {world.x, world.z};
 }
 
-GroundMovement25D camera_ground_movement(
-    const Vec2 camera_direction,
-    const Camera25DState& camera
-) noexcept {
+GroundMovement25D camera_ground_movement(const Vec2 camera_direction,
+                                         const Camera25DState& camera) noexcept {
     const Vec3 world = camera_ground_direction_to_world(camera_direction, camera);
     return {
         .world_direction = {world.x, world.z},

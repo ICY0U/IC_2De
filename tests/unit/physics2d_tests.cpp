@@ -21,10 +21,8 @@ void expect(const bool condition, const std::string_view message) {
     return std::abs(left - right) <= tolerance;
 }
 
-[[nodiscard]] const ic2d::PhysicsBodySnapshot* find_body(
-    const ic2d::PhysicsStepResult& result,
-    const ic2d::PhysicsBodyId body
-) {
+[[nodiscard]] const ic2d::PhysicsBodySnapshot* find_body(const ic2d::PhysicsStepResult& result,
+                                                         const ic2d::PhysicsBodyId body) {
     const auto found = std::ranges::find(result.bodies, body, &ic2d::PhysicsBodySnapshot::body);
     return found == result.bodies.end() ? nullptr : &*found;
 }
@@ -43,7 +41,8 @@ void test_units_and_dynamic_motion() {
     const auto result = physics.step(0.5F);
     const auto* snapshot = find_body(result, body);
     expect(snapshot != nullptr, "A live body must appear in the step snapshot.");
-    expect(snapshot != nullptr && near(snapshot->center.x, 32.0F) && near(snapshot->center.y, 24.0F),
+    expect(snapshot != nullptr && near(snapshot->center.x, 32.0F) &&
+               near(snapshot->center.y, 24.0F),
            "Pixel-to-metre conversion must preserve the public movement units.");
     expect(snapshot != nullptr && near(snapshot->linear_velocity.x, 32.0F),
            "Velocity snapshots must be converted back to pixels per second.");
@@ -91,10 +90,9 @@ void test_contact_and_sensor_events() {
             trigger_begin = trigger_begin ||
                             (event.kind == ic2d::PhysicsEventKind::trigger_begin &&
                              event.body_a == sensor && event.body_b == actor && event.tag_a == 77);
-            contact_begin = contact_begin ||
-                            (event.kind == ic2d::PhysicsEventKind::contact_begin &&
-                             ((event.body_a == wall && event.body_b == actor) ||
-                              (event.body_a == actor && event.body_b == wall)));
+            contact_begin = contact_begin || (event.kind == ic2d::PhysicsEventKind::contact_begin &&
+                                              ((event.body_a == wall && event.body_b == actor) ||
+                                               (event.body_a == actor && event.body_b == wall)));
         }
     }
     expect(trigger_begin, "Sensor overlap must leave as an engine-owned trigger event.");
@@ -112,7 +110,8 @@ void test_kinematic_target_and_handle_generation() {
            "A kinematic body must accept a target.");
     const auto result = physics.step(1.0F / 60.0F);
     const auto* snapshot = find_body(result, first);
-    expect(snapshot != nullptr && near(snapshot->center.x, 30.0F) && near(snapshot->center.y, 12.0F),
+    expect(snapshot != nullptr && near(snapshot->center.x, 30.0F) &&
+               near(snapshot->center.y, 12.0F),
            "Kinematic target movement must be visible after one fixed step.");
 
     expect(physics.destroy_body(first), "Destroying a live body must succeed.");
@@ -213,8 +212,7 @@ void test_segment_query_ignores_owner_and_sensors() {
         .end = {50.0F, 0.0F},
         .ignored_body = owner,
     });
-    expect(hit.has_value() && hit->body == target && hit->tag == 30 &&
-               near(hit->point.x, 25.0F),
+    expect(hit.has_value() && hit->body == target && hit->tag == 30 && near(hit->point.x, 25.0F),
            "Segment filtering must skip the owning body and non-solid sensors.");
 }
 

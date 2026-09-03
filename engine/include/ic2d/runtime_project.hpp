@@ -18,7 +18,8 @@ public:
     [[nodiscard]] const std::filesystem::path& project_directory() const noexcept;
     [[nodiscard]] const std::filesystem::path& asset_directory() const noexcept;
     [[nodiscard]] std::filesystem::path start_scene_path() const;
-    [[nodiscard]] std::filesystem::path resolve_asset(const std::filesystem::path& relative_path) const;
+    [[nodiscard]] std::filesystem::path
+    resolve_asset(const std::filesystem::path& relative_path) const;
 
 private:
     std::uint32_t schema_version_{0};

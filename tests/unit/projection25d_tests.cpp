@@ -55,12 +55,11 @@ int run_projection25d_tests() {
                       "Camera-right input must rotate onto world X/Z with camera yaw.");
     projection_expect(near(camera_forward.x, 1.0F) && near(camera_forward.z, 0.0F),
                       "Camera-forward input must rotate onto world X/Z with camera yaw.");
-    const auto world_x_in_camera =
-        ic2d::world_ground_direction_to_camera({1.0F, 0.0F}, yawed);
+    const auto world_x_in_camera = ic2d::world_ground_direction_to_camera({1.0F, 0.0F}, yawed);
     projection_expect(near(world_x_in_camera.x, 0.0F) && near(world_x_in_camera.y, 1.0F),
                       "World +X aim must become camera-forward at ninety-degree yaw.");
-    const auto round_trip = ic2d::world_ground_direction_to_camera(
-        {camera_right.x, camera_right.z}, yawed);
+    const auto round_trip =
+        ic2d::world_ground_direction_to_camera({camera_right.x, camera_right.z}, yawed);
     projection_expect(near(round_trip.x, 1.0F) && near(round_trip.y, 0.0F),
                       "World/camera ground direction transforms must round-trip.");
 
@@ -68,9 +67,10 @@ int run_projection25d_tests() {
     projection_expect(near(movement.world_direction.x, 1.0F) &&
                           near(movement.world_direction.y, 0.0F),
                       "Simulation movement must remain camera-rotated in world X/Z.");
-    projection_expect(near(movement.presentation_direction.x, 0.0F) &&
-                          near(movement.presentation_direction.y, 1.0F),
-                      "Animation facing must retain the screen-relative direction the player pressed.");
+    projection_expect(
+        near(movement.presentation_direction.x, 0.0F) &&
+            near(movement.presentation_direction.y, 1.0F),
+        "Animation facing must retain the screen-relative direction the player pressed.");
 
     projection_expect(!ic2d::valid(ic2d::Camera25DState{.pitch_degrees = 0.0F}),
                       "A side-on camera with no ground projection must be rejected.");
@@ -89,17 +89,17 @@ int run_projection25d_tests() {
     projection_expect(near(pointer_forward.x, 0.0F) && near(pointer_forward.y, 1.0F),
                       "Ground unprojection must compensate for pitch when aiming down-screen.");
 
-    const auto yawed_forward = ic2d::canvas_ground_direction(
-        yawed.focus, {400.0F, 350.0F}, 800, 500, yawed);
+    const auto yawed_forward =
+        ic2d::canvas_ground_direction(yawed.focus, {400.0F, 350.0F}, 800, 500, yawed);
     projection_expect(near(yawed_forward.x, 1.0F) && near(yawed_forward.y, 0.0F),
                       "Canvas aim must rotate from camera space into world X/Z.");
 
-    const auto no_direction = ic2d::canvas_ground_direction(
-        camera.focus, canvas_origin, 800, 500, camera);
+    const auto no_direction =
+        ic2d::canvas_ground_direction(camera.focus, canvas_origin, 800, 500, camera);
     projection_expect(near(no_direction.x, 0.0F) && near(no_direction.y, 0.0F),
                       "A pointer exactly on the actor must not invent a direction.");
-    const auto invalid_canvas = ic2d::canvas_ground_direction(
-        camera.focus, canvas_origin, 0, 500, camera);
+    const auto invalid_canvas =
+        ic2d::canvas_ground_direction(camera.focus, canvas_origin, 0, 500, camera);
     projection_expect(near(invalid_canvas.x, 0.0F) && near(invalid_canvas.y, 0.0F),
                       "Invalid canvas dimensions must return a safe zero direction.");
 
@@ -113,12 +113,10 @@ int run_projection25d_tests() {
     const auto wall = ic2d::plan_depth_slices(0.0F, 400.0F, 46.0F, 50.0F);
     projection_expect(wall.count == 12,
                       "Slice count must be the fewest whose projections still overlap.");
-    projection_expect(near(wall.step, 400.0F / 12.0F),
-                      "Slices must divide the span evenly.");
+    projection_expect(near(wall.step, 400.0F / 12.0F), "Slices must divide the span evenly.");
     projection_expect(near(wall.first_center_z, -200.0F + (400.0F / 12.0F) * 0.5F),
                       "The first slice must be centred inside the near end of the span.");
-    const float last_center =
-        wall.first_center_z + wall.step * static_cast<float>(wall.count - 1);
+    const float last_center = wall.first_center_z + wall.step * static_cast<float>(wall.count - 1);
     projection_expect(near(last_center, 200.0F - (400.0F / 12.0F) * 0.5F),
                       "The last slice must be centred inside the far end of the span.");
 
@@ -135,8 +133,7 @@ int run_projection25d_tests() {
                       "A shallower pitch must not increase the slice count.");
 
     const auto capped = ic2d::plan_depth_slices(0.0F, 1'000'000.0F, 4.0F, 90.0F);
-    projection_expect(capped.count <= 512,
-                      "An extreme span must stay within the submission cap.");
+    projection_expect(capped.count <= 512, "An extreme span must stay within the submission cap.");
 
     const auto invalid = ic2d::plan_depth_slices(7.0F, 400.0F, 0.0F, 50.0F);
     projection_expect(invalid.count == 1 && near(invalid.first_center_z, 7.0F),
@@ -170,13 +167,13 @@ int run_projection25d_tests() {
         yawed_ground.yaw_degrees = 37.0F;
         const auto yawed_from = ic2d::project_world_point(origin, yawed_ground);
         const auto yawed_to = ic2d::project_world_point(moved, yawed_ground);
-        const ic2d::Vec3 yawed_recovered = ic2d::canvas_ground_offset_to_world(
-            {yawed_to.position.x - yawed_from.position.x,
-             yawed_to.position.y - yawed_from.position.y},
-            yawed_ground);
-        projection_expect(
-            near(yawed_recovered.x, 40.0F, 0.01F) && near(yawed_recovered.z, -17.0F, 0.01F),
-            "The canvas inverse must round-trip through yaw.");
+        const ic2d::Vec3 yawed_recovered =
+            ic2d::canvas_ground_offset_to_world({yawed_to.position.x - yawed_from.position.x,
+                                                 yawed_to.position.y - yawed_from.position.y},
+                                                yawed_ground);
+        projection_expect(near(yawed_recovered.x, 40.0F, 0.01F) &&
+                              near(yawed_recovered.z, -17.0F, 0.01F),
+                          "The canvas inverse must round-trip through yaw.");
 
         ic2d::Camera25DState unusable = ground;
         unusable.pitch_degrees = 0.0F;
