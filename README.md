@@ -127,6 +127,26 @@ For a deterministic window/render smoke run that closes itself and captures a fr
 .\build\windows-debug\ic2de_testbed.exe --smoke-window
 ```
 
+Every smoke run is one entry in the registry in `game/src/smoke_scenarios.cpp`,
+which also generates the `--help` listing. To see what is registered, without
+opening a window:
+
+```powershell
+.\build\windows-debug\IC_2DE-Editor.exe --list-scenarios
+```
+
+Adding a run means adding a name, a description and the configuration it needs
+to that one table. It previously meant adding a field to `ApplicationConfig`, a
+branch of a two-hundred-line `if`/`else` chain in `main`, a line of `--help`
+text, and a hand-written `add_test`, with nothing connecting the four.
+
+The runs CTest registers name themselves through the `SCENARIO` keyword of
+`ic2de_add_smoke_test`, and `ic2de.smoke_scenario_registry` checks those names
+against the binary's own list. Renaming a scenario without updating its
+registration would otherwise only surface on a machine that can run the GPU
+tests; that check needs no GPU, because `--list-scenarios` returns before a
+window is opened.
+
 Rendering is uncapped by default. Temporary caps are available for frame-rate checks:
 
 ```powershell

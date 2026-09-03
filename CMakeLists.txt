@@ -251,6 +251,7 @@ endfunction()
 
 # ic2de_add_smoke_test(<ctest-name>
 #     TARGET <executable-target>
+#     [SCENARIO <name>]                 # passes --smoke-<name>
 #     [ARGS <arg>...]
 # )
 #
@@ -258,7 +259,7 @@ endfunction()
 # GPU, so they carry the "gpu" label: a headless machine, continuous integration
 # included, runs the rest of the suite with `ctest -LE gpu`.
 function(ic2de_add_smoke_test test_name)
-    cmake_parse_arguments(PARSE_ARGV 1 arg "" "TARGET" "ARGS")
+    cmake_parse_arguments(PARSE_ARGV 1 arg "" "TARGET;SCENARIO" "ARGS")
 
     if(arg_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR
@@ -267,6 +268,13 @@ function(ic2de_add_smoke_test test_name)
     endif()
     if(NOT arg_TARGET)
         message(FATAL_ERROR "ic2de_add_smoke_test(${test_name}): TARGET is required.")
+    endif()
+
+    # Naming the scenario rather than spelling out the flag is what lets the
+    # registration be checked against the binary's own registry below.
+    if(arg_SCENARIO)
+        list(APPEND arg_ARGS "--smoke-${arg_SCENARIO}")
+        set_property(GLOBAL APPEND PROPERTY IC2DE_REGISTERED_SCENARIOS "${arg_SCENARIO}")
     endif()
 
     add_test(NAME ${test_name} COMMAND ${arg_TARGET} ${arg_ARGS})
@@ -518,7 +526,10 @@ target_compile_definitions(ic2de_runtime PRIVATE
 # ---------------------------------------------------------------------------
 
 if(IC2DE_BUILD_TESTBED)
-    ic2de_add_executable(testbed SOURCES game/src/main.cpp DEPS IC2DE::Runtime)
+    ic2de_add_executable(testbed
+        SOURCES game/src/main.cpp game/src/smoke_scenarios.cpp
+        DEPS IC2DE::Runtime
+    )
 
     set_target_properties(ic2de_testbed PROPERTIES
         VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -557,7 +568,7 @@ if(IC2DE_BUILD_TESTBED)
     # and the shipping runtime rather than a hidden mode of one of them.
     if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
         ic2de_add_executable(editor_app
-            SOURCES game/src/main.cpp
+            SOURCES game/src/main.cpp game/src/smoke_scenarios.cpp
             DEPS IC2DE::Runtime
             DEFINITIONS IC2DE_DEFAULT_START_WITH_EDITOR=1
         )
@@ -770,6 +781,17 @@ if(IC2DE_BUILD_TESTS)
         DEPS IC2DE::Render
     )
 
+    # The scenario table is game content rather than engine capability, so its
+    # tests compile it directly rather than reaching for a library.
+    ic2de_add_test(smoke_scenarios
+        SOURCES
+            tests/unit/smoke_scenario_tests.cpp
+            game/src/smoke_scenarios.cpp
+        DEPS IC2DE::Core
+        PRIVATE_INCLUDES game/src
+        DOCTEST
+    )
+
     # Tests that drive a real executable. Each opens a window, so all of them
     # carry the "gpu" label applied by ic2de_add_smoke_test.
     if(TARGET ic2de_testbed)
@@ -784,25 +806,25 @@ if(IC2DE_BUILD_TESTS)
         # cover their being shot: it needs a real scene, projectiles and health.
         ic2de_add_smoke_test(ic2de.crowd_kill
             TARGET ic2de_editor_app
-            ARGS --smoke-crowd-kill
+            SCENARIO crowd-kill
         )
 
         # One nonlethal projectile must play and recover from hurt without
         # entering either terminal presentation path.
         ic2de_add_smoke_test(ic2de.target_hurt
             TARGET ic2de_editor_app
-            ARGS --smoke-target-hurt
+            SCENARIO target-hurt
         )
 
         # Projectile lethality must complete death without the proximity-only
         # explosion, while attack-range entry must do the exact inverse.
         ic2de_add_smoke_test(ic2de.target_death
             TARGET ic2de_editor_app
-            ARGS --smoke-target-death
+            SCENARIO target-death
         )
         ic2de_add_smoke_test(ic2de.proximity_explosion
             TARGET ic2de_editor_app
-            ARGS --smoke-moving-attacker
+            SCENARIO moving-attacker
         )
 
         # Reviving a retired actor has to restore everything it needs to be
@@ -810,7 +832,29 @@ if(IC2DE_BUILD_TESTS)
         # a restart, so it needs a real scene and a second kill.
         ic2de_add_smoke_test(ic2de.restart_recovery
             TARGET ic2de_editor_app
-            ARGS --smoke-restart-recovery
+            SCENARIO restart-recovery
+        )
+
+        # The scenario names above live in CMake; the scenarios themselves live
+        # in game/src/smoke_scenarios.cpp. Renaming one without the other leaves
+        # a test pointing at a scenario that no longer exists, which otherwise
+        # only shows up on a machine that can run the GPU tests. This check
+        # needs no GPU: --list-scenarios returns before a window is opened.
+        get_property(IC2DE_REGISTERED_SCENARIOS GLOBAL PROPERTY IC2DE_REGISTERED_SCENARIOS)
+        list(JOIN IC2DE_REGISTERED_SCENARIOS "\n" IC2DE_REGISTERED_SCENARIO_LINES)
+        set(IC2DE_REGISTERED_SCENARIO_FILE
+            "${CMAKE_CURRENT_BINARY_DIR}/registered-smoke-scenarios.txt"
+        )
+        file(GENERATE
+            OUTPUT "${IC2DE_REGISTERED_SCENARIO_FILE}"
+            CONTENT "${IC2DE_REGISTERED_SCENARIO_LINES}\n"
+        )
+        add_test(
+            NAME ic2de.smoke_scenario_registry
+            COMMAND ${CMAKE_COMMAND}
+                    "-DBINARY=$<TARGET_FILE:ic2de_editor_app>"
+                    "-DEXPECTED=${IC2DE_REGISTERED_SCENARIO_FILE}"
+                    -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-registered-scenarios.cmake"
         )
     endif()
 endif()

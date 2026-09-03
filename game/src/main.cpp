@@ -1,5 +1,7 @@
 #include "ic2d/application.hpp"
 
+#include "smoke_scenarios.hpp"
+
 #include <charconv>
 #include <cstdint>
 #include <filesystem>
@@ -71,234 +73,23 @@ int main(const int argc, const char* const argv[]) {
 
     for (int argument_index = 1; argument_index < argc; ++argument_index) {
         const std::string_view argument{argv[argument_index]};
-        if (argument == "--smoke-window") {
-            config.max_fixed_ticks = 120;
-            config.capture_tick = 60;
-            config.capture_path = "build/runtime-smoke.png";
-        } else if (argument == "--smoke-movement") {
-            config.automated_movement = true;
-            config.max_fixed_ticks = 300;
-            config.capture_tick = 285;
-            config.capture_path = "build/runtime-camera-smoke.png";
-        } else if (argument == "--smoke-left") {
-            config.automated_movement = true;
-            config.automated_movement_direction = {-1.0F, 0.0F};
-            config.validate_automated_route = false;
-            config.max_fixed_ticks = 60;
-            config.capture_tick = 45;
-            config.capture_path = "build/runtime-left-smoke.png";
-        } else if (argument == "--smoke-crosshair") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.automated_movement = true;
-            config.automated_movement_direction = {0.0F, -1.0F};
-            config.automated_aim = true;
-            config.automated_aim_direction = {1.0F, 0.0F};
-            config.validate_automated_route = false;
-            config.max_fixed_ticks = 75;
-            config.capture_tick = 60;
-            config.capture_path = "build/runtime-crosshair-smoke.png";
-        } else if (argument == "--smoke-projectile") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.automated_aim = true;
-            config.automated_aim_direction = {1.0F, 0.0F};
-            config.automated_fire_hold_ticks = 1;
-            config.max_fixed_ticks = 24;
-            config.capture_tick = 12;
-            config.capture_path = "build/runtime-projectile-smoke.png";
-        } else if (argument == "--smoke-held-fire") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.automated_aim = true;
-            config.automated_aim_direction = {1.0F, 0.0F};
-            config.automated_fire_hold_ticks = 18;
-            config.expectations.minimum_projectile_spawns = 3;
-            config.max_fixed_ticks = 24;
-            config.capture_tick = 20;
-            config.capture_path = "build/runtime-held-fire-smoke.png";
-        } else if (argument == "--smoke-run-and-gun") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.automated_movement = true;
-            config.automated_movement_direction = {0.0F, -1.0F};
-            config.automated_aim = true;
-            config.automated_aim_direction = {1.0F, 0.0F};
-            config.automated_fire_hold_ticks = 18;
-            config.expectations.minimum_projectile_spawns = 3;
-            config.validate_automated_route = false;
-            config.max_fixed_ticks = 24;
-            config.capture_tick = 20;
-            config.capture_path = "build/runtime-run-and-gun-smoke.png";
-        } else if (argument == "--smoke-projectile-impact") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.automated_aim = true;
-            config.automated_aim_direction = {0.70710678F, 0.70710678F};
-            config.automated_fire_hold_ticks = 1;
-            config.expectations.minimum_projectile_spawns = 1;
-            config.expectations.minimum_projectile_impacts = 1;
-            config.max_fixed_ticks = 24;
-            config.capture_tick = 10;
-            config.capture_path = "build/runtime-projectile-impact-smoke.png";
-        } else if (argument == "--smoke-target-death") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.automated_movement = true;
-            config.automated_movement_direction = {0.98359346F, 0.18039931F};
-            config.automated_aim = true;
-            // Automated aim is camera-relative. This is the authored camera-space
-            // direction from the player to the Fuse Tyrant's X/Z position.
-            config.automated_aim_direction = {0.98359346F, 0.18039931F};
-            config.automated_fire_hold_ticks = 18;
-            config.expectations.minimum_projectile_spawns = 3;
-            config.expectations.minimum_projectile_impacts = 3;
-            config.expectations.minimum_target_deaths = 1;
-            config.expectations.minimum_terminal_animation_completions = 1;
-            config.expectations.minimum_death_animation_completions = 1;
-            config.expectations.require_zero_explosion_animation_completions = true;
-            config.validate_automated_route = false;
-            // The target dies around tick 66. Leave enough deterministic time
-            // for the collapse one-shot to finish before presentation retires.
-            config.max_fixed_ticks = 180;
-            config.capture_tick = 105;
-            config.capture_path = "build/runtime-target-death-smoke.png";
-        } else if (argument == "--smoke-target-hurt") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.automated_movement = true;
-            config.automated_movement_direction = {0.98359346F, 0.18039931F};
-            config.automated_aim = true;
-            config.automated_aim_direction = {0.98359346F, 0.18039931F};
-            config.automated_fire_hold_ticks = 1;
-            config.expectations.minimum_projectile_spawns = 1;
-            config.expectations.minimum_projectile_impacts = 1;
-            config.expectations.minimum_hurt_animation_completions = 1;
-            config.expectations.require_zero_death_animation_completions = true;
-            config.expectations.require_zero_explosion_animation_completions = true;
-            config.validate_automated_route = false;
-            config.max_fixed_ticks = 120;
-            config.capture_tick = 62;
-            config.capture_path = "build/runtime-target-hurt-smoke.png";
-        } else if (argument == "--smoke-dodge") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.automated_dodge_tick = 1;
-            config.expectations.minimum_dodge_starts = 1;
-            config.expectations.expected_dodge_distance = 78.0F;
-            config.max_fixed_ticks = 18;
-            config.capture_tick = 6;
-            config.capture_path = "build/runtime-dodge-smoke.png";
-        } else if (argument == "--smoke-restart-recovery") {
-            // The same combat setup as the replay smoke, restarted once a
-            // target has died. Reviving an actor has to restore everything it
-            // needs to be shot again, not only its presentation.
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.automated_aim = true;
-            config.automated_aim_direction = {0.98359346F, 0.18039931F};
-            config.automated_fire_hold_ticks = 18;
-            config.expectations.validate_restart_recovery = true;
-            config.validate_automated_route = false;
-            config.max_fixed_ticks = 240;
-            config.capture_tick = 230;
-            config.capture_path = "build/runtime-restart-recovery-smoke.png";
-        } else if (argument == "--smoke-gameplay-replay") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.automated_aim = true;
-            config.automated_aim_direction = {0.98359346F, 0.18039931F};
-            config.automated_fire_hold_ticks = 18;
-            config.automated_dodge_tick = 1;
-            config.expectations.minimum_projectile_spawns = 3;
-            config.expectations.minimum_projectile_impacts = 3;
-            config.expectations.minimum_target_deaths = 1;
-            config.expectations.minimum_dodge_starts = 1;
-            config.expectations.expected_dodge_distance = 78.0F;
-            config.expectations.minimum_enemy_acquisitions = 1;
-            config.expectations.minimum_enemy_attacks = 1;
-            config.expectations.minimum_enemy_distance = 80.0F;
-            config.expectations.minimum_player_damage = 12.0F;
-            config.report_gameplay_state_digest = true;
-            config.validate_automated_route = false;
-            config.max_fixed_ticks = 180;
-            config.capture_tick = 150;
-            config.capture_path = "build/runtime-gameplay-digest-smoke.png";
-        } else if (argument == "--smoke-moving-attacker") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.expectations.minimum_enemy_acquisitions = 1;
-            config.expectations.minimum_enemy_attacks = 1;
-            config.expectations.minimum_enemy_distance = 100.0F;
-            config.expectations.minimum_player_damage = 12.0F;
-            config.expectations.minimum_explosion_animation_completions = 1;
-            config.expectations.require_zero_death_animation_completions = true;
-            config.validate_automated_route = false;
-            config.max_fixed_ticks = 240;
-            config.capture_tick = 138;
-            config.capture_path = "build/runtime-moving-attacker-smoke.png";
-        } else if (argument == "--smoke-nav-grid") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.start_with_navigation_grid_debug = true;
-            config.validate_automated_route = false;
-            config.max_fixed_ticks = 30;
-            config.capture_tick = 15;
-            config.capture_path = "build/runtime-nav-grid-smoke.png";
-        } else if (argument == "--smoke-nav-path") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.start_with_navigation_path_debug = true;
-            config.validate_automated_route = false;
-            config.max_fixed_ticks = 30;
-            config.capture_tick = 15;
-            config.capture_path = "build/runtime-nav-path-smoke.png";
-        } else if (argument == "--smoke-runner-path") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.start_with_navigation_path_debug = true;
-            config.expectations.minimum_navigation_searches = 3;
-            config.expectations.minimum_navigation_waypoint_advances = 2;
-            config.validate_automated_route = false;
-            config.max_fixed_ticks = 90;
-            config.capture_tick = 60;
-            config.capture_path = "build/runtime-runner-path-smoke.png";
-        } else if (argument == "--smoke-enemy-stress") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.start_with_navigation_path_debug = true;
-            config.initial_editor_enemy_stress_count = 50;
-            config.expectations.minimum_navigation_agents = 50;
-            config.expectations.minimum_navigation_searches = 100;
-            config.expectations.minimum_navigation_waypoint_advances = 50;
-            config.expectations.require_zero_player_damage = true;
-            config.validate_automated_route = false;
-            config.max_fixed_ticks = 90;
-            config.capture_tick = 60;
-            config.capture_path = "build/runtime-enemy-stress-smoke.png";
-        } else if (argument == "--smoke-crowd-kill") {
-            // Fires into a spawned crowd and requires that a body-less actor
-            // is hit, gameplay-retired, and allowed to finish its authored
-            // death presentation without an unrelated explosion.
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = false;
-            config.initial_editor_enemy_stress_count = 400;
-            config.automated_aim = true;
-            config.automated_aim_direction = {1.0F, 0.0F};
-            config.automated_fire_hold_ticks = 600;
-            config.validate_automated_route = false;
-            config.expectations.minimum_crowd_actor_retirements = 1;
-            config.expectations.minimum_terminal_animation_completions = 1;
-            config.expectations.minimum_death_animation_completions = 1;
-            config.expectations.require_zero_explosion_animation_completions = true;
-            config.max_fixed_ticks = 600;
-            config.capture_tick = 240;
-            config.capture_path = "build/runtime-crowd-kill-smoke.png";
-        } else if (argument == "--smoke-editor-hot-swap") {
-            config.start_with_editor = true;
-            config.enable_editor_texture_hot_reload = true;
-            config.close_after_editor_texture_hot_reload = true;
-            config.capture_path = "build/editor-hot-swap-smoke.png";
+        if (argument.starts_with("--smoke-")) {
+            const std::string_view name = argument.substr(std::string_view{"--smoke-"}.size());
+            const ic2de_game::SmokeScenario* scenario = ic2de_game::find_smoke_scenario(name);
+            if (scenario == nullptr) {
+                std::cerr << "Unknown smoke scenario: " << argument
+                          << "\nRun --list-scenarios to see the registered ones.\n";
+                return 64;
+            }
+            scenario->apply(config);
+        } else if (argument == "--list-scenarios") {
+            // Named separately from --help so tooling can read the list without
+            // parsing prose. The CMake registration is checked against this
+            // output, which is what keeps the two from drifting apart.
+            for (const ic2de_game::SmokeScenario& registered : ic2de_game::smoke_scenarios()) {
+                std::cout << registered.name << '\n';
+            }
+            return 0;
         } else if (argument == "--validate-content") {
             config.validate_content_only = true;
         } else if (argument == "--editor") {
@@ -390,32 +181,11 @@ int main(const int argc, const char* const argv[]) {
                    "  --no-post-process  Bypass the external post-process shader (F7 toggles).\n"
                    "  --renderdoc-capture-interval=S  Auto-capture every S seconds when running\n"
                    "                                   under RenderDoc (default 5; 0 disables).\n"
-                   "  --smoke-window  Capture a frame and close after 120 fixed ticks.\n"
-                   "  --smoke-movement  Move diagonally for 300 ticks to verify XYZ projection and "
-                   "camera.\n"
-                   "  --smoke-left    Move left and capture the west-facing animation.\n"
-                   "  --smoke-crosshair  Move north, aim east, and capture the editor crosshair.\n"
-                   "  --smoke-projectile  Fire east and capture fixed-tick projectile travel.\n"
-                   "  --smoke-held-fire  Hold fire through three cooldown-ready ticks.\n"
-                   "  --smoke-run-and-gun  Move north while aiming and firing east.\n"
-                   "  --smoke-projectile-impact  Fire at the crate and require one impact.\n"
-                   "  --smoke-target-death  Fire three deterministic hits into the NPC target.\n"
-                   "  --smoke-target-hurt  Fire one hit and require hurt without a terminal "
-                   "state.\n"
-                   "  --smoke-dodge  Verify one exact-distance directional dodge and its active "
-                   "window.\n"
-                   "  --smoke-gameplay-replay  Replay combat, dodge, and attacker state with a "
-                   "digest.\n"
-                   "  --smoke-restart-recovery  Restart after a kill and require another kill.\n"
-                   "  --smoke-moving-attacker  Require deterministic acquire, pursuit, and player "
-                   "damage.\n"
-                   "  --smoke-nav-grid  Display the read-only 2.5D hard-blocked navigation grid.\n"
-                   "  --smoke-nav-path  Display the copied deterministic A-star reference path.\n"
-                   "  --smoke-runner-path  Follow a bounded-repath route toward the player.\n"
-                   "  --smoke-enemy-stress  Run 50 real navigation/AI/physics/render Runners.\n"
-                   "  --smoke-crowd-kill  Require crowd Stalker projectile-death sequences.\n"
-                   "  --smoke-editor-hot-swap  Capture and close after a live editor texture "
-                   "replacement.\n";
+                   "  --list-scenarios  List the registered smoke scenarios, one per line.\n";
+            for (const ic2de_game::SmokeScenario& registered : ic2de_game::smoke_scenarios()) {
+                std::cout << "  --smoke-" << registered.name << "  " << registered.description
+                          << '\n';
+            }
             return 0;
         }
     }
