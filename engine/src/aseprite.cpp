@@ -90,8 +90,8 @@ using Json = nlohmann::json;
     }
     const double parsed = found->get<double>();
     if (!std::isfinite(parsed) || parsed <= 0.0 || parsed > 8.0) {
-        fail(path, "Optional field '" + std::string{key} +
-                       "' must be finite and in the range (0, 8].");
+        fail(path,
+             "Optional field '" + std::string{key} + "' must be finite and in the range (0, 8].");
     }
     return static_cast<float>(parsed);
 }
@@ -195,8 +195,7 @@ struct ImportedFrame {
                 .duration_ticks = duration_ticks(milliseconds, fixed_update_hz, path),
                 .events = frame_events(authored, path),
                 .flip_x = optional_bool_field(authored, "ic2d_flip_x", path),
-                .presentation_scale =
-                    optional_positive_float_field(authored, "ic2d_scale", path),
+                .presentation_scale = optional_positive_float_field(authored, "ic2d_scale", path),
             },
     };
 }

@@ -33,8 +33,7 @@ struct AnimationPlayer::Impl {
             }
             for (const AnimationFrame& frame : clip.frames) {
                 if (!valid_source(frame.source) || frame.duration_ticks == 0 ||
-                    !std::isfinite(frame.presentation_scale) ||
-                    frame.presentation_scale <= 0.0F) {
+                    !std::isfinite(frame.presentation_scale) || frame.presentation_scale <= 0.0F) {
                     throw std::invalid_argument{
                         "Animation frames require a finite positive source, duration, and "
                         "presentation scale."};

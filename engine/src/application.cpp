@@ -3280,10 +3280,8 @@ int run_application(const ApplicationConfig& requested_config) {
 #endif
     const std::uint64_t completed_terminal_animations =
         scene->completed_actor_terminal_animation_count();
-    const std::uint64_t completed_hurt_animations =
-        scene->completed_actor_hurt_animation_count();
-    const std::uint64_t completed_death_animations =
-        scene->completed_actor_death_animation_count();
+    const std::uint64_t completed_hurt_animations = scene->completed_actor_hurt_animation_count();
+    const std::uint64_t completed_death_animations = scene->completed_actor_death_animation_count();
     const std::uint64_t completed_explosion_animations =
         scene->completed_actor_explosion_animation_count();
     gpu_backdrop.release();
@@ -3412,8 +3410,7 @@ int run_application(const ApplicationConfig& requested_config) {
                 std::to_string(config.minimum_automated_death_animation_completions) + ".");
         return 32;
     }
-    if (completed_explosion_animations <
-        config.minimum_automated_explosion_animation_completions) {
+    if (completed_explosion_animations < config.minimum_automated_explosion_animation_completions) {
         log(LogLevel::error,
             "Automated proximity-explosion validation completed only " +
                 std::to_string(completed_explosion_animations) +
@@ -3423,16 +3420,16 @@ int run_application(const ApplicationConfig& requested_config) {
     }
     if (config.require_automated_zero_death_animation_completions &&
         completed_death_animations != 0) {
-        log(LogLevel::error,
-            "Automated proximity-explosion validation unexpectedly completed " +
-                std::to_string(completed_death_animations) + " death animation(s).");
+        log(LogLevel::error, "Automated proximity-explosion validation unexpectedly completed " +
+                                 std::to_string(completed_death_animations) +
+                                 " death animation(s).");
         return 34;
     }
     if (config.require_automated_zero_explosion_animation_completions &&
         completed_explosion_animations != 0) {
-        log(LogLevel::error,
-            "Automated projectile-death validation unexpectedly completed " +
-                std::to_string(completed_explosion_animations) + " explosion animation(s).");
+        log(LogLevel::error, "Automated projectile-death validation unexpectedly completed " +
+                                 std::to_string(completed_explosion_animations) +
+                                 " explosion animation(s).");
         return 35;
     }
     if (config.minimum_automated_hurt_animation_completions > 0 ||
@@ -3440,11 +3437,11 @@ int run_application(const ApplicationConfig& requested_config) {
         config.minimum_automated_explosion_animation_completions > 0 ||
         config.require_automated_zero_death_animation_completions ||
         config.require_automated_zero_explosion_animation_completions) {
-        log(LogLevel::info,
-            "Separated enemy presentation validation passed with " +
-                std::to_string(completed_hurt_animations) + " hurt, " +
-                std::to_string(completed_death_animations) + " death, and " +
-                std::to_string(completed_explosion_animations) + " explosion completion(s).");
+        log(LogLevel::info, "Separated enemy presentation validation passed with " +
+                                std::to_string(completed_hurt_animations) + " hurt, " +
+                                std::to_string(completed_death_animations) + " death, and " +
+                                std::to_string(completed_explosion_animations) +
+                                " explosion completion(s).");
     }
     if (health_observations.retired_crowd_actor_count <
         config.minimum_automated_crowd_actor_retirements) {
