@@ -396,6 +396,16 @@ ic2de_add_module(world ALIAS World
     PRIVATE_DEPS EnTT::EnTT
 )
 
+ic2de_add_module(scene_binding ALIAS SceneBinding
+    SOURCES engine/src/scene_binding.cpp
+    PUBLIC_DEPS
+        IC2DE::EnemyIntent
+        IC2DE::Health
+        IC2DE::Interaction
+        IC2DE::NavAgent
+        IC2DE::Scene
+)
+
 ic2de_add_module(scene ALIAS Scene
     SOURCES
         engine/src/scene.cpp
@@ -510,6 +520,7 @@ ic2de_add_module(runtime ALIAS Runtime
         IC2DE::Projectiles
         IC2DE::Render
         IC2DE::Scene
+        IC2DE::SceneBinding
         IC2DE::World
         raylib
     PRIVATE_INCLUDES engine/src

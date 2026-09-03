@@ -29,6 +29,7 @@
 #include "ic2d/runtime_project.hpp"
 #include "ic2d/runtime_scene.hpp"
 #include "ic2d/scene.hpp"
+#include "ic2d/scene_binding.hpp"
 #include "input/raylib_input_adapter.hpp"
 #include "render/frame_pipeline.hpp"
 #include "render/gpu_backdrop.hpp"
@@ -198,13 +199,6 @@ struct EnemyIntentObservations {
     void reset() noexcept { *this = EnemyIntentObservations{}; }
 };
 
-constexpr float player_maximum_health = 100.0F;
-constexpr float target_dummy_maximum_health = 54.0F;
-constexpr float attacker_maximum_health = 36.0F;
-constexpr float attacker_movement_speed = 54.0F;
-constexpr float attacker_acquisition_range = 180.0F;
-constexpr float stress_attacker_acquisition_range = 600.0F;
-
 // Stress spawns ring the arena, so their acquisition has to reach at least as
 // far as they are placed or they idle where they spawned instead of
 // converging. Derived from the same bounds the spawn ring is derived from.
@@ -245,16 +239,6 @@ constexpr float stress_attacker_acquisition_range = 600.0F;
                                      topology.bounds.depth * topology.bounds.depth);
     return std::max({stress_attacker_acquisition_range, arena_reach * 1.6F, diagonal});
 }
-constexpr float attacker_attack_range = 20.0F;
-constexpr std::uint32_t attacker_attack_cooldown_ticks = 45;
-constexpr float attacker_attack_damage = 12.0F;
-constexpr float navigation_cell_size = 20.0F;
-// Above this many attackers converging on one target, steering switches from a
-// route per actor to one shared flow field. A search is paid per actor and a
-// field is paid per map, so the field wins as soon as a crowd is large enough
-// to be interesting; the threshold sits above the authored encounter sizes so
-// small fights keep their individual routes, waypoints and repath behaviour.
-constexpr std::size_t crowd_flow_field_threshold = 128;
 
 // Which attackers the router carries, and whether the rest are field-steered.
 // Resolving the attacker list is a scene-build operation, not a per-tick one,
@@ -341,89 +325,6 @@ constexpr float separation_shuffle_scale = 0.45F;
         return {.status = NavPathStatus::unreachable};
     }
     return find_nav_path(grid, first->cell, last->cell);
-}
-
-void register_scene_health_targets(Health& health, const RuntimeScene& scene) {
-    if (!health.register_target({
-            .target = scene.player_uuid(),
-            .maximum_health = player_maximum_health,
-        })) {
-        throw std::logic_error{"Runtime scene provided an invalid player health target."};
-    }
-    for (const EntityUuid actor : scene.actor_uuids(ScenePhysicsRole::enemy)) {
-        if (!health.register_target({
-                .target = actor,
-                .maximum_health = target_dummy_maximum_health,
-            })) {
-            throw std::logic_error{"Runtime scene provided a duplicate or invalid health target."};
-        }
-    }
-    for (const EntityUuid actor : scene.actor_uuids(ScenePhysicsRole::attacker)) {
-        if (!health.register_target({
-                .target = actor,
-                .maximum_health = attacker_maximum_health,
-            })) {
-            throw std::logic_error{
-                "Runtime scene provided a duplicate or invalid attacker health target."};
-        }
-    }
-}
-
-void register_scene_enemy_intents(EnemyIntent& intent, const RuntimeScene& scene,
-                                  const float acquisition_range = attacker_acquisition_range) {
-    for (const EntityUuid actor : scene.actor_uuids(ScenePhysicsRole::attacker)) {
-        if (!intent.register_actor({
-                .actor = actor,
-                .target = scene.player_uuid(),
-                .movement_speed = attacker_movement_speed,
-                .acquisition_range = acquisition_range,
-                .attack_range = attacker_attack_range,
-                .attack_cooldown_ticks = attacker_attack_cooldown_ticks,
-                .attack_damage = attacker_attack_damage,
-            })) {
-            throw std::logic_error{
-                "Runtime scene provided a duplicate or invalid attacker intent."};
-        }
-    }
-}
-
-struct CrowdSteeringPlan;
-
-// A field-steered crowd never consumes an individual route, so registering it
-// with the router would cost a request, a map traversal and a returned motion
-// per actor every tick for a result that is discarded. The plan decides both
-// registration and steering, so the two cannot disagree.
-void register_scene_navigation_agents(NavAgentSystem& navigation,
-                                      const std::vector<EntityUuid>& routed_actors) {
-    for (const EntityUuid actor : routed_actors) {
-        if (!navigation.register_agent(actor)) {
-            throw std::logic_error{
-                "Runtime scene provided a duplicate or invalid navigation agent."};
-        }
-    }
-}
-
-// Resolves authored interactables against the entities they attach to. Pickups
-// do not move, so their authored position is their world position for the whole
-// run and nothing has to be re-resolved per tick.
-[[nodiscard]] std::vector<Interactable> build_interactables(const SceneDefinition& definition) {
-    std::vector<Interactable> resolved;
-    resolved.reserve(definition.interactables().size());
-    for (const SceneInteractableDefinition& authored : definition.interactables()) {
-        const auto entity = std::ranges::find(definition.entities(), authored.entity_id,
-                                              &SceneEntityDefinition::id);
-        if (entity == definition.entities().end()) {
-            continue;
-        }
-        resolved.push_back({
-            .entity = entity->uuid,
-            .position = entity->position,
-            .kind = authored.kind,
-            .amount = authored.amount,
-            .radius = authored.radius,
-        });
-    }
-    return resolved;
 }
 
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
@@ -1839,8 +1740,6 @@ void submit_projectile_sprites(RenderQueue2D& queue, const ProjectileSimulationS
         }
     }
 }
-
-[[nodiscard]] std::vector<Interactable> build_interactables(const SceneDefinition& definition);
 
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
 // Development channels draw over authored ground using their own id range, so
