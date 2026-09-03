@@ -7,6 +7,7 @@
 #include "ic2d/actor_debug.hpp"
 #include "ic2d/assets.hpp"
 #include "ic2d/combat.hpp"
+#include "ic2d/core/automated_expectations.hpp"
 #include "ic2d/core/automated_run.hpp"
 #include "ic2d/core/fixed_step_clock.hpp"
 #include "ic2d/core/frame_telemetry.hpp"
@@ -1437,12 +1438,12 @@ void draw_interaction_prompt(const Vec2 canvas_position) {
          (config.automated_aim_direction.x != 0.0F || config.automated_aim_direction.y != 0.0F));
     return config.window_width > 0 && config.window_height > 0 && config.canvas_width > 0 &&
            config.canvas_height > 0 && valid_pacing && std::isfinite(config.fixed_update_hz) &&
-           std::isfinite(config.expected_automated_dodge_distance) &&
-           std::isfinite(config.minimum_automated_enemy_distance) &&
-           std::isfinite(config.minimum_automated_player_damage) &&
-           config.expected_automated_dodge_distance >= 0.0F &&
-           config.minimum_automated_enemy_distance >= 0.0F &&
-           config.minimum_automated_player_damage >= 0.0F && valid_automated_direction &&
+           std::isfinite(config.expectations.expected_dodge_distance) &&
+           std::isfinite(config.expectations.minimum_enemy_distance) &&
+           std::isfinite(config.expectations.minimum_player_damage) &&
+           config.expectations.expected_dodge_distance >= 0.0F &&
+           config.expectations.minimum_enemy_distance >= 0.0F &&
+           config.expectations.minimum_player_damage >= 0.0F && valid_automated_direction &&
            valid_automated_aim && config.fixed_update_hz > 0.0 && config.max_frames >= 0 &&
            config.capture_frame >= 0;
 }
@@ -2949,7 +2950,7 @@ int run_application(const ApplicationConfig& requested_config) {
         }
         // Restart once, as soon as something has died, and keep running so the
         // shutdown check can require a second death from the revived actor.
-        if (config.validate_restart_recovery && !restart_recovery_performed &&
+        if (config.expectations.validate_restart_recovery && !restart_recovery_performed &&
             health.snapshot().death_count > 0) {
             restart_recovery_performed = true;
             scene->reset();
@@ -3323,273 +3324,42 @@ int run_application(const ApplicationConfig& requested_config) {
     if (automated_run_exit_code != 0) {
         return automated_run_exit_code;
     }
-    const std::uint64_t projectile_spawn_count = combat.snapshot().spawned_projectile_count;
-    if (projectile_spawn_count < config.minimum_automated_projectile_spawns) {
-        log(LogLevel::error, "Automated held-fire validation spawned only " +
-                                 std::to_string(projectile_spawn_count) +
-                                 " projectile(s); expected at least " +
-                                 std::to_string(config.minimum_automated_projectile_spawns) + ".");
-        return 12;
-    }
-    if (config.minimum_automated_projectile_spawns > 0) {
-        log(LogLevel::info, "Automated held-fire validation passed with " +
-                                std::to_string(projectile_spawn_count) + " projectile spawns.");
-    }
-    const std::uint64_t projectile_impact_count = projectiles.snapshot().total_impacted;
-    if (projectile_impact_count < config.minimum_automated_projectile_impacts) {
-        log(LogLevel::error, "Automated projectile-impact validation resolved only " +
-                                 std::to_string(projectile_impact_count) +
-                                 " impact(s); expected at least " +
-                                 std::to_string(config.minimum_automated_projectile_impacts) + ".");
-        return 13;
-    }
-    if (config.minimum_automated_projectile_impacts > 0) {
-        log(LogLevel::info, "Automated projectile-impact validation passed with " +
-                                std::to_string(projectile_impact_count) + " resolved impact(s).");
-    }
-    const std::uint64_t target_death_count = health.snapshot().death_count;
-    if (target_death_count < config.minimum_automated_target_deaths) {
-        log(LogLevel::error, "Automated target-health validation observed only " +
-                                 std::to_string(target_death_count) +
-                                 " death(s); expected at least " +
-                                 std::to_string(config.minimum_automated_target_deaths) + ".");
-        return 14;
-    }
-    if (config.validate_restart_recovery) {
-        if (!restart_recovery_performed) {
-            log(LogLevel::error,
-                "Restart-recovery validation never observed a death to restart from.");
-            return 26;
-        }
-        if (target_death_count == 0) {
-            log(LogLevel::error,
-                "Restart-recovery validation observed no death after the restart: a revived "
-                "actor was not shootable again.");
-            return 26;
-        }
-        log(LogLevel::info, "Restart-recovery validation passed with " +
-                                std::to_string(target_death_count) +
-                                " death(s) after restarting the running scene.");
-    }
-    if (config.minimum_automated_target_deaths > 0) {
-        if (health_observations.retired_actor_count < target_death_count) {
-            log(LogLevel::error,
-                "Automated target-health validation emitted death without retiring its actor.");
-            return 15;
-        }
-        log(LogLevel::info, "Automated target-health validation passed with " +
-                                std::to_string(target_death_count) +
-                                " deterministic death(s) and matching scene retirement(s).");
-    }
-    if (completed_terminal_animations < config.minimum_automated_terminal_animation_completions) {
-        log(LogLevel::error,
-            "Automated target-health validation completed only " +
-                std::to_string(completed_terminal_animations) +
-                " terminal animation sequence(s); expected at least " +
-                std::to_string(config.minimum_automated_terminal_animation_completions) + ".");
-        return 31;
-    }
-    if (config.minimum_automated_terminal_animation_completions > 0) {
-        log(LogLevel::info, "Automated terminal-presentation validation passed with " +
-                                std::to_string(completed_terminal_animations) +
-                                " completed terminal one-shot(s).");
-    }
-    if (completed_hurt_animations < config.minimum_automated_hurt_animation_completions) {
-        log(LogLevel::error,
-            "Automated hit-reaction validation completed only " +
-                std::to_string(completed_hurt_animations) +
-                " hurt animation(s); expected at least " +
-                std::to_string(config.minimum_automated_hurt_animation_completions) + ".");
-        return 36;
-    }
-    if (completed_death_animations < config.minimum_automated_death_animation_completions) {
-        log(LogLevel::error,
-            "Automated death-presentation validation completed only " +
-                std::to_string(completed_death_animations) +
-                " death animation(s); expected at least " +
-                std::to_string(config.minimum_automated_death_animation_completions) + ".");
-        return 32;
-    }
-    if (completed_explosion_animations < config.minimum_automated_explosion_animation_completions) {
-        log(LogLevel::error,
-            "Automated proximity-explosion validation completed only " +
-                std::to_string(completed_explosion_animations) +
-                " explosion animation(s); expected at least " +
-                std::to_string(config.minimum_automated_explosion_animation_completions) + ".");
-        return 33;
-    }
-    if (config.require_automated_zero_death_animation_completions &&
-        completed_death_animations != 0) {
-        log(LogLevel::error, "Automated proximity-explosion validation unexpectedly completed " +
-                                 std::to_string(completed_death_animations) +
-                                 " death animation(s).");
-        return 34;
-    }
-    if (config.require_automated_zero_explosion_animation_completions &&
-        completed_explosion_animations != 0) {
-        log(LogLevel::error, "Automated projectile-death validation unexpectedly completed " +
-                                 std::to_string(completed_explosion_animations) +
-                                 " explosion animation(s).");
-        return 35;
-    }
-    if (config.minimum_automated_hurt_animation_completions > 0 ||
-        config.minimum_automated_death_animation_completions > 0 ||
-        config.minimum_automated_explosion_animation_completions > 0 ||
-        config.require_automated_zero_death_animation_completions ||
-        config.require_automated_zero_explosion_animation_completions) {
-        log(LogLevel::info, "Separated enemy presentation validation passed with " +
-                                std::to_string(completed_hurt_animations) + " hurt, " +
-                                std::to_string(completed_death_animations) + " death, and " +
-                                std::to_string(completed_explosion_animations) +
-                                " explosion completion(s).");
-    }
-    if (health_observations.retired_crowd_actor_count <
-        config.minimum_automated_crowd_actor_retirements) {
-        log(LogLevel::error, "Automated crowd-kill validation retired only " +
-                                 std::to_string(health_observations.retired_crowd_actor_count) +
-                                 " body-less actor(s); expected at least " +
-                                 std::to_string(config.minimum_automated_crowd_actor_retirements) +
-                                 ".");
-        return 30;
-    }
-    if (config.minimum_automated_crowd_actor_retirements > 0) {
-        log(LogLevel::info, "Automated crowd-kill validation passed with " +
-                                std::to_string(health_observations.retired_crowd_actor_count) +
-                                " body-less actor(s) hit, killed and retired.");
-    }
-    const DodgeSnapshot dodge = combat.snapshot().dodge;
-    if (dodge.started_count < config.minimum_automated_dodge_starts) {
-        log(LogLevel::error, "Automated dodge validation observed only " +
-                                 std::to_string(dodge.started_count) +
-                                 " start(s); expected at least " +
-                                 std::to_string(config.minimum_automated_dodge_starts) + ".");
-        return 16;
-    }
-    if (config.minimum_automated_dodge_starts > 0 &&
-        !combat_observations.dodge_invulnerability_observed) {
-        log(LogLevel::error,
-            "Automated dodge validation never observed the player as invulnerable.");
-        return 17;
-    }
-    if (config.minimum_automated_dodge_starts > 0 && dodge.active) {
-        log(LogLevel::error,
-            "Automated dodge validation ended before the authored dodge duration expired.");
-        return 18;
-    }
-    if (config.expected_automated_dodge_distance > 0.0F) {
-        constexpr float distance_tolerance = 0.05F;
-        const float distance_error = std::abs(combat_observations.dodge_distance_travelled -
-                                              config.expected_automated_dodge_distance);
-        if (distance_error > distance_tolerance) {
-            log(LogLevel::error, "Automated dodge movement travelled " +
-                                     std::to_string(combat_observations.dodge_distance_travelled) +
-                                     " world units; expected " +
-                                     std::to_string(config.expected_automated_dodge_distance) +
-                                     ".");
-            return 19;
-        }
-        if (combat_observations.dodge_movement_blocked) {
-            log(LogLevel::error,
-                "Automated open-ground dodge unexpectedly reported blocked movement.");
-            return 20;
-        }
-    }
-    if (config.minimum_automated_dodge_starts > 0) {
-        log(LogLevel::info, "Automated dodge validation passed with " +
-                                std::to_string(dodge.started_count) +
-                                " fixed-tick start(s), an observed invulnerability window, "
-                                "completed duration, and " +
-                                std::to_string(combat_observations.dodge_distance_travelled) +
-                                " world units of collision-resolved travel.");
-    }
-    const EnemyIntentSnapshot enemy_result = enemy_intent.snapshot();
-    if (enemy_result.acquisition_count < config.minimum_automated_enemy_acquisitions) {
-        log(LogLevel::error, "Automated enemy-intent validation observed only " +
-                                 std::to_string(enemy_result.acquisition_count) +
-                                 " acquisition(s); expected at least " +
-                                 std::to_string(config.minimum_automated_enemy_acquisitions) + ".");
-        return 22;
-    }
-    if (enemy_result.attack_count < config.minimum_automated_enemy_attacks) {
-        log(LogLevel::error, "Automated enemy-intent validation observed only " +
-                                 std::to_string(enemy_result.attack_count) +
-                                 " attack request(s); expected at least " +
-                                 std::to_string(config.minimum_automated_enemy_attacks) + ".");
-        return 23;
-    }
-    if (enemy_observations.distance_travelled < config.minimum_automated_enemy_distance) {
-        log(LogLevel::error, "Automated moving-attacker validation travelled only " +
-                                 std::to_string(enemy_observations.distance_travelled) +
-                                 " world units; expected at least " +
-                                 std::to_string(config.minimum_automated_enemy_distance) + ".");
-        return 24;
-    }
-    if (enemy_observations.damage_applied_to_player < config.minimum_automated_player_damage) {
-        log(LogLevel::error, "Automated moving-attacker validation applied only " +
-                                 std::to_string(enemy_observations.damage_applied_to_player) +
-                                 " player damage; expected at least " +
-                                 std::to_string(config.minimum_automated_player_damage) + ".");
-        return 25;
-    }
-    if (config.require_automated_zero_player_damage &&
-        enemy_observations.damage_applied_to_player != 0.0F) {
-        log(LogLevel::error, "Automated harmless-enemy validation applied " +
-                                 std::to_string(enemy_observations.damage_applied_to_player) +
-                                 " player damage; expected exactly zero.");
-        return 29;
-    }
-    if (config.require_automated_zero_player_damage) {
-        log(LogLevel::info, "Automated harmless-enemy validation passed with zero player damage.");
-    }
-    if (config.minimum_automated_enemy_acquisitions > 0 ||
-        config.minimum_automated_enemy_attacks > 0 ||
-        config.minimum_automated_enemy_distance > 0.0F ||
-        config.minimum_automated_player_damage > 0.0F) {
-        log(LogLevel::info,
-            "Automated moving-attacker validation passed with " +
-                std::to_string(enemy_result.acquisition_count) + " acquisition(s), " +
-                std::to_string(enemy_result.attack_count) + " attack request(s), " +
-                std::to_string(enemy_observations.distance_travelled) +
-                " world units of collision-resolved travel, and " +
-                std::to_string(enemy_observations.damage_applied_to_player) + " player damage.");
-    }
+    // The verdict itself lives in Core as a pure function over these scalars,
+    // so it can be tested without a scene, a window or a GPU. Gathering the
+    // snapshots is the only part that needs the running systems.
+    const CombatSnapshot combat_result = combat.snapshot();
     const NavAgentSnapshot navigation_result = navigation_agents.snapshot();
-    if (navigation_result.actors.size() < config.minimum_automated_navigation_agents) {
-        log(LogLevel::error, "Automated navigation validation retained only " +
-                                 std::to_string(navigation_result.actors.size()) +
-                                 " agent(s); expected at least " +
-                                 std::to_string(config.minimum_automated_navigation_agents) + ".");
-        return 28;
-    }
-    if (navigation_result.total_search_count < config.minimum_automated_navigation_searches) {
-        log(LogLevel::error, "Automated navigation validation performed only " +
-                                 std::to_string(navigation_result.total_search_count) +
-                                 " search(es); expected at least " +
-                                 std::to_string(config.minimum_automated_navigation_searches) +
-                                 ".");
-        return 26;
-    }
+    const EnemyIntentSnapshot enemy_result = enemy_intent.snapshot();
     std::uint64_t waypoint_advances = 0;
     for (const NavAgentStateSnapshot& actor : navigation_result.actors) {
         waypoint_advances += actor.waypoint_advance_count;
     }
-    if (waypoint_advances < config.minimum_automated_navigation_waypoint_advances) {
-        log(LogLevel::error,
-            "Automated navigation validation advanced only " + std::to_string(waypoint_advances) +
-                " waypoint(s); expected at least " +
-                std::to_string(config.minimum_automated_navigation_waypoint_advances) + ".");
-        return 27;
-    }
-    if (config.minimum_automated_navigation_searches > 0 ||
-        config.minimum_automated_navigation_waypoint_advances > 0 ||
-        config.minimum_automated_navigation_agents > 0) {
-        log(LogLevel::info, "Automated navigation validation passed with " +
-                                std::to_string(navigation_result.actors.size()) + " agent(s), " +
-                                std::to_string(navigation_result.total_search_count) +
-                                " bounded search(es) and " + std::to_string(waypoint_advances) +
-                                " waypoint advance(s).");
-    }
-    return 0;
+    return evaluate_automated_expectations(
+        config.expectations,
+        {
+            .projectile_spawns = combat_result.spawned_projectile_count,
+            .projectile_impacts = projectiles.snapshot().total_impacted,
+            .target_deaths = health.snapshot().death_count,
+            .restart_recovery_performed = restart_recovery_performed,
+            .retired_actor_count = health_observations.retired_actor_count,
+            .retired_crowd_actor_count = health_observations.retired_crowd_actor_count,
+            .completed_terminal_animations = completed_terminal_animations,
+            .completed_hurt_animations = completed_hurt_animations,
+            .completed_death_animations = completed_death_animations,
+            .completed_explosion_animations = completed_explosion_animations,
+            .dodge_started_count = combat_result.dodge.started_count,
+            .dodge_active = combat_result.dodge.active,
+            .dodge_invulnerability_observed = combat_observations.dodge_invulnerability_observed,
+            .dodge_distance_travelled = combat_observations.dodge_distance_travelled,
+            .dodge_movement_blocked = combat_observations.dodge_movement_blocked,
+            .enemy_acquisitions = enemy_result.acquisition_count,
+            .enemy_attacks = enemy_result.attack_count,
+            .enemy_distance_travelled = enemy_observations.distance_travelled,
+            .damage_applied_to_player = enemy_observations.damage_applied_to_player,
+            .navigation_agent_count = navigation_result.actors.size(),
+            .navigation_search_count = navigation_result.total_search_count,
+            .navigation_waypoint_advances = waypoint_advances,
+        });
 }
 
 } // namespace ic2d

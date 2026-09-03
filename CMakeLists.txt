@@ -282,6 +282,7 @@ endfunction()
 
 ic2de_add_module(core ALIAS Core
     SOURCES
+        engine/src/core/automated_expectations.cpp
         engine/src/core/automated_run.cpp
         engine/src/core/fixed_step_clock.cpp
         engine/src/core/frame_telemetry.cpp
@@ -625,6 +626,7 @@ if(IC2DE_BUILD_TESTS)
 
     ic2de_add_test(core
         SOURCES
+            tests/unit/automated_expectations_tests.cpp
             tests/unit/automated_run_tests.cpp
             tests/unit/fixed_step_clock_tests.cpp
         DEPS IC2DE::Core
