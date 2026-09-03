@@ -288,6 +288,34 @@ Adding a smoke test through `ic2de_add_smoke_test` applies that label
 automatically, so a new one cannot accidentally be handed to a machine that
 cannot run it.
 
+## Keeping the repository clean
+
+`.gitignore` covers build output, editor state, archives and scratch paths, but
+it is advisory: `git add -f` walks straight past it, and it says nothing about a
+file that sits in an allowed directory and still has no business being
+committed.
+
+`tools/check-repository-hygiene.ps1` is the actual rule. It rejects files over
+10 MB, non-asset files over 1 MB, images outside `art/`, `game/assets/` and
+`tests/fixtures/`, build output and operating-system leftovers by extension, and
+paths naming scratch work such as `-probe/` or `bug-repros/`.
+
+It runs in two places on purpose. Install the hook once per clone for immediate
+feedback:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\install-hooks.ps1
+```
+
+Git does not share hooks — `.git/hooks` is local to a clone and is never
+committed or fetched — and a hook can be skipped with `git commit --no-verify`.
+So the same check runs as the `Repository hygiene` job in continuous
+integration, and that is what enforces it.
+
+If something the check rejects is genuinely wanted, change the rules in that
+script rather than bypassing it, so the next person meets the same decision
+rather than rediscovering it.
+
 ## Tests
 
 Tests use doctest. Each `TEST_CASE` is registered with CTest individually, so a

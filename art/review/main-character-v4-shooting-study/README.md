@@ -18,9 +18,9 @@ animation binding, importer, or player state.
 
 The folder root contains the generated review sources. `clean/` contains the
 successful genuine-alpha extraction pass. Southeast is still present as a
-review source, but its two automated alpha-extraction attempts stayed opaque;
-those rejected derivatives are isolated under `failed-alpha/` and must not be
-treated as production art.
+review source, but its two automated alpha-extraction attempts stayed opaque.
+Those rejected derivatives have been deleted rather than kept, since nothing
+consumed them and they must never be treated as production art.
 
 These remain high-resolution generated motion references. Approval should be
 followed by a native-grid cleanup pass with uniform action cells, a fixed

@@ -1,22 +1,56 @@
+# Build and packaging output.
 /build/
 /dist/
 /out/
 /cmake-build-*/
+/CMakeUserPresets.json
+
+# Editor and IDE state.
 /.vs/
 /.vscode/
 /.idea/
 /.cache/
-/CMakeUserPresets.json
 /imgui.ini
 *.user
 *.suo
 *.VC.db
 *.VC.VC.opendb
-*.log
+
+# Compiler and linker artefacts.
 *.obj
 *.pdb
 *.ilk
 *.exp
 *.lib
+*.dll
+*.exe
+
+# Archives. Packaging writes these into dist/, which is ignored above; one
+# appearing anywhere else is something that was downloaded or produced by hand.
+*.zip
+*.7z
+*.rar
+
+# Scratch work. These accumulated to roughly half a gigabyte of debug
+# screenshots, probe directories and duplicated reference checkouts before
+# anything objected, so they are named explicitly rather than left to
+# discipline. tools/check-repository-hygiene.ps1 rejects them if they are
+# force-added anyway.
+*-probe/
+/scratch/
+/bug-repros/
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+
+# RenderDoc captures.
+*.rdc
+*.cap
+
+# Operating system leftovers.
 Thumbs.db
+desktop.ini
 .DS_Store

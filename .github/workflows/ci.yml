@@ -22,6 +22,19 @@ jobs:
       - name: Check formatting
         run: powershell -ExecutionPolicy Bypass -File .\tools\format.ps1 -Check
 
+  hygiene:
+    name: Repository hygiene
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The enforcement half of the pre-commit hook in tools/install-hooks.ps1.
+      # Hooks are local to a clone and can be skipped with --no-verify, so this
+      # is what actually keeps build output, scratch directories and stray
+      # screenshots out of the repository.
+      - name: Check for files that should not be committed
+        run: powershell -ExecutionPolicy Bypass -File .\tools\check-repository-hygiene.ps1
+
   build:
     # Both configurations are built. The shipping preset compiles with
     # IC2DE_ENABLE_DEVELOPMENT_TOOLS off, which is a genuinely different

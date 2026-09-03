@@ -25,8 +25,9 @@ humanoid silhouette or individual sprites.
 
 The root files preserve the generated review sheets. `clean/` contains the
 successful genuine-alpha versions. The explosion sheet resisted two alpha
-extraction attempts and remains source-only; rejected derivatives are isolated
-under `failed-alpha/`.
+extraction attempts and remains source-only; the rejected derivatives it
+produced have been deleted rather than kept, since nothing consumed them and
+they must never be treated as production art.
 
 This is not yet production-ready native pixel art. After approval it needs
 logical-cell redraw/cleanup, fixed pivots and baselines, exact per-frame
