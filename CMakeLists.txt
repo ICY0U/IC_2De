@@ -202,7 +202,7 @@ endfunction()
 # Declares the executable ic2de_<name>_tests and registers it with CTest.
 function(ic2de_add_test name)
     cmake_parse_arguments(PARSE_ARGV 1 arg
-        "DOCTEST"
+        ""
         "TEST_NAME"
         "SOURCES;DEPS;PRIVATE_INCLUDES;DEFINITIONS"
     )
@@ -238,15 +238,12 @@ function(ic2de_add_test name)
     ic2de_set_project_warnings(${target})
     ic2de_set_project_analysis(${target})
 
-    if(arg_DOCTEST)
-        target_sources(${target} PRIVATE tests/doctest_main.cpp)
-        target_link_libraries(${target} PRIVATE doctest::doctest)
-        # Registers one CTest entry per TEST_CASE instead of one per binary, so
-        # a failure names the case rather than only the executable that held it.
-        doctest_discover_tests(${target} TEST_PREFIX "${test_name}.")
-    else()
-        add_test(NAME ${test_name} COMMAND ${target})
-    endif()
+    target_sources(${target} PRIVATE tests/doctest_main.cpp)
+    target_link_libraries(${target} PRIVATE doctest::doctest)
+
+    # Registers one CTest entry per TEST_CASE instead of one per binary, so a
+    # failure names the case rather than only the executable that held it.
+    doctest_discover_tests(${target} TEST_PREFIX "${test_name}.")
 endfunction()
 
 # ic2de_add_smoke_test(<ctest-name>
@@ -667,18 +664,16 @@ if(IC2DE_BUILD_TESTS)
             tests/unit/automated_run_tests.cpp
             tests/unit/fixed_step_clock_tests.cpp
         DEPS IC2DE::Core
-        DOCTEST
     )
 
     ic2de_add_test(frame_telemetry
         SOURCES tests/unit/frame_telemetry_tests.cpp
         DEPS IC2DE::Core
-        DOCTEST
     )
 
-    ic2de_add_test(flow SOURCES tests/unit/layer_stack_tests.cpp DEPS IC2DE::Flow DOCTEST)
+    ic2de_add_test(flow SOURCES tests/unit/layer_stack_tests.cpp DEPS IC2DE::Flow)
 
-    ic2de_add_test(input SOURCES tests/unit/input_tests.cpp DEPS IC2DE::Input DOCTEST)
+    ic2de_add_test(input SOURCES tests/unit/input_tests.cpp DEPS IC2DE::Input)
 
     if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
         ic2de_add_test(editor_input
@@ -687,92 +682,80 @@ if(IC2DE_BUILD_TESTS)
                 tests/unit/editor_input_tests.cpp
             DEPS IC2DE::Editor
             PRIVATE_INCLUDES engine/src
-            DOCTEST
         )
     endif()
 
-    ic2de_add_test(combat SOURCES tests/unit/combat_tests.cpp DEPS IC2DE::Combat DOCTEST)
+    ic2de_add_test(combat SOURCES tests/unit/combat_tests.cpp DEPS IC2DE::Combat)
 
     ic2de_add_test(enemy_intent
         SOURCES tests/unit/enemy_intent_tests.cpp
         DEPS IC2DE::EnemyIntent
-        DOCTEST
     )
 
     ic2de_add_test(projectile
         SOURCES tests/unit/projectile_tests.cpp
         DEPS IC2DE::Projectiles
         TEST_NAME ic2de.projectiles
-        DOCTEST
     )
 
     ic2de_add_test(actor_debug
         SOURCES tests/unit/actor_debug_tests.cpp
         DEPS IC2DE::ActorDebug
-        DOCTEST
     )
 
-    ic2de_add_test(health SOURCES tests/unit/health_tests.cpp DEPS IC2DE::Health DOCTEST)
+    ic2de_add_test(health SOURCES tests/unit/health_tests.cpp DEPS IC2DE::Health)
 
     ic2de_add_test(gameplay_state
         SOURCES tests/unit/gameplay_state_tests.cpp
         DEPS IC2DE::GameplayState
-        DOCTEST
     )
 
     ic2de_add_test(locomotion
         SOURCES tests/unit/locomotion_tests.cpp
         DEPS IC2DE::Locomotion
-        DOCTEST
     )
 
     ic2de_add_test(assets
         SOURCES tests/unit/assets_tests.cpp
         DEPS IC2DE::Assets raylib
         DEFINITIONS ${IC2DE_RUNTIME_ASSETS}
-        DOCTEST
     )
 
     ic2de_add_test(project
         SOURCES tests/unit/runtime_project_tests.cpp
         DEPS IC2DE::Project
-        DOCTEST
     )
 
-    ic2de_add_test(ground SOURCES tests/unit/ground_map_tests.cpp DEPS IC2DE::Ground DOCTEST)
+    ic2de_add_test(ground SOURCES tests/unit/ground_map_tests.cpp DEPS IC2DE::Ground)
 
-    ic2de_add_test(nav_grid SOURCES tests/unit/nav_grid_tests.cpp DEPS IC2DE::NavGrid DOCTEST)
+    ic2de_add_test(nav_grid SOURCES tests/unit/nav_grid_tests.cpp DEPS IC2DE::NavGrid)
 
     ic2de_add_test(nav_pathfinding
         SOURCES tests/unit/nav_pathfinding_tests.cpp
         DEPS IC2DE::NavPathfinding
-        DOCTEST
     )
 
-    ic2de_add_test(nav_agent SOURCES tests/unit/nav_agent_tests.cpp DEPS IC2DE::NavAgent DOCTEST)
+    ic2de_add_test(nav_agent SOURCES tests/unit/nav_agent_tests.cpp DEPS IC2DE::NavAgent)
 
     ic2de_add_test(flow_field
         SOURCES tests/unit/flow_field_tests.cpp
         DEPS IC2DE::FlowField IC2DE::NavPathfinding
-        DOCTEST
     )
 
     ic2de_add_test(crowd
         SOURCES tests/unit/crowd_separation_tests.cpp
         DEPS IC2DE::Crowd
         TEST_NAME ic2de.crowd_separation
-        DOCTEST
     )
 
-    ic2de_add_test(physics SOURCES tests/unit/physics2d_tests.cpp DEPS IC2DE::Physics DOCTEST)
+    ic2de_add_test(physics SOURCES tests/unit/physics2d_tests.cpp DEPS IC2DE::Physics)
 
-    ic2de_add_test(animation SOURCES tests/unit/animation_tests.cpp DEPS IC2DE::Animation DOCTEST)
+    ic2de_add_test(animation SOURCES tests/unit/animation_tests.cpp DEPS IC2DE::Animation)
 
     ic2de_add_test(aseprite
         SOURCES tests/unit/aseprite_tests.cpp
         DEPS IC2DE::Aseprite
         DEFINITIONS ${IC2DE_TEST_FIXTURES}
-        DOCTEST
     )
 
     ic2de_add_test(scene
@@ -786,21 +769,19 @@ if(IC2DE_BUILD_TESTS)
     ic2de_add_test(presentation
         SOURCES tests/unit/presentation_tests.cpp
         DEPS IC2DE::Presentation
-        DOCTEST
     )
 
-    ic2de_add_test(jobs SOURCES tests/unit/jobs_tests.cpp DEPS IC2DE::Jobs DOCTEST)
+    ic2de_add_test(jobs SOURCES tests/unit/jobs_tests.cpp DEPS IC2DE::Jobs)
 
-    ic2de_add_test(world SOURCES tests/unit/world_tests.cpp DEPS IC2DE::World DOCTEST)
+    ic2de_add_test(world SOURCES tests/unit/world_tests.cpp DEPS IC2DE::World)
 
-    ic2de_add_test(debug SOURCES tests/unit/debug_visuals_tests.cpp DEPS IC2DE::Debug DOCTEST)
+    ic2de_add_test(debug SOURCES tests/unit/debug_visuals_tests.cpp DEPS IC2DE::Debug)
 
-    ic2de_add_test(aiming SOURCES tests/unit/aiming_tests.cpp DEPS IC2DE::Aiming DOCTEST)
+    ic2de_add_test(aiming SOURCES tests/unit/aiming_tests.cpp DEPS IC2DE::Aiming)
 
     ic2de_add_test(interaction
         SOURCES tests/unit/interaction_tests.cpp
         DEPS IC2DE::Combat IC2DE::Interaction
-        DOCTEST
     )
 
     ic2de_add_test(render
@@ -808,7 +789,6 @@ if(IC2DE_BUILD_TESTS)
             tests/unit/projection25d_tests.cpp
             tests/unit/render2d_tests.cpp
         DEPS IC2DE::Render
-        DOCTEST
     )
 
     # The scenario table is game content rather than engine capability, so its
@@ -819,7 +799,6 @@ if(IC2DE_BUILD_TESTS)
             game/src/smoke_scenarios.cpp
         DEPS IC2DE::Core
         PRIVATE_INCLUDES game/src
-        DOCTEST
     )
 
     # Tests that drive a real executable. Each opens a window, so all of them

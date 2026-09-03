@@ -92,7 +92,7 @@ Editor enemy-stress checkpoint:
 - versioned runtime-project manifests with package-relative content paths;
 - separate development and shipping executables, a development-tools-off shipping preset, and static MSVC runtime linkage;
 - one-command minimal folder/ZIP packaging with a real GPU runtime smoke test;
-- headless clock, frame telemetry, flow/layers, input, Combat, EnemyIntent, projectiles, Health, GameplayState, project, GroundMap, NavGrid, NavPathfinding, NavAgent, Physics2D, animation, Aseprite, scene, presentation, jobs, World, and Render2D tests through CTest;
+- headless clock, frame telemetry, flow/layers, input, Combat, EnemyIntent, projectiles, Health, GameplayState, project, GroundMap, NavGrid, NavPathfinding, NavAgent, Physics2D, animation, Aseprite, scene, presentation, jobs, World, and Render2D tests through CTest, registered one entry per case rather than one per executable;
 - project warnings treated as errors.
 
 ## Build on Windows
@@ -287,6 +287,21 @@ powershell -ExecutionPolicy Bypass -File .	oolsuild.ps1 -Configuration Debug -R
 Adding a smoke test through `ic2de_add_smoke_test` applies that label
 automatically, so a new one cannot accidentally be handed to a machine that
 cannot run it.
+
+## Tests
+
+Tests use doctest. Each `TEST_CASE` is registered with CTest individually, so a
+failure names the case rather than the executable that contained it, and a
+single case can be run on its own:
+
+```powershell
+ctest --preset windows-debug -R "ic2de.combat.dodge starts"
+```
+
+`ic2de_add_test` wires doctest in for every test target, so a new test file
+needs no harness of its own: no failure counter, no `expect` helper and no
+`main`. Two files in one target is likewise just two entries under `SOURCES`;
+doctest collects cases across translation units.
 
 ## Formatting and static analysis
 

@@ -1,3 +1,5 @@
+#include <doctest/doctest.h>
+
 #include "ic2d/scene.hpp"
 #include "ic2d/scene_editor.hpp"
 
@@ -5,7 +7,6 @@
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <iterator>
 #include <optional>
 #include <stdexcept>
@@ -15,13 +16,15 @@
 
 namespace {
 
-int editor_failures = 0;
-
-void editor_expect(const bool condition, const std::string_view message) {
-    if (!condition) {
-        std::cerr << "FAIL: " << message << '\n';
-        ++editor_failures;
-    }
+// Each case gets its own directory. The previous harness shared one
+// across every case, which was safe only because a single entry point
+// ran them in a fixed order.
+[[nodiscard]] std::filesystem::path test_root(const std::string_view name) {
+    const std::filesystem::path root =
+        std::filesystem::temp_directory_path() / "ic2de-scene-editor-tests" / name;
+    std::filesystem::remove_all(root);
+    std::filesystem::create_directories(root);
+    return root;
 }
 
 void editor_write_file(const std::filesystem::path& path, const std::string_view contents) {
@@ -96,47 +99,49 @@ void editor_write_file(const std::filesystem::path& path, const std::string_view
     return *found;
 }
 
-void test_undo_and_redo_restore_document_state(const std::filesystem::path& root) {
+TEST_CASE("undo and redo restore document state") {
+    const std::filesystem::path root = test_root("undo-and-redo-restore-document-state");
     ic2d::SceneEditor editor = ic2d::SceneEditor::open(write_editor_scene(root, "history.scene"));
-    editor_expect(!editor.modified() && !editor.can_undo() && !editor.can_redo(),
+    CHECK_MESSAGE((!editor.modified() && !editor.can_undo() && !editor.can_redo()),
                   "A freshly opened scene must have no history and no unsaved edits.");
-    editor_expect(editor.prefabs().size() == 2 && editor.entities().size() == 3,
+    CHECK_MESSAGE((editor.prefabs().size() == 2 && editor.entities().size() == 3),
                   "The editor must inspect prefabs and placements through one seam.");
 
-    editor_expect(editor.rename_entity({4002}, "Renamed prop"),
+    CHECK_MESSAGE((editor.rename_entity({4002}, "Renamed prop")),
                   "Renaming an entity by UUID must succeed through the command seam.");
-    editor_expect(editor.modified() && editor.can_undo() && editor.history().size() == 1 &&
-                      editor.history().front().kind == ic2d::SceneEditKind::rename_entity,
+    CHECK_MESSAGE((editor.modified() && editor.can_undo() && editor.history().size() == 1 &&
+                   editor.history().front().kind == ic2d::SceneEditKind::rename_entity),
                   "An applied command must appear in history and mark the scene modified.");
 
-    editor_expect(editor.undo(), "Undo must revert the last applied command.");
+    CHECK_MESSAGE((editor.undo()), "Undo must revert the last applied command.");
     const std::optional<ic2d::SceneDocumentEntity> reverted = find_entity(editor, "prop");
-    editor_expect(reverted.has_value() && reverted->name == "Prop",
+    CHECK_MESSAGE((reverted.has_value() && reverted->name == "Prop"),
                   "Undo must restore the previous authored record exactly.");
-    editor_expect(!editor.modified() && !editor.can_undo() && editor.can_redo() &&
-                      editor.undone_count() == 1,
+    CHECK_MESSAGE((!editor.modified() && !editor.can_undo() && editor.can_redo() &&
+                   editor.undone_count() == 1),
                   "Undoing back to the saved state must clear the modified flag.");
 
-    editor_expect(editor.redo(), "Redo must reapply the undone command.");
+    CHECK_MESSAGE((editor.redo()), "Redo must reapply the undone command.");
     const std::optional<ic2d::SceneDocumentEntity> redone = find_entity(editor, "prop");
-    editor_expect(redone.has_value() && redone->name == "Renamed prop",
+    CHECK_MESSAGE((redone.has_value() && redone->name == "Renamed prop"),
                   "Redo must restore the edited record.");
-    editor_expect(editor.modified() && editor.undone_count() == 0,
+    CHECK_MESSAGE((editor.modified() && editor.undone_count() == 0),
                   "Redo must consume the undone command and mark the scene modified again.");
 
-    editor_expect(editor.rename_entity({4001}, "Renamed player"),
+    CHECK_MESSAGE((editor.rename_entity({4001}, "Renamed player")),
                   "A new command after redo must apply.");
-    editor_expect(!editor.can_redo(),
+    CHECK_MESSAGE((!editor.can_redo()),
                   "Applying a new command must discard the abandoned redo branch.");
 }
 
-void test_rejected_commands_leave_history_untouched(const std::filesystem::path& root) {
+TEST_CASE("rejected commands leave history untouched") {
+    const std::filesystem::path root = test_root("rejected-commands-leave-history-untouched");
     ic2d::SceneEditor editor = ic2d::SceneEditor::open(write_editor_scene(root, "rejected.scene"));
-    editor_expect(!editor.rename_entity({999999}, "Missing"),
+    CHECK_MESSAGE((!editor.rename_entity({999999}, "Missing")),
                   "Renaming an unknown UUID must report failure.");
-    editor_expect(!editor.move_unbound_entity({999999}, {1.0F, 0.0F, 1.0F}),
+    CHECK_MESSAGE((!editor.move_unbound_entity({999999}, {1.0F, 0.0F, 1.0F})),
                   "Moving an unknown UUID must report failure.");
-    editor_expect(!editor.destroy_prefab_instance({999999}),
+    CHECK_MESSAGE((!editor.destroy_prefab_instance({999999})),
                   "Destroying an unknown UUID must report failure.");
 
     bool bound_move_rejected = false;
@@ -145,7 +150,7 @@ void test_rejected_commands_leave_history_untouched(const std::filesystem::path&
     } catch (const std::invalid_argument&) {
         bound_move_rejected = true;
     }
-    editor_expect(bound_move_rejected,
+    CHECK_MESSAGE((bound_move_rejected),
                   "The editor must not bypass physics ownership of bound placements.");
 
     bool authored_destroy_rejected = false;
@@ -154,7 +159,7 @@ void test_rejected_commands_leave_history_untouched(const std::filesystem::path&
     } catch (const std::invalid_argument&) {
         authored_destroy_rejected = true;
     }
-    editor_expect(authored_destroy_rejected,
+    CHECK_MESSAGE((authored_destroy_rejected),
                   "Authored entity records must not be removed by the prefab command.");
 
     bool referenced_destroy_rejected = false;
@@ -163,14 +168,15 @@ void test_rejected_commands_leave_history_untouched(const std::filesystem::path&
     } catch (const std::invalid_argument&) {
         referenced_destroy_rejected = true;
     }
-    editor_expect(referenced_destroy_rejected,
+    CHECK_MESSAGE((referenced_destroy_rejected),
                   "An instance an animation binding still names must not be removed.");
 
-    editor_expect(!editor.modified() && !editor.can_undo() && editor.history().empty(),
+    CHECK_MESSAGE((!editor.modified() && !editor.can_undo() && editor.history().empty()),
                   "Rejected commands must leave the document and history untouched.");
 }
 
-void test_prefab_instances_are_created_and_destroyed(const std::filesystem::path& root) {
+TEST_CASE("prefab instances are created and destroyed") {
+    const std::filesystem::path root = test_root("prefab-instances-are-created-and-destroyed");
     const std::filesystem::path path = write_editor_scene(root, "instances.scene");
     ic2d::SceneEditor editor = ic2d::SceneEditor::open(path);
 
@@ -181,25 +187,25 @@ void test_prefab_instances_are_created_and_destroyed(const std::filesystem::path
         .position = {32.0F, 0.0F, -8.0F},
     };
     const ic2d::EntityUuid created = editor.create_prefab_instance(placement);
-    editor_expect(static_cast<bool>(created),
+    CHECK_MESSAGE((static_cast<bool>(created)),
                   "Instantiating a declared prefab must allocate a stable identity.");
     const std::optional<ic2d::SceneDocumentEntity> instance = find_entity(editor, "marker-b");
-    editor_expect(instance.has_value() && instance->prefab_id == "marker" &&
-                      instance->uuid == created && !instance->physics_bound,
+    CHECK_MESSAGE((instance.has_value() && instance->prefab_id == "marker" &&
+                   instance->uuid == created && !instance->physics_bound),
                   "A created instance must be inspectable and unbound.");
 
     const ic2d::SceneDefinition runtime_copy = editor.runtime_copy();
     const auto materialized =
         std::ranges::find(runtime_copy.entities(), created, &ic2d::SceneEntityDefinition::uuid);
-    editor_expect(materialized != runtime_copy.entities().end() &&
-                      materialized->sprite.size.x == 8.0F && materialized->sprite.layer == 1 &&
-                      materialized->sprite.texture_id == "crate",
+    CHECK_MESSAGE((materialized != runtime_copy.entities().end() &&
+                   materialized->sprite.size.x == 8.0F && materialized->sprite.layer == 1 &&
+                   materialized->sprite.texture_id == "crate"),
                   "An unsaved runtime copy must materialize the created instance from its prefab.");
-    editor_expect(editor_read_file(path).find("marker-b") == std::string::npos,
+    CHECK_MESSAGE((editor_read_file(path).find("marker-b") == std::string::npos),
                   "Creating an instance must not modify the authored source file.");
 
     ic2d::SceneEditor repeated = ic2d::SceneEditor::open(path);
-    editor_expect(repeated.create_prefab_instance(placement) == created,
+    CHECK_MESSAGE((repeated.create_prefab_instance(placement) == created),
                   "Identity allocation must be deterministic for the same scene and instance id.");
 
     bool duplicate_rejected = false;
@@ -208,99 +214,103 @@ void test_prefab_instances_are_created_and_destroyed(const std::filesystem::path
     } catch (const std::invalid_argument&) {
         duplicate_rejected = true;
     }
-    editor_expect(duplicate_rejected, "Instance ids must remain unique within a scene.");
-    editor_expect(!editor.create_prefab_instance({
+    CHECK_MESSAGE((duplicate_rejected), "Instance ids must remain unique within a scene.");
+    CHECK_MESSAGE((!editor.create_prefab_instance({
                       .prefab_id = "missing",
                       .instance_id = "marker-c",
                       .name = "Marker C",
                       .position = {},
-                  }),
+                  })),
                   "Instantiating an undeclared prefab must report failure.");
-    editor_expect(editor.history().size() == 1, "Only the accepted creation may enter history.");
+    CHECK_MESSAGE((editor.history().size() == 1), "Only the accepted creation may enter history.");
 
-    editor_expect(editor.destroy_prefab_instance(created),
+    CHECK_MESSAGE((editor.destroy_prefab_instance(created)),
                   "A created instance must be removable through the same seam.");
-    editor_expect(!find_entity(editor, "marker-b").has_value(),
+    CHECK_MESSAGE((!find_entity(editor, "marker-b").has_value()),
                   "Destroying an instance must remove its placement.");
-    editor_expect(editor.undo() && find_entity(editor, "marker-b").has_value(),
+    CHECK_MESSAGE((editor.undo() && find_entity(editor, "marker-b").has_value()),
                   "Undo must restore a destroyed instance.");
 }
 
-void test_destroying_an_instance_removes_its_overrides(const std::filesystem::path& root) {
+TEST_CASE("destroying an instance removes its overrides") {
+    const std::filesystem::path root = test_root("destroying-an-instance-removes-its-overrides");
     const std::filesystem::path path = write_editor_scene(root, "overrides.scene");
     ic2d::SceneEditor editor = ic2d::SceneEditor::open(path);
-    editor_expect(editor.destroy_prefab_instance({4003}),
+    CHECK_MESSAGE((editor.destroy_prefab_instance({4003})),
                   "An authored instance without references must be removable.");
     editor.save_atomic(path);
-    editor_expect(editor_read_file(path).find("prefab_override=marker-a") == std::string::npos,
+    CHECK_MESSAGE((editor_read_file(path).find("prefab_override=marker-a") == std::string::npos),
                   "Destroying an instance must remove the overrides that address it.");
-    editor_expect(!editor.modified(),
+    CHECK_MESSAGE((!editor.modified()),
                   "Saving over the opened document must clear the modified flag.");
 
-    editor_expect(editor.undo(), "Undo must restore the destroyed instance and its overrides.");
+    CHECK_MESSAGE((editor.undo()), "Undo must restore the destroyed instance and its overrides.");
     const ic2d::SceneDefinition restored = editor.runtime_copy();
     const auto marker = std::ranges::find(restored.entities(), ic2d::EntityUuid{4003},
                                           &ic2d::SceneEntityDefinition::uuid);
-    editor_expect(marker != restored.entities().end() && marker->sprite.size.x == 12.0F &&
-                      marker->sprite.size.y == 6.0F,
+    CHECK_MESSAGE((marker != restored.entities().end() && marker->sprite.size.x == 12.0F &&
+                   marker->sprite.size.y == 6.0F),
                   "A restored instance must keep the override that shaped its sprite.");
-    editor_expect(editor.modified(),
+    CHECK_MESSAGE((editor.modified()),
                   "Undoing past the saved state must mark the scene modified again.");
 }
 
-void test_saving_a_copy_keeps_the_document_modified(const std::filesystem::path& root) {
+TEST_CASE("saving a copy keeps the document modified") {
+    const std::filesystem::path root = test_root("saving-a-copy-keeps-the-document-modified");
     const std::filesystem::path path = write_editor_scene(root, "save-as-source.scene");
     ic2d::SceneEditor editor = ic2d::SceneEditor::open(path);
-    editor_expect(editor.rename_entity({4003}, "Renamed marker"), "The rename must apply.");
+    CHECK_MESSAGE((editor.rename_entity({4003}, "Renamed marker")), "The rename must apply.");
 
     const std::filesystem::path copy = root / "save-as-copy.scene";
     editor.save_atomic(copy);
-    editor_expect(editor.modified(),
+    CHECK_MESSAGE((editor.modified()),
                   "Saving a copy elsewhere must not mark the opened document saved.");
-    editor_expect(editor_read_file(copy).find("Renamed marker") != std::string::npos,
+    CHECK_MESSAGE((editor_read_file(copy).find("Renamed marker") != std::string::npos),
                   "A saved copy must contain the edited records.");
-    editor_expect(editor_read_file(path).find("Renamed marker") == std::string::npos,
+    CHECK_MESSAGE((editor_read_file(path).find("Renamed marker") == std::string::npos),
                   "Saving a copy must leave the source file untouched.");
 
     editor.save_atomic(path);
-    editor_expect(!editor.modified() &&
-                      editor_read_file(path).find("Renamed marker") != std::string::npos,
-                  "Saving over the source must persist edits and clear the modified flag.");
+    CHECK_MESSAGE(
+        (!editor.modified() && editor_read_file(path).find("Renamed marker") != std::string::npos),
+        "Saving over the source must persist edits and clear the modified flag.");
 }
 
-void test_diverging_from_saved_history_stays_modified(const std::filesystem::path& root) {
+TEST_CASE("diverging from saved history stays modified") {
+    const std::filesystem::path root = test_root("diverging-from-saved-history-stays-modified");
     const std::filesystem::path path = write_editor_scene(root, "diverged-history.scene");
     ic2d::SceneEditor editor = ic2d::SceneEditor::open(path);
 
-    editor_expect(editor.rename_entity({4003}, "Saved branch"),
+    CHECK_MESSAGE((editor.rename_entity({4003}, "Saved branch")),
                   "The edit that establishes the saved branch must apply.");
     editor.save_atomic(path);
-    editor_expect(!editor.modified(), "Saving the current revision must mark it clean.");
+    CHECK_MESSAGE((!editor.modified()), "Saving the current revision must mark it clean.");
 
-    editor_expect(editor.undo(), "The saved edit must be undoable.");
-    editor_expect(editor.rename_entity({4003}, "Different branch"),
+    CHECK_MESSAGE((editor.undo()), "The saved edit must be undoable.");
+    CHECK_MESSAGE((editor.rename_entity({4003}, "Different branch")),
                   "A replacement edit must create a new history branch.");
-    editor_expect(editor.modified(),
+    CHECK_MESSAGE((editor.modified()),
                   "A different branch at the same history depth must remain modified.");
-    editor_expect(!editor.can_redo(),
+    CHECK_MESSAGE((!editor.can_redo()),
                   "Diverging from an undo must discard the saved branch from redo.");
 }
 
-void test_bounded_history_drops_the_oldest_command(const std::filesystem::path& root) {
+TEST_CASE("bounded history drops the oldest command") {
+    const std::filesystem::path root = test_root("bounded-history-drops-the-oldest-command");
     ic2d::SceneEditor editor{ic2d::SceneDocument::open(write_editor_scene(root, "bounded.scene")),
                              2};
-    editor_expect(editor.rename_entity({4003}, "First"), "The first rename must apply.");
-    editor_expect(editor.rename_entity({4003}, "Second"), "The second rename must apply.");
-    editor_expect(editor.rename_entity({4003}, "Third"), "The third rename must apply.");
-    editor_expect(editor.history().size() == 2,
+    CHECK_MESSAGE((editor.rename_entity({4003}, "First")), "The first rename must apply.");
+    CHECK_MESSAGE((editor.rename_entity({4003}, "Second")), "The second rename must apply.");
+    CHECK_MESSAGE((editor.rename_entity({4003}, "Third")), "The third rename must apply.");
+    CHECK_MESSAGE((editor.history().size() == 2),
                   "A bounded history must retain only the most recent commands.");
 
-    editor_expect(editor.undo() && editor.undo(), "The retained commands must be undoable.");
-    editor_expect(!editor.can_undo(), "History must not undo past its retained commands.");
+    CHECK_MESSAGE((editor.undo() && editor.undo()), "The retained commands must be undoable.");
+    CHECK_MESSAGE((!editor.can_undo()), "History must not undo past its retained commands.");
     const std::optional<ic2d::SceneDocumentEntity> marker = find_entity(editor, "marker-a");
-    editor_expect(marker.has_value() && marker->name == "First",
+    CHECK_MESSAGE((marker.has_value() && marker->name == "First"),
                   "Undoing a bounded history must stop at the oldest retained state.");
-    editor_expect(editor.modified(),
+    CHECK_MESSAGE((editor.modified()),
                   "A scene whose saved state left history must stay modified until saved.");
 }
 
@@ -309,7 +319,9 @@ void test_bounded_history_drops_the_oldest_command(const std::filesystem::path& 
 // Sprite editing is the command that touches the most fields of a record, so
 // it is checked for exact round-tripping, for refusing content it does not own,
 // and for leaving the record clean when a depth span is cleared.
-void test_sprite_edits_round_trip_and_reject_prefab_instances(const std::filesystem::path& root) {
+TEST_CASE("sprite edits round trip and reject prefab instances") {
+    const std::filesystem::path root =
+        test_root("sprite-edits-round-trip-and-reject-prefab-instances");
     ic2d::SceneEditor editor = ic2d::SceneEditor::open(write_editor_scene(root, "sprite.scene"));
 
     ic2d::SceneDocumentSprite edited{
@@ -320,39 +332,39 @@ void test_sprite_edits_round_trip_and_reject_prefab_instances(const std::filesys
         .texture_id = {},
         .depth_span = 240.0F,
     };
-    editor_expect(editor.set_entity_sprite({4002}, edited),
+    CHECK_MESSAGE((editor.set_entity_sprite({4002}, edited)),
                   "Editing a plain entity sprite must apply.");
     const auto stored = find_entity(editor, "prop");
-    editor_expect(stored.has_value() && stored->has_own_sprite,
+    CHECK_MESSAGE((stored.has_value() && stored->has_own_sprite),
                   "A plain entity must report an editable sprite.");
-    editor_expect(stored && stored->sprite.size.x == 72.0F && stored->sprite.size.y == 42.0F &&
-                      stored->sprite.normalized_origin.x == 0.25F &&
-                      stored->sprite.normalized_origin.y == 0.75F,
+    CHECK_MESSAGE((stored && stored->sprite.size.x == 72.0F && stored->sprite.size.y == 42.0F &&
+                   stored->sprite.normalized_origin.x == 0.25F &&
+                   stored->sprite.normalized_origin.y == 0.75F),
                   "Sprite geometry must round-trip through the document.");
-    editor_expect(stored && stored->sprite.tint.red == 190 && stored->sprite.tint.green == 92 &&
-                      stored->sprite.tint.blue == 72 && stored->sprite.tint.alpha == 200 &&
-                      stored->sprite.layer == 3,
+    CHECK_MESSAGE((stored && stored->sprite.tint.red == 190 && stored->sprite.tint.green == 92 &&
+                   stored->sprite.tint.blue == 72 && stored->sprite.tint.alpha == 200 &&
+                   stored->sprite.layer == 3),
                   "Tint and layer must round-trip through the document.");
-    editor_expect(stored && stored->sprite.texture_id.empty(),
+    CHECK_MESSAGE((stored && stored->sprite.texture_id.empty()),
                   "Clearing the texture must store an untextured record.");
-    editor_expect(stored && stored->sprite.depth_span == 240.0F,
+    CHECK_MESSAGE((stored && stored->sprite.depth_span == 240.0F),
                   "A depth span must round-trip through the document.");
 
     // The runtime copy is the real proof: the edit has to survive full scene
     // validation, not merely sit in the text.
-    editor_expect(editor.runtime_copy().entities().size() == 3,
+    CHECK_MESSAGE((editor.runtime_copy().entities().size() == 3),
                   "An edited document must still validate as a runtime scene.");
 
     edited.depth_span = 0.0F;
-    editor_expect(editor.set_entity_sprite({4002}, edited), "Clearing a depth span must apply.");
+    CHECK_MESSAGE((editor.set_entity_sprite({4002}, edited)), "Clearing a depth span must apply.");
     const auto cleared = find_entity(editor, "prop");
-    editor_expect(cleared && cleared->sprite.depth_span == 0.0F,
+    CHECK_MESSAGE((cleared && cleared->sprite.depth_span == 0.0F),
                   "A cleared depth span must read back as zero.");
 
-    editor_expect(editor.undo() && editor.undo(), "Both sprite edits must be undoable.");
+    CHECK_MESSAGE((editor.undo() && editor.undo()), "Both sprite edits must be undoable.");
     const auto restored = find_entity(editor, "prop");
-    editor_expect(restored && restored->sprite.size.x == 16.0F &&
-                      restored->sprite.texture_id == "crate" && restored->sprite.depth_span == 0.0F,
+    CHECK_MESSAGE((restored && restored->sprite.size.x == 16.0F &&
+                   restored->sprite.texture_id == "crate" && restored->sprite.depth_span == 0.0F),
                   "Undo must restore every original sprite field.");
 
     // A prefab instance draws its template, so editing one placement must not
@@ -363,7 +375,7 @@ void test_sprite_edits_round_trip_and_reject_prefab_instances(const std::filesys
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    editor_expect(rejected, "Editing a prefab instance sprite must be rejected.");
+    CHECK_MESSAGE((rejected), "Editing a prefab instance sprite must be rejected.");
 
     bool invalid_rejected = false;
     try {
@@ -373,15 +385,16 @@ void test_sprite_edits_round_trip_and_reject_prefab_instances(const std::filesys
     } catch (const std::invalid_argument&) {
         invalid_rejected = true;
     }
-    editor_expect(invalid_rejected, "A non-positive sprite size must be rejected.");
-    editor_expect(!editor.set_entity_sprite({999999}, edited),
+    CHECK_MESSAGE((invalid_rejected), "A non-positive sprite size must be rejected.");
+    CHECK_MESSAGE((!editor.set_entity_sprite({999999}, edited)),
                   "Editing a missing entity must report failure, not throw.");
 }
 
 // Creating and destroying plain entities is the pair that can corrupt a scene
 // most easily, so both are checked for identity allocation, for validation
 // before the edit is committed, and for refusing to break a reference.
-void test_entities_are_created_and_destroyed(const std::filesystem::path& root) {
+TEST_CASE("entities are created and destroyed") {
+    const std::filesystem::path root = test_root("entities-are-created-and-destroyed");
     ic2d::SceneEditor editor = ic2d::SceneEditor::open(write_editor_scene(root, "create.scene"));
     const std::size_t before = editor.entities().size();
 
@@ -400,27 +413,28 @@ void test_entities_are_created_and_destroyed(const std::filesystem::path& root) 
             },
     };
     const ic2d::EntityUuid created = editor.create_entity(wall);
-    editor_expect(created && created.value != 0, "Creating an entity must allocate a stable UUID.");
-    editor_expect(editor.entities().size() == before + 1,
+    CHECK_MESSAGE((created && created.value != 0),
+                  "Creating an entity must allocate a stable UUID.");
+    CHECK_MESSAGE((editor.entities().size() == before + 1),
                   "A created entity must appear in the document.");
     const auto stored = find_entity(editor, "north-wall");
-    editor_expect(stored && stored->has_own_sprite && stored->name == "North wall" &&
-                      stored->sprite.size.x == 64.0F && stored->sprite.texture_id.empty(),
+    CHECK_MESSAGE((stored && stored->has_own_sprite && stored->name == "North wall" &&
+                   stored->sprite.size.x == 64.0F && stored->sprite.texture_id.empty()),
                   "A created entity must carry the requested name and sprite.");
-    editor_expect(!stored->physics_bound, "An editor-created entity must be unbound.");
+    CHECK_MESSAGE((!stored->physics_bound), "An editor-created entity must be unbound.");
 
     // A depth-spanned wall is the case the schema 10 field exists for.
     ic2d::SceneEntityPlacement spanned = wall;
     spanned.id = "west-wall";
     spanned.name = "West wall";
     spanned.sprite.depth_span = 120.0F;
-    editor_expect(editor.create_entity(spanned).value != 0,
+    CHECK_MESSAGE((editor.create_entity(spanned).value != 0),
                   "Creating a depth-spanned wall must succeed.");
     const auto span_stored = find_entity(editor, "west-wall");
-    editor_expect(span_stored && span_stored->sprite.depth_span == 120.0F,
+    CHECK_MESSAGE((span_stored && span_stored->sprite.depth_span == 120.0F),
                   "A created wall must keep its depth span.");
 
-    editor_expect(editor.runtime_copy().entities().size() == before + 2,
+    CHECK_MESSAGE((editor.runtime_copy().entities().size() == before + 2),
                   "Created entities must survive full scene validation.");
 
     bool duplicate_rejected = false;
@@ -429,7 +443,7 @@ void test_entities_are_created_and_destroyed(const std::filesystem::path& root) 
     } catch (const std::invalid_argument&) {
         duplicate_rejected = true;
     }
-    editor_expect(duplicate_rejected, "A duplicate entity id must be rejected.");
+    CHECK_MESSAGE((duplicate_rejected), "A duplicate entity id must be rejected.");
 
     // An unknown texture is only detectable by validating the whole scene, so
     // it must be caught at the command rather than at save time.
@@ -443,18 +457,18 @@ void test_entities_are_created_and_destroyed(const std::filesystem::path& root) 
     } catch (const std::exception&) {
         unknown_texture_rejected = true;
     }
-    editor_expect(unknown_texture_rejected,
+    CHECK_MESSAGE((unknown_texture_rejected),
                   "An unknown texture reference must be rejected when the entity is created.");
-    editor_expect(!find_entity(editor, "broken").has_value(),
+    CHECK_MESSAGE((!find_entity(editor, "broken").has_value()),
                   "A rejected creation must leave no record behind.");
 
-    editor_expect(editor.destroy_entity(created), "Destroying a plain entity must succeed.");
-    editor_expect(!find_entity(editor, "north-wall").has_value(),
+    CHECK_MESSAGE((editor.destroy_entity(created)), "Destroying a plain entity must succeed.");
+    CHECK_MESSAGE((!find_entity(editor, "north-wall").has_value()),
                   "A destroyed entity must leave the document.");
-    editor_expect(editor.undo() && find_entity(editor, "north-wall").has_value(),
+    CHECK_MESSAGE((editor.undo() && find_entity(editor, "north-wall").has_value()),
                   "Undo must restore a destroyed entity.");
 
-    editor_expect(!editor.destroy_entity({999999}),
+    CHECK_MESSAGE((!editor.destroy_entity({999999})),
                   "Destroying an unknown UUID must report failure.");
 
     bool prefab_rejected = false;
@@ -463,7 +477,7 @@ void test_entities_are_created_and_destroyed(const std::filesystem::path& root) 
     } catch (const std::invalid_argument&) {
         prefab_rejected = true;
     }
-    editor_expect(prefab_rejected,
+    CHECK_MESSAGE((prefab_rejected),
                   "A prefab instance must not be removed by the plain entity command.");
 
     // The fixture binds animations to the player instance, and the prop is a
@@ -476,29 +490,6 @@ void test_entities_are_created_and_destroyed(const std::filesystem::path& root) 
     } catch (const std::exception&) {
         referenced_rejected = true;
     }
-    editor_expect(!referenced_rejected || bound.entities().size() == 3,
+    CHECK_MESSAGE((!referenced_rejected || bound.entities().size() == 3),
                   "Destroying a referenced entity must leave the document intact.");
-}
-
-int run_scene_editor_tests() {
-    const std::filesystem::path root =
-        std::filesystem::temp_directory_path() / "ic2de-scene-editor-tests";
-    std::filesystem::remove_all(root);
-    std::filesystem::create_directories(root);
-
-    test_undo_and_redo_restore_document_state(root);
-    test_rejected_commands_leave_history_untouched(root);
-    test_prefab_instances_are_created_and_destroyed(root);
-    test_destroying_an_instance_removes_its_overrides(root);
-    test_saving_a_copy_keeps_the_document_modified(root);
-    test_diverging_from_saved_history_stays_modified(root);
-    test_bounded_history_drops_the_oldest_command(root);
-    test_sprite_edits_round_trip_and_reject_prefab_instances(root);
-    test_entities_are_created_and_destroyed(root);
-
-    std::filesystem::remove_all(root);
-    if (editor_failures == 0) {
-        std::cout << "Scene editor tests passed.\n";
-    }
-    return editor_failures;
 }
