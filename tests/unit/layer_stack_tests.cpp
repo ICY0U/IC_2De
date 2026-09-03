@@ -1,7 +1,8 @@
+#include <doctest/doctest.h>
+
 #include "ic2d/layer_stack.hpp"
 
 #include <functional>
-#include <iostream>
 #include <limits>
 #include <memory>
 #include <stdexcept>
@@ -11,15 +12,6 @@
 #include <vector>
 
 namespace {
-
-int failures = 0;
-
-void expect(const bool condition, const std::string_view message) {
-    if (!condition) {
-        std::cerr << "FAIL: " << message << '\n';
-        ++failures;
-    }
-}
 
 class RecordingLayer final : public ic2d::Layer {
 public:
@@ -63,7 +55,7 @@ private:
     };
 }
 
-void test_update_and_event_order() {
+TEST_CASE("update and event order") {
     std::vector<std::string> log;
     {
         ic2d::LayerStack stack;
@@ -80,14 +72,15 @@ void test_update_and_event_order() {
             "update:world", "update:gameplay", "update:tools",
             "event:tools",  "event:gameplay",  "event:world",
         };
-        expect(log == expected, "Layers must update bottom-up and receive events top-down.");
+        CHECK_MESSAGE((log == expected),
+                      "Layers must update bottom-up and receive events top-down.");
     }
-    expect(log.size() >= 3 && log[log.size() - 3] == "detach:tools" &&
-               log[log.size() - 2] == "detach:gameplay" && log.back() == "detach:world",
-           "LayerStack destruction must detach owned layers from top to bottom.");
+    CHECK_MESSAGE((log.size() >= 3 && log[log.size() - 3] == "detach:tools" &&
+                   log[log.size() - 2] == "detach:gameplay" && log.back() == "detach:world"),
+                  "LayerStack destruction must detach owned layers from top to bottom.");
 }
 
-void test_handled_event_stops_propagation() {
+TEST_CASE("handled event stops propagation") {
     std::vector<std::string> log;
     ic2d::LayerStack stack;
     static_cast<void>(stack.push_layer(std::make_unique<RecordingLayer>("world", log)));
@@ -96,11 +89,11 @@ void test_handled_event_stops_propagation() {
 
     const std::vector<ic2d::EngineEvent> events{test_event()};
     stack.dispatch(events);
-    expect(log == std::vector<std::string>{"event:modal"},
-           "A handled event must not reach lower layers.");
+    CHECK_MESSAGE((log == std::vector<std::string>{"event:modal"}),
+                  "A handled event must not reach lower layers.");
 }
 
-void test_structural_changes_are_deferred_until_after_dispatch() {
+TEST_CASE("structural changes are deferred until after dispatch") {
     std::vector<std::string> log;
     ic2d::LayerStack stack;
     const ic2d::LayerId world = stack.push_layer(std::make_unique<RecordingLayer>("world", log));
@@ -119,16 +112,16 @@ void test_structural_changes_are_deferred_until_after_dispatch() {
         "detach:world",
         "attach:console",
     };
-    expect(log == first_dispatch && stack.size() == 2,
-           "Push and removal requests must apply after the active event batch.");
+    CHECK_MESSAGE((log == first_dispatch && stack.size() == 2),
+                  "Push and removal requests must apply after the active event batch.");
 
     log.clear();
     stack.dispatch(events);
-    expect(log == std::vector<std::string>{"event:console", "event:tools"},
-           "The next event batch must observe the committed layer order.");
+    CHECK_MESSAGE((log == std::vector<std::string>{"event:console", "event:tools"}),
+                  "The next event batch must observe the committed layer order.");
 }
 
-void test_rejects_invalid_requests() {
+TEST_CASE("rejects invalid requests") {
     ic2d::LayerStack stack;
     bool null_rejected = false;
     try {
@@ -136,8 +129,8 @@ void test_rejects_invalid_requests() {
     } catch (const std::invalid_argument&) {
         null_rejected = true;
     }
-    expect(null_rejected, "A null owned layer must be rejected.");
-    expect(!stack.remove({999}), "Removing an unknown layer id must report failure.");
+    CHECK_MESSAGE((null_rejected), "A null owned layer must be rejected.");
+    CHECK_MESSAGE((!stack.remove({999})), "Removing an unknown layer id must report failure.");
 
     bool update_rejected = false;
     try {
@@ -145,7 +138,7 @@ void test_rejects_invalid_requests() {
     } catch (const std::invalid_argument&) {
         update_rejected = true;
     }
-    expect(update_rejected, "Invalid fixed-layer update timing must be rejected.");
+    CHECK_MESSAGE((update_rejected), "Invalid fixed-layer update timing must be rejected.");
 
     bool non_finite_rejected = false;
     try {
@@ -156,19 +149,7 @@ void test_rejects_invalid_requests() {
     } catch (const std::invalid_argument&) {
         non_finite_rejected = true;
     }
-    expect(non_finite_rejected, "Non-finite layer update timing must be rejected.");
+    CHECK_MESSAGE((non_finite_rejected), "Non-finite layer update timing must be rejected.");
 }
 
 } // namespace
-
-int main() {
-    test_update_and_event_order();
-    test_handled_event_stops_propagation();
-    test_structural_changes_are_deferred_until_after_dispatch();
-    test_rejects_invalid_requests();
-
-    if (failures == 0) {
-        std::cout << "Layer stack tests passed.\n";
-    }
-    return failures == 0 ? 0 : 1;
-}

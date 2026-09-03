@@ -1,20 +1,12 @@
+#include <doctest/doctest.h>
+
 #include "ic2d/gameplay_state.hpp"
 
 #include <algorithm>
-#include <iostream>
 #include <stdexcept>
 #include <string_view>
 
 namespace {
-
-int failures = 0;
-
-void expect(const bool condition, const std::string_view message) {
-    if (!condition) {
-        std::cerr << "FAIL: " << message << '\n';
-        ++failures;
-    }
-}
 
 [[nodiscard]] ic2d::GameplayStateSnapshot representative_state() {
     ic2d::GameplayStateSnapshot state;
@@ -202,7 +194,7 @@ void expect(const bool condition, const std::string_view message) {
     return state;
 }
 
-void test_digest_is_canonical_across_snapshot_storage_order() {
+TEST_CASE("digest is canonical across snapshot storage order") {
     const ic2d::GameplayStateSnapshot original = representative_state();
     ic2d::GameplayStateSnapshot reordered = original;
     std::ranges::reverse(reordered.world.entities);
@@ -215,28 +207,31 @@ void test_digest_is_canonical_across_snapshot_storage_order() {
 
     const ic2d::GameplayStateDigest first = ic2d::gameplay_state_digest(original);
     const ic2d::GameplayStateDigest second = ic2d::gameplay_state_digest(reordered);
-    expect(first.schema_version == 3, "The digest must expose an explicit schema version.");
-    expect(first.value != 0 && first.value == second.value,
-           "Equivalent authoritative state must produce one digest regardless of vector order.");
+    CHECK_MESSAGE((first.schema_version == 3),
+                  "The digest must expose an explicit schema version.");
+    CHECK_MESSAGE(
+        (first.value != 0 && first.value == second.value),
+        "Equivalent authoritative state must produce one digest regardless of vector order.");
 }
 
-void test_digest_includes_health_hit_namespace_and_future_identity() {
+TEST_CASE("digest includes health hit namespace and future identity") {
     const ic2d::GameplayStateSnapshot baseline = representative_state();
     const ic2d::GameplayStateDigest baseline_digest = ic2d::gameplay_state_digest(baseline);
 
     ic2d::GameplayStateSnapshot changed_hit = baseline;
     ++changed_hit.health.accepted_hits.front().value;
-    expect(ic2d::gameplay_state_digest(changed_hit) != baseline_digest,
-           "Changing accepted hit identity must change future-state digest even when health totals "
-           "match.");
+    CHECK_MESSAGE(
+        (ic2d::gameplay_state_digest(changed_hit) != baseline_digest),
+        "Changing accepted hit identity must change future-state digest even when health totals "
+        "match.");
 
     ic2d::GameplayStateSnapshot changed_identity = baseline;
     ++changed_identity.health.next_event_sequence;
-    expect(ic2d::gameplay_state_digest(changed_identity) != baseline_digest,
-           "Changing the next Health event identity must change the digest.");
+    CHECK_MESSAGE((ic2d::gameplay_state_digest(changed_identity) != baseline_digest),
+                  "Changing the next Health event identity must change the digest.");
 }
 
-void test_digest_rejects_an_incomplete_fixed_tick_boundary() {
+TEST_CASE("digest rejects an incomplete fixed tick boundary") {
     ic2d::GameplayStateSnapshot pending = representative_state();
     pending.combat.pending_command_count = 1;
 
@@ -246,7 +241,8 @@ void test_digest_rejects_an_incomplete_fixed_tick_boundary() {
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    expect(rejected, "The digest must reject a snapshot with private pending command state.");
+    CHECK_MESSAGE((rejected),
+                  "The digest must reject a snapshot with private pending command state.");
 
     ic2d::GameplayStateSnapshot mismatched_tick = representative_state();
     ++mismatched_tick.health.tick;
@@ -256,7 +252,8 @@ void test_digest_rejects_an_incomplete_fixed_tick_boundary() {
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    expect(rejected, "The digest must reject subsystem snapshots from different fixed ticks.");
+    CHECK_MESSAGE((rejected),
+                  "The digest must reject subsystem snapshots from different fixed ticks.");
 
     mismatched_tick = representative_state();
     ++mismatched_tick.enemy_intent.tick;
@@ -266,7 +263,8 @@ void test_digest_rejects_an_incomplete_fixed_tick_boundary() {
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    expect(rejected, "The digest must reject EnemyIntent state from a different fixed tick.");
+    CHECK_MESSAGE((rejected),
+                  "The digest must reject EnemyIntent state from a different fixed tick.");
 
     mismatched_tick = representative_state();
     ++mismatched_tick.navigation.tick;
@@ -276,40 +274,41 @@ void test_digest_rejects_an_incomplete_fixed_tick_boundary() {
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    expect(rejected, "The digest must reject path-following state from a different fixed tick.");
+    CHECK_MESSAGE((rejected),
+                  "The digest must reject path-following state from a different fixed tick.");
 }
 
-void test_digest_includes_enemy_intent_and_future_attack_identity() {
+TEST_CASE("digest includes enemy intent and future attack identity") {
     const ic2d::GameplayStateSnapshot baseline = representative_state();
     const ic2d::GameplayStateDigest baseline_digest = ic2d::gameplay_state_digest(baseline);
 
     ic2d::GameplayStateSnapshot changed_cooldown = baseline;
     ++changed_cooldown.enemy_intent.actors.front().attack_cooldown_ticks_remaining;
-    expect(ic2d::gameplay_state_digest(changed_cooldown) != baseline_digest,
-           "Changing an attacker's future cooldown must change the digest.");
+    CHECK_MESSAGE((ic2d::gameplay_state_digest(changed_cooldown) != baseline_digest),
+                  "Changing an attacker's future cooldown must change the digest.");
 
     ic2d::GameplayStateSnapshot changed_identity = baseline;
     ++changed_identity.enemy_intent.next_event_sequence;
-    expect(ic2d::gameplay_state_digest(changed_identity) != baseline_digest,
-           "Changing the next enemy-intent event identity must change the digest.");
+    CHECK_MESSAGE((ic2d::gameplay_state_digest(changed_identity) != baseline_digest),
+                  "Changing the next enemy-intent event identity must change the digest.");
 }
 
-void test_digest_includes_navigation_route_and_repath_state() {
+TEST_CASE("digest includes navigation route and repath state") {
     const ic2d::GameplayStateSnapshot baseline = representative_state();
     const ic2d::GameplayStateDigest baseline_digest = ic2d::gameplay_state_digest(baseline);
 
     ic2d::GameplayStateSnapshot changed_waypoint = baseline;
     ++changed_waypoint.navigation.actors.back().waypoint_index;
-    expect(ic2d::gameplay_state_digest(changed_waypoint) != baseline_digest,
-           "Changing the next navigation waypoint must change the future-state digest.");
+    CHECK_MESSAGE((ic2d::gameplay_state_digest(changed_waypoint) != baseline_digest),
+                  "Changing the next navigation waypoint must change the future-state digest.");
 
     ic2d::GameplayStateSnapshot changed_repath = baseline;
     ++changed_repath.navigation.actors.back().next_repath_tick;
-    expect(ic2d::gameplay_state_digest(changed_repath) != baseline_digest,
-           "Changing the bounded repath deadline must change the digest.");
+    CHECK_MESSAGE((ic2d::gameplay_state_digest(changed_repath) != baseline_digest),
+                  "Changing the bounded repath deadline must change the digest.");
 }
 
-void test_digest_separates_authoritative_state_from_presentation() {
+TEST_CASE("digest separates authoritative state from presentation") {
     const ic2d::GameplayStateSnapshot baseline = representative_state();
     const ic2d::GameplayStateDigest baseline_digest = ic2d::gameplay_state_digest(baseline);
 
@@ -319,60 +318,45 @@ void test_digest_separates_authoritative_state_from_presentation() {
         .texture = {.index = 77, .generation = 5},
         .size = {128.0F, 96.0F},
     };
-    expect(ic2d::gameplay_state_digest(presentation_only) == baseline_digest,
-           "Names, sprites, and transient texture handles must not affect authoritative digest "
-           "state.");
+    CHECK_MESSAGE(
+        (ic2d::gameplay_state_digest(presentation_only) == baseline_digest),
+        "Names, sprites, and transient texture handles must not affect authoritative digest "
+        "state.");
 
     ic2d::GameplayStateSnapshot moved = baseline;
     moved.world.entities.front().transform.position.x += 1.0F;
-    expect(ic2d::gameplay_state_digest(moved) != baseline_digest,
-           "Changing an authoritative world transform must change the digest.");
+    CHECK_MESSAGE((ic2d::gameplay_state_digest(moved) != baseline_digest),
+                  "Changing an authoritative world transform must change the digest.");
 
     ic2d::GameplayStateSnapshot projectile_moved = baseline;
     projectile_moved.projectiles.active.front().position.z += 1.0F;
-    expect(ic2d::gameplay_state_digest(projectile_moved) != baseline_digest,
-           "Changing active projectile state must change the digest.");
+    CHECK_MESSAGE((ic2d::gameplay_state_digest(projectile_moved) != baseline_digest),
+                  "Changing active projectile state must change the digest.");
 
     ic2d::GameplayStateSnapshot damaged = baseline;
     damaged.health.targets.front().current_health -= 1.0F;
-    expect(ic2d::gameplay_state_digest(damaged) != baseline_digest,
-           "Changing target health must change the digest.");
+    CHECK_MESSAGE((ic2d::gameplay_state_digest(damaged) != baseline_digest),
+                  "Changing target health must change the digest.");
 
     ic2d::GameplayStateSnapshot redirected_dodge = baseline;
     redirected_dodge.combat.actors.back().dodge.direction = {0.0F, 1.0F};
-    expect(ic2d::gameplay_state_digest(redirected_dodge) != baseline_digest,
-           "Changing an actor's frozen dodge direction must change the digest.");
+    CHECK_MESSAGE((ic2d::gameplay_state_digest(redirected_dodge) != baseline_digest),
+                  "Changing an actor's frozen dodge direction must change the digest.");
 }
 
-void test_digest_includes_every_combat_actor_and_future_identity() {
+TEST_CASE("digest includes every combat actor and future identity") {
     const ic2d::GameplayStateSnapshot baseline = representative_state();
     const ic2d::GameplayStateDigest baseline_digest = ic2d::gameplay_state_digest(baseline);
 
     ic2d::GameplayStateSnapshot changed_actor = baseline;
     changed_actor.combat.actors.front().fire_held = false;
-    expect(ic2d::gameplay_state_digest(changed_actor) != baseline_digest,
-           "Changing a non-latest actor's held-fire state must change the digest.");
+    CHECK_MESSAGE((ic2d::gameplay_state_digest(changed_actor) != baseline_digest),
+                  "Changing a non-latest actor's held-fire state must change the digest.");
 
     ic2d::GameplayStateSnapshot changed_identity = baseline;
     ++changed_identity.combat.next_event_sequence;
-    expect(ic2d::gameplay_state_digest(changed_identity) != baseline_digest,
-           "Changing the next deterministic event identity must change the digest.");
+    CHECK_MESSAGE((ic2d::gameplay_state_digest(changed_identity) != baseline_digest),
+                  "Changing the next deterministic event identity must change the digest.");
 }
 
 } // namespace
-
-int main() {
-    test_digest_is_canonical_across_snapshot_storage_order();
-    test_digest_includes_every_combat_actor_and_future_identity();
-    test_digest_includes_enemy_intent_and_future_attack_identity();
-    test_digest_includes_navigation_route_and_repath_state();
-    test_digest_includes_health_hit_namespace_and_future_identity();
-    test_digest_rejects_an_incomplete_fixed_tick_boundary();
-    test_digest_separates_authoritative_state_from_presentation();
-    if (failures == 0) {
-        std::cout << "Gameplay-state digest tests passed.\n";
-        return 0;
-    }
-    std::cerr << failures << " gameplay-state digest assertion(s) failed.\n";
-    return 1;
-}

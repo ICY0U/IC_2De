@@ -202,7 +202,7 @@ endfunction()
 # Declares the executable ic2de_<name>_tests and registers it with CTest.
 function(ic2de_add_test name)
     cmake_parse_arguments(PARSE_ARGV 1 arg
-        ""
+        "DOCTEST"
         "TEST_NAME"
         "SOURCES;DEPS;PRIVATE_INCLUDES;DEFINITIONS"
     )
@@ -238,7 +238,15 @@ function(ic2de_add_test name)
     ic2de_set_project_warnings(${target})
     ic2de_set_project_analysis(${target})
 
-    add_test(NAME ${test_name} COMMAND ${target})
+    if(arg_DOCTEST)
+        target_sources(${target} PRIVATE tests/doctest_main.cpp)
+        target_link_libraries(${target} PRIVATE doctest::doctest)
+        # Registers one CTest entry per TEST_CASE instead of one per binary, so
+        # a failure names the case rather than only the executable that held it.
+        doctest_discover_tests(${target} TEST_PREFIX "${test_name}.")
+    else()
+        add_test(NAME ${test_name} COMMAND ${target})
+    endif()
 endfunction()
 
 # ic2de_add_smoke_test(<ctest-name>
@@ -578,6 +586,36 @@ if(IC2DE_BUILD_TESTS)
     include(CTest)
     enable_testing()
 
+    # doctest replaces the hand-rolled harness each test file used to carry: a
+    # file-local failure counter, an expect() helper and a main() that called
+    # every case in sequence. That harness reported a failure as the name of the
+    # executable it happened in, and offered no way to run one case.
+    #
+    # doctest is fetched but deliberately not configured as a subproject. Its
+    # own CMakeLists.txt still declares cmake_minimum_required(VERSION 3.0),
+    # which CMake 4 refuses outright, and none of that project is wanted here:
+    # doctest is a single header. Pointing SOURCE_SUBDIR at a directory holding
+    # no CMakeLists.txt makes FetchContent populate the sources without calling
+    # add_subdirectory on them.
+    FetchContent_Declare(
+        doctest
+        GIT_REPOSITORY https://github.com/doctest/doctest.git
+        GIT_TAG v2.4.11
+        GIT_SHALLOW TRUE
+        SOURCE_SUBDIR do-not-configure
+    )
+    FetchContent_MakeAvailable(doctest)
+
+    # SYSTEM, so that /W4 and /WX apply to this project's code and not to a
+    # third-party header it merely includes.
+    add_library(ic2de_doctest INTERFACE)
+    add_library(doctest::doctest ALIAS ic2de_doctest)
+    target_include_directories(ic2de_doctest SYSTEM INTERFACE "${doctest_SOURCE_DIR}")
+
+    # Supplies doctest_discover_tests. It is a standalone script and does not
+    # need the project above to have been configured.
+    include("${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake")
+
     set(IC2DE_TEST_FIXTURES
         IC2DE_TEST_FIXTURE_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures"
     )
@@ -595,11 +633,12 @@ if(IC2DE_BUILD_TESTS)
     ic2de_add_test(frame_telemetry
         SOURCES tests/unit/frame_telemetry_tests.cpp
         DEPS IC2DE::Core
+        DOCTEST
     )
 
-    ic2de_add_test(flow SOURCES tests/unit/layer_stack_tests.cpp DEPS IC2DE::Flow)
+    ic2de_add_test(flow SOURCES tests/unit/layer_stack_tests.cpp DEPS IC2DE::Flow DOCTEST)
 
-    ic2de_add_test(input SOURCES tests/unit/input_tests.cpp DEPS IC2DE::Input)
+    ic2de_add_test(input SOURCES tests/unit/input_tests.cpp DEPS IC2DE::Input DOCTEST)
 
     if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
         ic2de_add_test(editor_input
@@ -611,40 +650,46 @@ if(IC2DE_BUILD_TESTS)
         )
     endif()
 
-    ic2de_add_test(combat SOURCES tests/unit/combat_tests.cpp DEPS IC2DE::Combat)
+    ic2de_add_test(combat SOURCES tests/unit/combat_tests.cpp DEPS IC2DE::Combat DOCTEST)
 
     ic2de_add_test(enemy_intent
         SOURCES tests/unit/enemy_intent_tests.cpp
         DEPS IC2DE::EnemyIntent
+        DOCTEST
     )
 
     ic2de_add_test(projectile
         SOURCES tests/unit/projectile_tests.cpp
         DEPS IC2DE::Projectiles
         TEST_NAME ic2de.projectiles
+        DOCTEST
     )
 
     ic2de_add_test(actor_debug
         SOURCES tests/unit/actor_debug_tests.cpp
         DEPS IC2DE::ActorDebug
+        DOCTEST
     )
 
-    ic2de_add_test(health SOURCES tests/unit/health_tests.cpp DEPS IC2DE::Health)
+    ic2de_add_test(health SOURCES tests/unit/health_tests.cpp DEPS IC2DE::Health DOCTEST)
 
     ic2de_add_test(gameplay_state
         SOURCES tests/unit/gameplay_state_tests.cpp
         DEPS IC2DE::GameplayState
+        DOCTEST
     )
 
     ic2de_add_test(locomotion
         SOURCES tests/unit/locomotion_tests.cpp
         DEPS IC2DE::Locomotion
+        DOCTEST
     )
 
     ic2de_add_test(assets
         SOURCES tests/unit/assets_tests.cpp
         DEPS IC2DE::Assets raylib
         DEFINITIONS ${IC2DE_RUNTIME_ASSETS}
+        DOCTEST
     )
 
     ic2de_add_test(project
@@ -652,36 +697,40 @@ if(IC2DE_BUILD_TESTS)
         DEPS IC2DE::Project
     )
 
-    ic2de_add_test(ground SOURCES tests/unit/ground_map_tests.cpp DEPS IC2DE::Ground)
+    ic2de_add_test(ground SOURCES tests/unit/ground_map_tests.cpp DEPS IC2DE::Ground DOCTEST)
 
-    ic2de_add_test(nav_grid SOURCES tests/unit/nav_grid_tests.cpp DEPS IC2DE::NavGrid)
+    ic2de_add_test(nav_grid SOURCES tests/unit/nav_grid_tests.cpp DEPS IC2DE::NavGrid DOCTEST)
 
     ic2de_add_test(nav_pathfinding
         SOURCES tests/unit/nav_pathfinding_tests.cpp
         DEPS IC2DE::NavPathfinding
+        DOCTEST
     )
 
-    ic2de_add_test(nav_agent SOURCES tests/unit/nav_agent_tests.cpp DEPS IC2DE::NavAgent)
+    ic2de_add_test(nav_agent SOURCES tests/unit/nav_agent_tests.cpp DEPS IC2DE::NavAgent DOCTEST)
 
     ic2de_add_test(flow_field
         SOURCES tests/unit/flow_field_tests.cpp
         DEPS IC2DE::FlowField IC2DE::NavPathfinding
+        DOCTEST
     )
 
     ic2de_add_test(crowd
         SOURCES tests/unit/crowd_separation_tests.cpp
         DEPS IC2DE::Crowd
         TEST_NAME ic2de.crowd_separation
+        DOCTEST
     )
 
-    ic2de_add_test(physics SOURCES tests/unit/physics2d_tests.cpp DEPS IC2DE::Physics)
+    ic2de_add_test(physics SOURCES tests/unit/physics2d_tests.cpp DEPS IC2DE::Physics DOCTEST)
 
-    ic2de_add_test(animation SOURCES tests/unit/animation_tests.cpp DEPS IC2DE::Animation)
+    ic2de_add_test(animation SOURCES tests/unit/animation_tests.cpp DEPS IC2DE::Animation DOCTEST)
 
     ic2de_add_test(aseprite
         SOURCES tests/unit/aseprite_tests.cpp
         DEPS IC2DE::Aseprite
         DEFINITIONS ${IC2DE_TEST_FIXTURES}
+        DOCTEST
     )
 
     ic2de_add_test(scene
@@ -695,13 +744,14 @@ if(IC2DE_BUILD_TESTS)
     ic2de_add_test(presentation
         SOURCES tests/unit/presentation_tests.cpp
         DEPS IC2DE::Presentation
+        DOCTEST
     )
 
-    ic2de_add_test(jobs SOURCES tests/unit/jobs_tests.cpp DEPS IC2DE::Jobs)
+    ic2de_add_test(jobs SOURCES tests/unit/jobs_tests.cpp DEPS IC2DE::Jobs DOCTEST)
 
-    ic2de_add_test(world SOURCES tests/unit/world_tests.cpp DEPS IC2DE::World)
+    ic2de_add_test(world SOURCES tests/unit/world_tests.cpp DEPS IC2DE::World DOCTEST)
 
-    ic2de_add_test(debug SOURCES tests/unit/debug_visuals_tests.cpp DEPS IC2DE::Debug)
+    ic2de_add_test(debug SOURCES tests/unit/debug_visuals_tests.cpp DEPS IC2DE::Debug DOCTEST)
 
     ic2de_add_test(aiming SOURCES tests/unit/aiming_tests.cpp DEPS IC2DE::Aiming)
 
