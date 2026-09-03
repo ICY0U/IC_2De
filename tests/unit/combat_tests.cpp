@@ -2,6 +2,7 @@
 
 #include "ic2d/combat.hpp"
 
+#include <initializer_list>
 #include <limits>
 #include <stdexcept>
 #include <string_view>

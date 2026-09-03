@@ -2,6 +2,7 @@
 
 #include "ic2d/core/automated_run.hpp"
 
+#include <initializer_list>
 #include <string_view>
 
 namespace {

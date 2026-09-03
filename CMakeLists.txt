@@ -687,6 +687,7 @@ if(IC2DE_BUILD_TESTS)
                 tests/unit/editor_input_tests.cpp
             DEPS IC2DE::Editor
             PRIVATE_INCLUDES engine/src
+            DOCTEST
         )
     endif()
 
@@ -735,6 +736,7 @@ if(IC2DE_BUILD_TESTS)
     ic2de_add_test(project
         SOURCES tests/unit/runtime_project_tests.cpp
         DEPS IC2DE::Project
+        DOCTEST
     )
 
     ic2de_add_test(ground SOURCES tests/unit/ground_map_tests.cpp DEPS IC2DE::Ground DOCTEST)
@@ -805,6 +807,7 @@ if(IC2DE_BUILD_TESTS)
             tests/unit/projection25d_tests.cpp
             tests/unit/render2d_tests.cpp
         DEPS IC2DE::Render
+        DOCTEST
     )
 
     # The scenario table is game content rather than engine capability, so its
