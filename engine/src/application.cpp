@@ -67,6 +67,7 @@
 #include "ic2d/run_state.hpp"
 
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
+#include "editor/window_chrome.hpp"
 #include "ic2d/editor.hpp"
 #include "ic2d/editor_camera.hpp"
 #include "ic2d/scene_document.hpp"
@@ -586,100 +587,6 @@ FixedStepPhaseTotals fixed_step_phases;
     return seconds;
 }
 
-// Moving and sizing a window the platform no longer decorates.
-//
-// The anchor is what makes this stable. Resolving a drag against the previous
-// frame would feed the window's own movement back into the next delta, so a
-// window under a still pointer would drift; anchoring the pointer and the rect
-// once, at the press, means a still pointer always resolves to the rect it
-// started from.
-struct WindowChromeDrag {
-    EditorWindowDrag gesture{EditorWindowDrag::none};
-    Vector2 pointer{};
-    Vector2 position{};
-    Vector2 size{};
-};
-
-// Small enough to tuck a window away, large enough that the docked layout
-// still has somewhere to put every panel.
-constexpr float minimum_window_width = 720.0F;
-constexpr float minimum_window_height = 480.0F;
-
-[[nodiscard]] Vector2 desktop_pointer() noexcept {
-    const Vector2 window = GetWindowPosition();
-    const Vector2 pointer = GetMousePosition();
-    return {window.x + pointer.x, window.y + pointer.y};
-}
-
-void apply_window_chrome(const EditorWindowActions& request, WindowChromeDrag& drag) {
-    if (request.minimize) {
-        MinimizeWindow();
-    }
-    if (request.toggle_maximize) {
-        if (IsWindowMaximized()) {
-            RestoreWindow();
-        } else {
-            MaximizeWindow();
-        }
-    }
-    if (request.drag == EditorWindowDrag::none) {
-        drag.gesture = EditorWindowDrag::none;
-        return;
-    }
-    if (request.drag_started || drag.gesture != request.drag) {
-        drag = {
-            .gesture = request.drag,
-            .pointer = desktop_pointer(),
-            .position = GetWindowPosition(),
-            .size = {static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())},
-        };
-        return;
-    }
-
-    const Vector2 pointer = desktop_pointer();
-    const float moved_x = pointer.x - drag.pointer.x;
-    const float moved_y = pointer.y - drag.pointer.y;
-    if (request.drag == EditorWindowDrag::move) {
-        SetWindowPosition(static_cast<int>(std::lround(drag.position.x + moved_x)),
-                          static_cast<int>(std::lround(drag.position.y + moved_y)));
-        return;
-    }
-
-    const bool west = request.drag == EditorWindowDrag::resize_left ||
-                      request.drag == EditorWindowDrag::resize_top_left ||
-                      request.drag == EditorWindowDrag::resize_bottom_left;
-    const bool east = request.drag == EditorWindowDrag::resize_right ||
-                      request.drag == EditorWindowDrag::resize_top_right ||
-                      request.drag == EditorWindowDrag::resize_bottom_right;
-    const bool north = request.drag == EditorWindowDrag::resize_top ||
-                       request.drag == EditorWindowDrag::resize_top_left ||
-                       request.drag == EditorWindowDrag::resize_top_right;
-    const bool south = request.drag == EditorWindowDrag::resize_bottom ||
-                       request.drag == EditorWindowDrag::resize_bottom_left ||
-                       request.drag == EditorWindowDrag::resize_bottom_right;
-
-    float x = drag.position.x;
-    float y = drag.position.y;
-    float width = drag.size.x;
-    float height = drag.size.y;
-    if (east) {
-        width = std::max(minimum_window_width, drag.size.x + moved_x);
-    } else if (west) {
-        // Clamped on the width, then the origin is derived from it, so a
-        // window pulled past its minimum stops growing instead of walking its
-        // left edge across the desktop.
-        width = std::max(minimum_window_width, drag.size.x - moved_x);
-        x = drag.position.x + (drag.size.x - width);
-    }
-    if (south) {
-        height = std::max(minimum_window_height, drag.size.y + moved_y);
-    } else if (north) {
-        height = std::max(minimum_window_height, drag.size.y - moved_y);
-        y = drag.position.y + (drag.size.y - height);
-    }
-    SetWindowSize(static_cast<int>(std::lround(width)), static_cast<int>(std::lround(height)));
-    SetWindowPosition(static_cast<int>(std::lround(x)), static_cast<int>(std::lround(y)));
-}
 #endif
 
 [[nodiscard]] bool health_target_alive(const HealthSnapshot& health,

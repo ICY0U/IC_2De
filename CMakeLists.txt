@@ -473,6 +473,7 @@ if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
             engine/src/editor/editor_shell.cpp
             engine/src/editor/editor_ui.cpp
             engine/src/editor/imgui_raylib_backend.cpp
+            engine/src/editor/window_chrome.cpp
         PUBLIC_DEPS
             IC2DE::ActorDebug
             IC2DE::Aiming
