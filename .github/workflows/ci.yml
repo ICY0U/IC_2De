@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Pushes to a working branch match neither trigger above until a pull request
+  # exists for it, which is the intended flow but leaves no way to check that
+  # the workflow itself is sound before opening one. This adds a Run workflow
+  # button on the Actions tab for exactly that.
+  workflow_dispatch:
 
 # A newer push to the same branch makes the previous run's answer irrelevant.
 concurrency:
