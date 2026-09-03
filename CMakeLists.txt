@@ -505,6 +505,7 @@ ic2de_add_module(runtime ALIAS Runtime
         engine/src/application.cpp
         engine/src/core/renderdoc_capture.cpp
         engine/src/input/raylib_input_adapter.cpp
+        engine/src/render/canvas_overlay.cpp
         engine/src/render/frame_pipeline.cpp
         engine/src/render/gpu_backdrop.cpp
         engine/src/render/raylib_renderer2d.cpp
