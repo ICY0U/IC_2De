@@ -396,6 +396,18 @@ ic2de_add_module(world ALIAS World
     PRIVATE_DEPS EnTT::EnTT
 )
 
+ic2de_add_module(scene_submission ALIAS SceneSubmission
+    SOURCES engine/src/scene_submission.cpp
+    PUBLIC_DEPS
+        IC2DE::Debug
+        IC2DE::World
+        IC2DE::Ground
+        IC2DE::NavPathfinding
+        IC2DE::Physics
+        IC2DE::Projectiles
+        IC2DE::Render
+)
+
 ic2de_add_module(scene_binding ALIAS SceneBinding
     SOURCES engine/src/scene_binding.cpp
     PUBLIC_DEPS
@@ -521,6 +533,7 @@ ic2de_add_module(runtime ALIAS Runtime
         IC2DE::Render
         IC2DE::Scene
         IC2DE::SceneBinding
+        IC2DE::SceneSubmission
         IC2DE::World
         raylib
     PRIVATE_INCLUDES engine/src
