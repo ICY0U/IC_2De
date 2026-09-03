@@ -108,11 +108,16 @@ public:
     // Returns false for missing, already retired, or player identities.
     [[nodiscard]] bool retire_actor(EntityUuid actor) noexcept;
     // Starts a non-authoritative reaction override on a bound actor. Hurt
-    // returns to locomotion; death chains into explosion and keeps the sprite
-    // presented after gameplay retirement until both one-shots finish.
+    // returns to locomotion. Death and explosion are independent terminal
+    // one-shots: projectile death must never imply a detonation.
     [[nodiscard]] bool play_actor_hurt(EntityUuid actor);
     [[nodiscard]] bool begin_actor_death(EntityUuid actor);
+    [[nodiscard]] bool begin_actor_explosion(EntityUuid actor);
+    [[nodiscard]] bool is_actor_active(EntityUuid actor) const noexcept;
+    [[nodiscard]] std::uint64_t completed_actor_hurt_animation_count() const noexcept;
     [[nodiscard]] std::uint64_t completed_actor_terminal_animation_count() const noexcept;
+    [[nodiscard]] std::uint64_t completed_actor_death_animation_count() const noexcept;
+    [[nodiscard]] std::uint64_t completed_actor_explosion_animation_count() const noexcept;
     // Removes a non-player entity from presentation until reset(). Unlike
     // retire_actor this needs no physics body, so a pickup or any other plain
     // placement can be taken out of the scene once it has been used.

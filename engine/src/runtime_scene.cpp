@@ -748,6 +748,7 @@ struct RuntimeScene::Impl {
 
             BodyBinding& body = body_bindings[*animation.body_index];
             if (*animation.reaction_state == LocomotionState::hurt_south) {
+                ++completed_actor_hurt_animations;
                 animation.reaction_state.reset();
                 static_cast<void>(animation.player.play(
                     animation.state_clips[static_cast<std::size_t>(animation.current_state)],
@@ -755,13 +756,9 @@ struct RuntimeScene::Impl {
                 continue;
             }
             if (*animation.reaction_state == LocomotionState::death_south) {
-                const std::string& explosion =
-                    animation.state_clips[static_cast<std::size_t>(LocomotionState::explode_south)];
-                if (!explosion.empty()) {
-                    static_cast<void>(animation.player.play(explosion, true));
-                    animation.reaction_state = LocomotionState::explode_south;
-                    continue;
-                }
+                ++completed_actor_death_animations;
+            } else if (*animation.reaction_state == LocomotionState::explode_south) {
+                ++completed_actor_explosion_animations;
             }
 
             animation.reaction_state.reset();
@@ -981,6 +978,9 @@ struct RuntimeScene::Impl {
     std::uint64_t runtime_spawn_sequence{0};
     bool simulation_started{false};
     std::uint64_t completed_actor_terminal_animations{0};
+    std::uint64_t completed_actor_hurt_animations{0};
+    std::uint64_t completed_actor_death_animations{0};
+    std::uint64_t completed_actor_explosion_animations{0};
 };
 
 RuntimeScene::RuntimeScene(SceneDefinition definition, TextureAssets& textures)
@@ -1039,6 +1039,9 @@ void RuntimeScene::reset() {
     impl_->player_stationary_ticks = 0;
     impl_->player_shot_restarted = false;
     impl_->completed_actor_terminal_animations = 0;
+    impl_->completed_actor_hurt_animations = 0;
+    impl_->completed_actor_death_animations = 0;
+    impl_->completed_actor_explosion_animations = 0;
 }
 
 RuntimeSceneTickResult RuntimeScene::tick(const RuntimeScenePlayerMotion& player_motion,
@@ -1368,8 +1371,34 @@ bool RuntimeScene::begin_actor_death(const EntityUuid actor) {
     return impl_->play_actor_reaction(actor, LocomotionState::death_south, true);
 }
 
+bool RuntimeScene::begin_actor_explosion(const EntityUuid actor) {
+    return impl_->play_actor_reaction(actor, LocomotionState::explode_south, true);
+}
+
+bool RuntimeScene::is_actor_active(const EntityUuid actor) const noexcept {
+    const std::optional<EntityId> entity = impl_->world.find(actor);
+    if (!entity) {
+        return false;
+    }
+    const auto binding = impl_->entity_bindings.find(entity->value);
+    return binding != impl_->entity_bindings.end() &&
+           impl_->body_bindings[binding->second.body_index].active;
+}
+
+std::uint64_t RuntimeScene::completed_actor_hurt_animation_count() const noexcept {
+    return impl_->completed_actor_hurt_animations;
+}
+
 std::uint64_t RuntimeScene::completed_actor_terminal_animation_count() const noexcept {
     return impl_->completed_actor_terminal_animations;
+}
+
+std::uint64_t RuntimeScene::completed_actor_death_animation_count() const noexcept {
+    return impl_->completed_actor_death_animations;
+}
+
+std::uint64_t RuntimeScene::completed_actor_explosion_animation_count() const noexcept {
+    return impl_->completed_actor_explosion_animations;
 }
 bool RuntimeScene::retire_entity(const EntityUuid entity) noexcept {
     if (!entity || entity == player_uuid()) {

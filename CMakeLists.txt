@@ -734,6 +734,24 @@ if(IC2DE_BUILD_TESTS)
             ARGS --smoke-crowd-kill
         )
 
+        # One nonlethal projectile must play and recover from hurt without
+        # entering either terminal presentation path.
+        ic2de_add_smoke_test(ic2de.target_hurt
+            TARGET ic2de_editor_app
+            ARGS --smoke-target-hurt
+        )
+
+        # Projectile lethality must complete death without the proximity-only
+        # explosion, while attack-range entry must do the exact inverse.
+        ic2de_add_smoke_test(ic2de.target_death
+            TARGET ic2de_editor_app
+            ARGS --smoke-target-death
+        )
+        ic2de_add_smoke_test(ic2de.proximity_explosion
+            TARGET ic2de_editor_app
+            ARGS --smoke-moving-attacker
+        )
+
         # Reviving a retired actor has to restore everything it needs to be
         # shot again, not only its presentation. That is only observable across
         # a restart, so it needs a real scene and a second kill.

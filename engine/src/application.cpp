@@ -1129,6 +1129,7 @@ void draw_interaction_prompt(const Vec2 canvas_position) {
             // pursuit, no attack, no crowd shuffle. Its health is untouched,
             // so it stays solid and shootable and resumes when released.
             .actor_alive = health_target_alive(health_before, actor.actor) &&
+                           scene.is_actor_active(actor.actor) &&
                            !actor_overrides.enabled(actor.actor, ActorDebugFlag::frozen),
             .target_alive = cached_target_alive,
         });
@@ -1358,11 +1359,19 @@ void draw_interaction_prompt(const Vec2 canvas_position) {
             continue;
         }
         // Stress-test actors still acquire, pursue, reach attack state, and
-        // emit cooldown-authoritative attack requests. Only the final damage
-        // hand-off is suppressed so performance tests cannot kill the player.
+        // emit cooldown-authoritative attack requests. Their destructive
+        // hand-off is suppressed so the performance crowd remains intact.
         if (!enemy_attack_damage_enabled) {
             continue;
         }
+        // Attack range is the Fuse Stalker's proximity fuse. Detonation is a
+        // terminal alternative to being killed: it starts the explosion
+        // directly, retires collision/intent immediately, and never passes
+        // through the death animation.
+        if (!scene.begin_actor_explosion(attack->actor)) {
+            continue;
+        }
+        static_cast<void>(scene.retire_actor(attack->actor));
         if (combat.invulnerable(attack->target)) {
             ++enemy_observations.invulnerable_attacks_rejected;
             continue;
@@ -1393,8 +1402,9 @@ void draw_interaction_prompt(const Vec2 canvas_position) {
             if (scene.is_crowd_actor(death->target)) {
                 ++health_observations.retired_crowd_actor_count;
             }
-            // Gameplay retirement remains immediate, but the presentation is
-            // allowed to finish its collapse and explosion one-shots first.
+            // A lethal projectile hit owns the death path only. Gameplay
+            // retirement remains immediate while the collapse one-shot stays
+            // presented to completion; it must not imply an explosion.
             static_cast<void>(scene.begin_actor_death(death->target));
             if (scene.retire_actor(death->target)) {
                 ++health_observations.retired_actor_count;
@@ -3270,6 +3280,12 @@ int run_application(const ApplicationConfig& requested_config) {
 #endif
     const std::uint64_t completed_terminal_animations =
         scene->completed_actor_terminal_animation_count();
+    const std::uint64_t completed_hurt_animations =
+        scene->completed_actor_hurt_animation_count();
+    const std::uint64_t completed_death_animations =
+        scene->completed_actor_death_animation_count();
+    const std::uint64_t completed_explosion_animations =
+        scene->completed_actor_explosion_animation_count();
     gpu_backdrop.release();
     scene.reset();
     const bool texture_lifetime_valid = textures.loaded_texture_count() == 0;
@@ -3368,16 +3384,67 @@ int run_application(const ApplicationConfig& requested_config) {
                                 " deterministic death(s) and matching scene retirement(s).");
     }
     if (completed_terminal_animations < config.minimum_automated_terminal_animation_completions) {
-        throw std::runtime_error{
+        log(LogLevel::error,
             "Automated target-health validation completed only " +
-            std::to_string(completed_terminal_animations) +
-            " terminal animation sequence(s); expected at least " +
-            std::to_string(config.minimum_automated_terminal_animation_completions) + "."};
+                std::to_string(completed_terminal_animations) +
+                " terminal animation sequence(s); expected at least " +
+                std::to_string(config.minimum_automated_terminal_animation_completions) + ".");
+        return 31;
     }
     if (config.minimum_automated_terminal_animation_completions > 0) {
         log(LogLevel::info, "Automated terminal-presentation validation passed with " +
                                 std::to_string(completed_terminal_animations) +
-                                " completed death-to-explosion sequence(s).");
+                                " completed terminal one-shot(s).");
+    }
+    if (completed_hurt_animations < config.minimum_automated_hurt_animation_completions) {
+        log(LogLevel::error,
+            "Automated hit-reaction validation completed only " +
+                std::to_string(completed_hurt_animations) +
+                " hurt animation(s); expected at least " +
+                std::to_string(config.minimum_automated_hurt_animation_completions) + ".");
+        return 36;
+    }
+    if (completed_death_animations < config.minimum_automated_death_animation_completions) {
+        log(LogLevel::error,
+            "Automated death-presentation validation completed only " +
+                std::to_string(completed_death_animations) +
+                " death animation(s); expected at least " +
+                std::to_string(config.minimum_automated_death_animation_completions) + ".");
+        return 32;
+    }
+    if (completed_explosion_animations <
+        config.minimum_automated_explosion_animation_completions) {
+        log(LogLevel::error,
+            "Automated proximity-explosion validation completed only " +
+                std::to_string(completed_explosion_animations) +
+                " explosion animation(s); expected at least " +
+                std::to_string(config.minimum_automated_explosion_animation_completions) + ".");
+        return 33;
+    }
+    if (config.require_automated_zero_death_animation_completions &&
+        completed_death_animations != 0) {
+        log(LogLevel::error,
+            "Automated proximity-explosion validation unexpectedly completed " +
+                std::to_string(completed_death_animations) + " death animation(s).");
+        return 34;
+    }
+    if (config.require_automated_zero_explosion_animation_completions &&
+        completed_explosion_animations != 0) {
+        log(LogLevel::error,
+            "Automated projectile-death validation unexpectedly completed " +
+                std::to_string(completed_explosion_animations) + " explosion animation(s).");
+        return 35;
+    }
+    if (config.minimum_automated_hurt_animation_completions > 0 ||
+        config.minimum_automated_death_animation_completions > 0 ||
+        config.minimum_automated_explosion_animation_completions > 0 ||
+        config.require_automated_zero_death_animation_completions ||
+        config.require_automated_zero_explosion_animation_completions) {
+        log(LogLevel::info,
+            "Separated enemy presentation validation passed with " +
+                std::to_string(completed_hurt_animations) + " hurt, " +
+                std::to_string(completed_death_animations) + " death, and " +
+                std::to_string(completed_explosion_animations) + " explosion completion(s).");
     }
     if (health_observations.retired_crowd_actor_count <
         config.minimum_automated_crowd_actor_retirements) {

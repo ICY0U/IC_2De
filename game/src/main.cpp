@@ -148,20 +148,38 @@ int main(const int argc, const char* const argv[]) {
             config.automated_movement_direction = {0.98359346F, 0.18039931F};
             config.automated_aim = true;
             // Automated aim is camera-relative. This is the authored camera-space
-            // direction from the player to the patchwork target's X/Z position.
+            // direction from the player to the Fuse Tyrant's X/Z position.
             config.automated_aim_direction = {0.98359346F, 0.18039931F};
             config.automated_fire_hold_ticks = 18;
             config.minimum_automated_projectile_spawns = 3;
             config.minimum_automated_projectile_impacts = 3;
             config.minimum_automated_target_deaths = 1;
             config.minimum_automated_terminal_animation_completions = 1;
+            config.minimum_automated_death_animation_completions = 1;
+            config.require_automated_zero_explosion_animation_completions = true;
             config.validate_automated_route = false;
             // The target dies around tick 66. Leave enough deterministic time
-            // for the collapse and explosion one-shots to finish before the
-            // presentation retires.
-            config.max_fixed_ticks = 240;
-            config.capture_tick = 175;
+            // for the collapse one-shot to finish before presentation retires.
+            config.max_fixed_ticks = 180;
+            config.capture_tick = 105;
             config.capture_path = "build/runtime-target-death-smoke.png";
+        } else if (argument == "--smoke-target-hurt") {
+            config.start_with_editor = true;
+            config.enable_editor_texture_hot_reload = false;
+            config.automated_movement = true;
+            config.automated_movement_direction = {0.98359346F, 0.18039931F};
+            config.automated_aim = true;
+            config.automated_aim_direction = {0.98359346F, 0.18039931F};
+            config.automated_fire_hold_ticks = 1;
+            config.minimum_automated_projectile_spawns = 1;
+            config.minimum_automated_projectile_impacts = 1;
+            config.minimum_automated_hurt_animation_completions = 1;
+            config.require_automated_zero_death_animation_completions = true;
+            config.require_automated_zero_explosion_animation_completions = true;
+            config.validate_automated_route = false;
+            config.max_fixed_ticks = 120;
+            config.capture_tick = 62;
+            config.capture_path = "build/runtime-target-hurt-smoke.png";
         } else if (argument == "--smoke-dodge") {
             config.start_with_editor = true;
             config.enable_editor_texture_hot_reload = false;
@@ -213,8 +231,10 @@ int main(const int argc, const char* const argv[]) {
             config.minimum_automated_enemy_attacks = 1;
             config.minimum_automated_enemy_distance = 100.0F;
             config.minimum_automated_player_damage = 12.0F;
+            config.minimum_automated_explosion_animation_completions = 1;
+            config.require_automated_zero_death_animation_completions = true;
             config.validate_automated_route = false;
-            config.max_fixed_ticks = 150;
+            config.max_fixed_ticks = 240;
             config.capture_tick = 138;
             config.capture_path = "build/runtime-moving-attacker-smoke.png";
         } else if (argument == "--smoke-nav-grid") {
@@ -258,8 +278,8 @@ int main(const int argc, const char* const argv[]) {
             config.capture_path = "build/runtime-enemy-stress-smoke.png";
         } else if (argument == "--smoke-crowd-kill") {
             // Fires into a spawned crowd and requires that a body-less actor
-            // is hit, killed and retired, which is the whole of what taking
-            // crowd actors out of the physics world put at risk.
+            // is hit, gameplay-retired, and allowed to finish its authored
+            // death presentation without an unrelated explosion.
             config.start_with_editor = true;
             config.enable_editor_texture_hot_reload = false;
             config.initial_editor_enemy_stress_count = 400;
@@ -268,6 +288,9 @@ int main(const int argc, const char* const argv[]) {
             config.automated_fire_hold_ticks = 600;
             config.validate_automated_route = false;
             config.minimum_automated_crowd_actor_retirements = 1;
+            config.minimum_automated_terminal_animation_completions = 1;
+            config.minimum_automated_death_animation_completions = 1;
+            config.require_automated_zero_explosion_animation_completions = true;
             config.max_fixed_ticks = 600;
             config.capture_tick = 240;
             config.capture_path = "build/runtime-crowd-kill-smoke.png";
@@ -377,6 +400,7 @@ int main(const int argc, const char* const argv[]) {
                    "  --smoke-run-and-gun  Move north while aiming and firing east.\n"
                    "  --smoke-projectile-impact  Fire at the crate and require one impact.\n"
                    "  --smoke-target-death  Fire three deterministic hits into the NPC target.\n"
+                   "  --smoke-target-hurt  Fire one hit and require hurt without a terminal state.\n"
                    "  --smoke-dodge  Verify one exact-distance directional dodge and its active "
                    "window.\n"
                    "  --smoke-gameplay-replay  Replay combat, dodge, and attacker state with a "
@@ -388,7 +412,7 @@ int main(const int argc, const char* const argv[]) {
                    "  --smoke-nav-path  Display the copied deterministic A-star reference path.\n"
                    "  --smoke-runner-path  Follow a bounded-repath route toward the player.\n"
                    "  --smoke-enemy-stress  Run 50 real navigation/AI/physics/render Runners.\n"
-                   "  --smoke-crowd-kill  Require a body-less crowd actor to be shot and retired.\n"
+                   "  --smoke-crowd-kill  Require crowd Stalker projectile-death sequences.\n"
                    "  --smoke-editor-hot-swap  Capture and close after a live editor texture "
                    "replacement.\n";
             return 0;

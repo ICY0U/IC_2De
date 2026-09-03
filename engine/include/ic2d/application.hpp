@@ -50,6 +50,11 @@ struct ApplicationConfig {
     std::uint64_t minimum_automated_projectile_impacts{0};
     std::uint64_t minimum_automated_target_deaths{0};
     std::uint64_t minimum_automated_terminal_animation_completions{0};
+    std::uint64_t minimum_automated_hurt_animation_completions{0};
+    std::uint64_t minimum_automated_death_animation_completions{0};
+    std::uint64_t minimum_automated_explosion_animation_completions{0};
+    bool require_automated_zero_death_animation_completions{false};
+    bool require_automated_zero_explosion_animation_completions{false};
     // Restarts the running scene once a death has been observed, then requires
     // another death afterwards. Reviving an actor has to restore everything it
     // needs to be shot again, not merely put its sprite back, and that is not
