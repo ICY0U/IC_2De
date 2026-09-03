@@ -702,20 +702,19 @@ struct EditorShell::Impl {
                     : editor_ui::accent_button("Play", transport_button_width);
         ImGui::EndDisabled();
         if (play_pressed) {
-            actions.set_run_state = EditorRunState::running;
-            set_status(stats.run_state == EditorRunState::editing ? "Playing the scene."
-                                                                  : "Resumed.");
+            actions.set_run_state = RunState::running;
+            set_status(stats.run_state == RunState::editing ? "Playing the scene." : "Resumed.");
         }
         ImGui::SameLine();
         ImGui::BeginDisabled(!running);
         const bool pause_pressed = editor_ui::tool_button("Pause", false, transport_button_width);
         ImGui::EndDisabled();
         if (pause_pressed) {
-            actions.set_run_state = EditorRunState::paused;
+            actions.set_run_state = RunState::paused;
             set_status("Paused.");
         }
         ImGui::SameLine();
-        ImGui::BeginDisabled(stats.run_state == EditorRunState::editing);
+        ImGui::BeginDisabled(stats.run_state == RunState::editing);
         const bool restart_pressed =
             editor_ui::tool_button("Restart", false, transport_button_width);
         ImGui::EndDisabled();
@@ -1936,7 +1935,7 @@ struct EditorShell::Impl {
             ImGui::SameLine();
             if (ImGui::Button(simulating(stats.run_state) ? "Pause" : "Play")) {
                 actions.set_run_state =
-                    simulating(stats.run_state) ? EditorRunState::paused : EditorRunState::running;
+                    simulating(stats.run_state) ? RunState::paused : RunState::running;
             }
             ImGui::SameLine();
             if (ImGui::Button("Reset")) {
@@ -2004,7 +2003,7 @@ struct EditorShell::Impl {
     // Corner readout over the canvas. It is drawn after the image so it is
     // never covered, and it never intercepts the pointer.
     void draw_viewport_overlay(const EditorCanvas& canvas, const float scale,
-                               const EditorRunState run_state, const bool detached) {
+                               const RunState run_state, const bool detached) {
         // The game's own debug overlay owns the top corners and the bottom
         // left of the canvas, so the panel readout takes the bottom right and
         // never lands on top of engine text.
@@ -2028,9 +2027,9 @@ struct EditorShell::Impl {
         // Editing is the ordinary state of an open editor, so it is stated
         // quietly rather than warned about: a still scene is what an author
         // asked for, where a paused run is a run waiting to be let go.
-        if (run_state == EditorRunState::editing) {
+        if (run_state == RunState::editing) {
             next_top = place_right("EDITING", editor_ui::colors::text_dim, next_top - 6.0F);
-        } else if (run_state == EditorRunState::paused) {
+        } else if (run_state == RunState::paused) {
             next_top = place_right("PAUSED", editor_ui::colors::warning, next_top - 6.0F);
         }
         if (detached) {

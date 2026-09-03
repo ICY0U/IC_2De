@@ -55,10 +55,13 @@
 #define IC2DE_ENABLE_DEVELOPMENT_TOOLS 1
 #endif
 
-// Crowd separation and the flow field are gameplay, not tooling: the shipping
-// runtime steers its actors with them, so they are included unconditionally.
+// Crowd separation, the flow field and the run state are gameplay, not tooling:
+// the shipping runtime steers its actors with the first two and reads the third
+// to decide whether its fixed clock advances, so all three are included
+// unconditionally.
 #include "ic2d/crowd_separation.hpp"
 #include "ic2d/flow_field.hpp"
+#include "ic2d/run_state.hpp"
 
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
 #include "ic2d/editor.hpp"
@@ -1940,7 +1943,7 @@ void submit_debug_ground(RenderQueue2D& queue, const GroundMapDefinition& ground
 #endif
 
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
-void draw_compact_hud(const ApplicationConfig& config, const EditorRunState run_state,
+void draw_compact_hud(const ApplicationConfig& config, const RunState run_state,
                       const bool dropped_time, const std::string_view pacing_description) {
     DrawText("IC_2DE", 18, 16, 18, Color{74, 222, 190, 255});
     DrawText(TextFormat("%d FPS | %s", GetFPS(), pacing_description.data()),
@@ -1951,7 +1954,7 @@ void draw_compact_hud(const ApplicationConfig& config, const EditorRunState run_
     // Only a paused run is dimmed and labelled. An editor sitting in edit mode
     // is showing the authored scene, which is the thing an author opened it to
     // look at; covering it with a banner would hide exactly that.
-    if (run_state == EditorRunState::paused) {
+    if (run_state == RunState::paused) {
         DrawRectangle(0, 0, config.canvas_width, config.canvas_height, Fade(BLACK, 0.42F));
         DrawText("PAUSED", config.canvas_width / 2 - 43, config.canvas_height / 2 - 18, 22,
                  RAYWHITE);
@@ -2018,8 +2021,6 @@ int run_application(const ApplicationConfig& requested_config) {
     if (custom_window_chrome) {
         window_flags |= FLAG_WINDOW_UNDECORATED;
     }
-#else
-    constexpr bool custom_window_chrome = false;
 #endif
     if (config.render_pacing.mode == RenderPacingMode::monitor_synced) {
         window_flags |= FLAG_VSYNC_HINT;
@@ -2218,18 +2219,22 @@ int run_application(const ApplicationConfig& requested_config) {
     // An editor session opens in edit mode: the first frame an author sees is
     // the authored scene itself, and the run only begins when they ask for it.
     // Every other run is simulating from its first tick, as it always was.
-    EditorRunState run_state =
-        config.interactive_editor_session ? EditorRunState::editing : EditorRunState::running;
+    RunState run_state = config.interactive_editor_session ? RunState::editing : RunState::running;
     bool gpu_background_enabled = true;
     // Empty in any run nobody has opened the editor on, and free while it is.
     ActorDebugOverrides actor_overrides;
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
+    // The editor draws its own window chrome, so only a development build has a
+    // drag to track. Unlike the run state above, nothing outside the editor
+    // reads this.
     WindowChromeDrag window_chrome_drag;
+#endif
     bool close_requested = false;
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
     // Kills are damage, and damage is deduplicated by hit identity, so each
     // one needs an identity of its own or a second kill would be discarded as
-    // a repeat of the first.
+    // a repeat of the first. Only the editor retires an actor by hand.
     std::uint64_t editor_kill_sequence = 0;
-#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
     // The editor and its document are created on first request so an ordinary
     // development or smoke run pays nothing for tools it never opens.
     DebugVisuals debug_visuals;
@@ -2362,7 +2367,7 @@ int run_application(const ApplicationConfig& requested_config) {
 
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         if (input.pause.pressed) {
-            run_state = simulating(run_state) ? EditorRunState::paused : EditorRunState::running;
+            run_state = simulating(run_state) ? RunState::paused : RunState::running;
             clock.reset();
         }
         const auto forget_observations = [&]() {
@@ -2495,7 +2500,7 @@ int run_application(const ApplicationConfig& requested_config) {
             // Single-stepping advances a run that is under way. Edit mode has
             // no run to advance, and stepping one out of it would leave the
             // scene in a state the document does not describe.
-            if (run_state == EditorRunState::paused && input.step_simulation.pressed) {
+            if (run_state == RunState::paused && input.step_simulation.pressed) {
                 tick_plan.fixed_steps = 1;
             }
         } else {
@@ -2961,7 +2966,7 @@ int run_application(const ApplicationConfig& requested_config) {
             // being relaunched, and the state it opens in would be one an
             // author could never get back to.
             if (config.interactive_editor_session) {
-                run_state = EditorRunState::editing;
+                run_state = RunState::editing;
                 clock.reset();
             }
         }
