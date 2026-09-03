@@ -2,8 +2,8 @@
 
 #include <algorithm>
 #include <array>
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <stdexcept>
 #include <utility>
@@ -16,8 +16,8 @@ namespace {
 }
 
 [[nodiscard]] bool finite(const RectXZ& value) noexcept {
-    return std::isfinite(value.x) && std::isfinite(value.z) &&
-           std::isfinite(value.width) && std::isfinite(value.depth);
+    return std::isfinite(value.x) && std::isfinite(value.z) && std::isfinite(value.width) &&
+           std::isfinite(value.depth);
 }
 
 [[nodiscard]] bool valid(const RectXZ& value) noexcept {
@@ -25,26 +25,20 @@ namespace {
 }
 
 [[nodiscard]] bool contains_sample(const RectXZ& bounds, const Vec2 point) noexcept {
-    return point.x >= bounds.x && point.x <= bounds.x + bounds.width &&
-           point.y >= bounds.z && point.y <= bounds.z + bounds.depth;
+    return point.x >= bounds.x && point.x <= bounds.x + bounds.width && point.y >= bounds.z &&
+           point.y <= bounds.z + bounds.depth;
 }
 
-[[nodiscard]] bool footprint_overlaps(
-    const RectXZ& bounds,
-    const Vec2 center,
-    const Vec2 half_extents
-) noexcept {
+[[nodiscard]] bool footprint_overlaps(const RectXZ& bounds, const Vec2 center,
+                                      const Vec2 half_extents) noexcept {
     return center.x + half_extents.x > bounds.x &&
            center.x - half_extents.x < bounds.x + bounds.width &&
            center.y + half_extents.y > bounds.z &&
            center.y - half_extents.y < bounds.z + bounds.depth;
 }
 
-[[nodiscard]] bool footprint_inside(
-    const RectXZ& bounds,
-    const Vec2 center,
-    const Vec2 half_extents
-) noexcept {
+[[nodiscard]] bool footprint_inside(const RectXZ& bounds, const Vec2 center,
+                                    const Vec2 half_extents) noexcept {
     return center.x - half_extents.x >= bounds.x &&
            center.x + half_extents.x <= bounds.x + bounds.width &&
            center.y - half_extents.y >= bounds.z &&
@@ -52,8 +46,7 @@ namespace {
 }
 
 [[nodiscard]] std::int32_t dimension(const float extent, const float cell_size) {
-    const double value = std::ceil(
-        static_cast<double>(extent) / static_cast<double>(cell_size));
+    const double value = std::ceil(static_cast<double>(extent) / static_cast<double>(cell_size));
     if (!std::isfinite(value) || value < 1.0 ||
         value > static_cast<double>(std::numeric_limits<std::int32_t>::max())) {
         throw std::invalid_argument{"NavGrid dimensions exceed the supported dense grid range."};
@@ -70,13 +63,12 @@ struct NavGrid::Impl {
     std::size_t component_count{0};
 
     [[nodiscard]] bool contains(const NavCell cell) const noexcept {
-        return cell.column >= 0 && cell.row >= 0 &&
-               cell.column < snapshot.columns && cell.row < snapshot.rows;
+        return cell.column >= 0 && cell.row >= 0 && cell.column < snapshot.columns &&
+               cell.row < snapshot.rows;
     }
 
     [[nodiscard]] std::size_t offset(const NavCell cell) const noexcept {
-        return static_cast<std::size_t>(cell.row) *
-                   static_cast<std::size_t>(snapshot.columns) +
+        return static_cast<std::size_t>(cell.row) * static_cast<std::size_t>(snapshot.columns) +
                static_cast<std::size_t>(cell.column);
     }
 
@@ -92,21 +84,21 @@ struct NavGrid::Impl {
     }
 };
 
-NavGrid::NavGrid(
-    const GroundMapDefinition& ground,
-    const NavGridBakeSettings& settings
-) : impl_{std::make_unique<Impl>()} {
+NavGrid::NavGrid(const GroundMapDefinition& ground, const NavGridBakeSettings& settings)
+    : impl_{std::make_unique<Impl>()} {
     if (!valid(ground.walkable_bounds) || !std::isfinite(ground.max_step_height) ||
         ground.max_step_height < 0.0F || !std::isfinite(settings.cell_size) ||
         !(settings.cell_size > 0.0F) || !finite(settings.agent_half_extents) ||
         settings.agent_half_extents.x < 0.0F || settings.agent_half_extents.y < 0.0F ||
         settings.agent_half_extents.x * 2.0F > ground.walkable_bounds.width ||
         settings.agent_half_extents.y * 2.0F > ground.walkable_bounds.depth) {
-        throw std::invalid_argument{"NavGrid requires valid bounds, cell size, step height, and agent clearance."};
+        throw std::invalid_argument{
+            "NavGrid requires valid bounds, cell size, step height, and agent clearance."};
     }
     for (const GroundArea& area : ground.areas) {
         if (!valid(area.bounds) || !std::isfinite(area.elevation)) {
-            throw std::invalid_argument{"NavGrid ground areas require finite positive bounds and elevation."};
+            throw std::invalid_argument{
+                "NavGrid ground areas require finite positive bounds and elevation."};
         }
     }
 
@@ -132,21 +124,17 @@ NavGrid::NavGrid(
     for (std::int32_t row = 0; row < snapshot.rows; ++row) {
         for (std::int32_t column = 0; column < snapshot.columns; ++column) {
             const Vec2 center{
-                snapshot.bounds.x +
-                    (static_cast<float>(column) + 0.5F) * snapshot.cell_size,
-                snapshot.bounds.z +
-                    (static_cast<float>(row) + 0.5F) * snapshot.cell_size,
+                snapshot.bounds.x + (static_cast<float>(column) + 0.5F) * snapshot.cell_size,
+                snapshot.bounds.z + (static_cast<float>(row) + 0.5F) * snapshot.cell_size,
             };
             float elevation = 0.0F;
-            bool walkable = footprint_inside(
-                snapshot.bounds, center, snapshot.agent_half_extents);
+            bool walkable = footprint_inside(snapshot.bounds, center, snapshot.agent_half_extents);
             for (const GroundArea& area : ground.areas) {
                 if (area.kind == GroundAreaKind::elevation &&
                     contains_sample(area.bounds, center)) {
                     elevation = std::max(elevation, area.elevation);
                 } else if (area.kind == GroundAreaKind::solid &&
-                           footprint_overlaps(
-                               area.bounds, center, snapshot.agent_half_extents)) {
+                           footprint_overlaps(area.bounds, center, snapshot.agent_half_extents)) {
                     walkable = false;
                 }
             }
@@ -197,8 +185,8 @@ NavGrid& NavGrid::operator=(NavGrid&&) noexcept = default;
 
 std::optional<NavCell> NavGrid::cell_at(const Vec2 world_position) const noexcept {
     const RectXZ& bounds = impl_->snapshot.bounds;
-    if (!finite(world_position) || world_position.x < bounds.x ||
-        world_position.y < bounds.z || world_position.x >= bounds.x + bounds.width ||
+    if (!finite(world_position) || world_position.x < bounds.x || world_position.y < bounds.z ||
+        world_position.x >= bounds.x + bounds.width ||
         world_position.y >= bounds.z + bounds.depth) {
         return std::nullopt;
     }
@@ -248,9 +236,8 @@ std::vector<NavGridNeighbor> NavGrid::neighbors(const NavCell source) const {
             continue;
         }
         const bool diagonal = direction.column != 0 && direction.row != 0;
-        if (diagonal &&
-            (!impl_->can_step(source, {source.column + direction.column, source.row}) ||
-             !impl_->can_step(source, {source.column, source.row + direction.row}))) {
+        if (diagonal && (!impl_->can_step(source, {source.column + direction.column, source.row}) ||
+                         !impl_->can_step(source, {source.column, source.row + direction.row}))) {
             continue;
         }
         result.push_back({

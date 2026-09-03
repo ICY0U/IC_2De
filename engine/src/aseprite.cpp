@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <fstream>
 #include <limits>
@@ -45,11 +46,8 @@ using Json = nlohmann::json;
     });
 }
 
-[[nodiscard]] const Json& required(
-    const Json& object,
-    const std::string_view key,
-    const std::filesystem::path& path
-) {
+[[nodiscard]] const Json& required(const Json& object, const std::string_view key,
+                                   const std::filesystem::path& path) {
     if (!object.is_object()) {
         fail(path, "Expected a JSON object while reading '" + std::string{key} + "'.");
     }
@@ -60,11 +58,8 @@ using Json = nlohmann::json;
     return *found;
 }
 
-[[nodiscard]] std::string string_field(
-    const Json& object,
-    const std::string_view key,
-    const std::filesystem::path& path
-) {
+[[nodiscard]] std::string string_field(const Json& object, const std::string_view key,
+                                       const std::filesystem::path& path) {
     const Json& value = required(object, key, path);
     if (!value.is_string()) {
         fail(path, "Field '" + std::string{key} + "' must be a string.");
@@ -72,11 +67,8 @@ using Json = nlohmann::json;
     return value.get<std::string>();
 }
 
-[[nodiscard]] bool optional_bool_field(
-    const Json& object,
-    const std::string_view key,
-    const std::filesystem::path& path
-) {
+[[nodiscard]] bool optional_bool_field(const Json& object, const std::string_view key,
+                                       const std::filesystem::path& path) {
     const auto found = object.find(key);
     if (found == object.end()) {
         return false;
@@ -87,12 +79,26 @@ using Json = nlohmann::json;
     return found->get<bool>();
 }
 
-[[nodiscard]] std::uint32_t unsigned_field(
-    const Json& object,
-    const std::string_view key,
-    const std::filesystem::path& path,
-    const bool allow_zero
-) {
+[[nodiscard]] float optional_positive_float_field(const Json& object, const std::string_view key,
+                                                  const std::filesystem::path& path) {
+    const auto found = object.find(key);
+    if (found == object.end()) {
+        return 1.0F;
+    }
+    if (!found->is_number()) {
+        fail(path, "Optional field '" + std::string{key} + "' must be a number.");
+    }
+    const double parsed = found->get<double>();
+    if (!std::isfinite(parsed) || parsed <= 0.0 || parsed > 8.0) {
+        fail(path,
+             "Optional field '" + std::string{key} + "' must be finite and in the range (0, 8].");
+    }
+    return static_cast<float>(parsed);
+}
+
+[[nodiscard]] std::uint32_t unsigned_field(const Json& object, const std::string_view key,
+                                           const std::filesystem::path& path,
+                                           const bool allow_zero) {
     const Json& value = required(object, key, path);
     if (!value.is_number_integer()) {
         fail(path, "Field '" + std::string{key} + "' must be an integer.");
@@ -113,11 +119,9 @@ using Json = nlohmann::json;
     return static_cast<std::uint32_t>(parsed);
 }
 
-[[nodiscard]] std::uint32_t duration_ticks(
-    const std::uint32_t duration_ms,
-    const std::uint32_t fixed_update_hz,
-    const std::filesystem::path& path
-) {
+[[nodiscard]] std::uint32_t duration_ticks(const std::uint32_t duration_ms,
+                                           const std::uint32_t fixed_update_hz,
+                                           const std::filesystem::path& path) {
     const std::uint64_t rounded =
         (static_cast<std::uint64_t>(duration_ms) * fixed_update_hz + 500U) / 1000U;
     const std::uint64_t clamped = std::max<std::uint64_t>(1U, rounded);
@@ -127,10 +131,8 @@ using Json = nlohmann::json;
     return static_cast<std::uint32_t>(clamped);
 }
 
-[[nodiscard]] std::vector<std::string> frame_events(
-    const Json& frame,
-    const std::filesystem::path& path
-) {
+[[nodiscard]] std::vector<std::string> frame_events(const Json& frame,
+                                                    const std::filesystem::path& path) {
     const auto found = frame.find("ic2d_events");
     if (found == frame.end()) {
         return {};
@@ -157,13 +159,10 @@ struct ImportedFrame {
     AnimationFrame animation;
 };
 
-[[nodiscard]] ImportedFrame import_frame(
-    const Json& authored,
-    const std::uint32_t sheet_width,
-    const std::uint32_t sheet_height,
-    const std::uint32_t fixed_update_hz,
-    const std::filesystem::path& path
-) {
+[[nodiscard]] ImportedFrame import_frame(const Json& authored, const std::uint32_t sheet_width,
+                                         const std::uint32_t sheet_height,
+                                         const std::uint32_t fixed_update_hz,
+                                         const std::filesystem::path& path) {
     if (!authored.is_object()) {
         fail(path, "Every 'frames' entry must be an object; use --format json-array.");
     }
@@ -184,22 +183,25 @@ struct ImportedFrame {
     }
     const std::uint32_t milliseconds = unsigned_field(authored, "duration", path, false);
     return {
-        .animation = {
-            .source = {
-                static_cast<float>(x), static_cast<float>(y),
-                static_cast<float>(width), static_cast<float>(height),
+        .animation =
+            {
+                .source =
+                    {
+                        static_cast<float>(x),
+                        static_cast<float>(y),
+                        static_cast<float>(width),
+                        static_cast<float>(height),
+                    },
+                .duration_ticks = duration_ticks(milliseconds, fixed_update_hz, path),
+                .events = frame_events(authored, path),
+                .flip_x = optional_bool_field(authored, "ic2d_flip_x", path),
+                .presentation_scale = optional_positive_float_field(authored, "ic2d_scale", path),
             },
-            .duration_ticks = duration_ticks(milliseconds, fixed_update_hz, path),
-            .events = frame_events(authored, path),
-            .flip_x = optional_bool_field(authored, "ic2d_flip_x", path),
-        },
     };
 }
 
-[[nodiscard]] AnimationLoopMode loop_mode(
-    const std::string_view direction,
-    const std::filesystem::path& path
-) {
+[[nodiscard]] AnimationLoopMode loop_mode(const std::string_view direction,
+                                          const std::filesystem::path& path) {
     if (direction == "forward" || direction == "reverse") {
         return AnimationLoopMode::loop;
     }
@@ -211,10 +213,8 @@ struct ImportedFrame {
 
 } // namespace
 
-AsepriteImportResult import_aseprite_json(
-    const std::filesystem::path& metadata_path,
-    const std::uint32_t fixed_update_hz
-) {
+AsepriteImportResult import_aseprite_json(const std::filesystem::path& metadata_path,
+                                          const std::uint32_t fixed_update_hz) {
     const std::filesystem::path absolute_path =
         std::filesystem::absolute(metadata_path).lexically_normal();
     if (fixed_update_hz == 0) {
@@ -252,8 +252,8 @@ AsepriteImportResult import_aseprite_json(
     std::vector<ImportedFrame> frames;
     frames.reserve(frames_json.size());
     for (const Json& frame : frames_json) {
-        frames.push_back(import_frame(
-            frame, sheet_width, sheet_height, fixed_update_hz, absolute_path));
+        frames.push_back(
+            import_frame(frame, sheet_width, sheet_height, fixed_update_hz, absolute_path));
     }
 
     const Json& tags = required(meta, "frameTags", absolute_path);
@@ -288,8 +288,7 @@ AsepriteImportResult import_aseprite_json(
         AnimationLoopMode clip_loop_mode = loop_mode(direction, absolute_path);
         const auto loop_mode_field = tag.find("ic2d_loop_mode");
         if (loop_mode_field != tag.end()) {
-            if (!loop_mode_field->is_string() ||
-                loop_mode_field->get<std::string>() != "once") {
+            if (!loop_mode_field->is_string() || loop_mode_field->get<std::string>() != "once") {
                 fail(absolute_path, "Tag 'ic2d_loop_mode' must be 'once' when present.");
             }
             clip_loop_mode = AnimationLoopMode::once;

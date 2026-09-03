@@ -70,9 +70,7 @@ struct SceneEntityPlacement {
 class SceneDocument final {
 public:
     [[nodiscard]] static SceneDocument open(const std::filesystem::path& path);
-    [[nodiscard]] static SceneDocument migrate_to_current(
-        const std::filesystem::path& path
-    );
+    [[nodiscard]] static SceneDocument migrate_to_current(const std::filesystem::path& path);
 
     [[nodiscard]] std::uint32_t schema_version() const noexcept;
     [[nodiscard]] const std::filesystem::path& source_path() const noexcept;
@@ -97,11 +95,8 @@ public:
     void save_atomic(const std::filesystem::path& destination) const;
 
 private:
-    SceneDocument(
-        std::filesystem::path source_path,
-        std::vector<std::string> lines,
-        std::uint32_t schema_version
-    );
+    SceneDocument(std::filesystem::path source_path, std::vector<std::string> lines,
+                  std::uint32_t schema_version);
 
     std::filesystem::path source_path_;
     std::vector<std::string> lines_;

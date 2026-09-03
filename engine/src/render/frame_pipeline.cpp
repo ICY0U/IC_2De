@@ -10,20 +10,15 @@
 namespace ic2d {
 namespace {
 
-[[nodiscard]] float finite_clamp(
-    const float value,
-    const float fallback,
-    const float minimum,
-    const float maximum
-) noexcept {
+[[nodiscard]] float finite_clamp(const float value, const float fallback, const float minimum,
+                                 const float maximum) noexcept {
     return std::clamp(std::isfinite(value) ? value : fallback, minimum, maximum);
 }
 
 [[nodiscard]] PostProcessSettings2D sanitized(PostProcessSettings2D settings) noexcept {
     settings.exposure = finite_clamp(settings.exposure, 1.0F, 0.0F, 4.0F);
     settings.saturation = finite_clamp(settings.saturation, 1.0F, 0.0F, 2.0F);
-    settings.vignette_strength =
-        finite_clamp(settings.vignette_strength, 0.16F, 0.0F, 1.0F);
+    settings.vignette_strength = finite_clamp(settings.vignette_strength, 0.16F, 0.0F, 1.0F);
     return settings;
 }
 
@@ -47,11 +42,9 @@ struct FramePipeline2D::Impl {
     FramePipelineDiagnostics2D diagnostics{};
 };
 
-FramePipeline2D::FramePipeline2D(
-    const int width,
-    const int height,
-    const std::filesystem::path& post_process_fragment_shader
-) : impl_{std::make_unique<Impl>()} {
+FramePipeline2D::FramePipeline2D(const int width, const int height,
+                                 const std::filesystem::path& post_process_fragment_shader)
+    : impl_{std::make_unique<Impl>()} {
     if (width <= 0 || height <= 0) {
         throw std::invalid_argument{"Frame pipeline dimensions must be greater than zero."};
     }
@@ -72,14 +65,13 @@ FramePipeline2D::FramePipeline2D(
     if (IsShaderValid(impl_->post_process_shader)) {
         impl_->exposure_location = GetShaderLocation(impl_->post_process_shader, "exposure");
         impl_->saturation_location = GetShaderLocation(impl_->post_process_shader, "saturation");
-        impl_->vignette_location = GetShaderLocation(impl_->post_process_shader, "vignetteStrength");
+        impl_->vignette_location =
+            GetShaderLocation(impl_->post_process_shader, "vignetteStrength");
     }
     impl_->diagnostics.post_process_available = post_process_available();
 }
 
-FramePipeline2D::~FramePipeline2D() {
-    release();
-}
+FramePipeline2D::~FramePipeline2D() { release(); }
 
 bool FramePipeline2D::available() const noexcept {
     return impl_ && valid_target(impl_->scene_target);
@@ -99,13 +91,9 @@ std::uint32_t FramePipeline2D::output_texture_id() const noexcept {
                                       : impl_->scene_target.texture.id;
 }
 
-int FramePipeline2D::width() const noexcept {
-    return impl_ ? impl_->width : 0;
-}
+int FramePipeline2D::width() const noexcept { return impl_ ? impl_->width : 0; }
 
-int FramePipeline2D::height() const noexcept {
-    return impl_ ? impl_->height : 0;
-}
+int FramePipeline2D::height() const noexcept { return impl_ ? impl_->height : 0; }
 
 const FramePipelineDiagnostics2D& FramePipeline2D::diagnostics() const noexcept {
     static const FramePipelineDiagnostics2D empty{};
@@ -144,10 +132,10 @@ void FramePipeline2D::finish_scene(const PostProcessSettings2D& requested_settin
         return;
     }
 
-    SetShaderValue(impl_->post_process_shader, impl_->exposure_location,
-                   &settings.exposure, SHADER_UNIFORM_FLOAT);
-    SetShaderValue(impl_->post_process_shader, impl_->saturation_location,
-                   &settings.saturation, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(impl_->post_process_shader, impl_->exposure_location, &settings.exposure,
+                   SHADER_UNIFORM_FLOAT);
+    SetShaderValue(impl_->post_process_shader, impl_->saturation_location, &settings.saturation,
+                   SHADER_UNIFORM_FLOAT);
     SetShaderValue(impl_->post_process_shader, impl_->vignette_location,
                    &settings.vignette_strength, SHADER_UNIFORM_FLOAT);
 
@@ -166,8 +154,8 @@ void FramePipeline2D::finish_scene(const PostProcessSettings2D& requested_settin
         static_cast<float>(impl_->width),
         static_cast<float>(impl_->height),
     };
-    DrawTexturePro(impl_->scene_target.texture, source, destination,
-                   Vector2{0.0F, 0.0F}, 0.0F, WHITE);
+    DrawTexturePro(impl_->scene_target.texture, source, destination, Vector2{0.0F, 0.0F}, 0.0F,
+                   WHITE);
     EndShaderMode();
     EndTextureMode();
 
@@ -182,9 +170,8 @@ void FramePipeline2D::present(const RectF& destination) const {
     if (!available() || destination.width <= 0.0F || destination.height <= 0.0F) {
         return;
     }
-    const Texture2D texture = impl_->post_process_output
-                                  ? impl_->post_process_target.texture
-                                  : impl_->scene_target.texture;
+    const Texture2D texture = impl_->post_process_output ? impl_->post_process_target.texture
+                                                         : impl_->scene_target.texture;
     const Rectangle source{
         0.0F,
         0.0F,

@@ -9,8 +9,8 @@ namespace ic2d {
 namespace {
 
 [[nodiscard]] bool finite(const RectXZ& bounds) noexcept {
-    return std::isfinite(bounds.x) && std::isfinite(bounds.z) &&
-           std::isfinite(bounds.width) && std::isfinite(bounds.depth);
+    return std::isfinite(bounds.x) && std::isfinite(bounds.z) && std::isfinite(bounds.width) &&
+           std::isfinite(bounds.depth);
 }
 
 [[nodiscard]] bool valid(const RectXZ& bounds) noexcept {
@@ -18,21 +18,18 @@ namespace {
 }
 
 [[nodiscard]] bool contains(const RectXZ& bounds, const Vec2& point) noexcept {
-    return point.x >= bounds.x && point.x <= bounds.x + bounds.width &&
-           point.y >= bounds.z && point.y <= bounds.z + bounds.depth;
+    return point.x >= bounds.x && point.x <= bounds.x + bounds.width && point.y >= bounds.z &&
+           point.y <= bounds.z + bounds.depth;
 }
 
-[[nodiscard]] bool overlaps(
-    const RectXZ& bounds,
-    const Vec2& centre,
-    const Vec2& half_extents
-) noexcept {
+[[nodiscard]] bool overlaps(const RectXZ& bounds, const Vec2& centre,
+                            const Vec2& half_extents) noexcept {
     const float actor_left = centre.x - half_extents.x;
     const float actor_right = centre.x + half_extents.x;
     const float actor_near = centre.y - half_extents.y;
     const float actor_far = centre.y + half_extents.y;
-    return actor_right > bounds.x && actor_left < bounds.x + bounds.width &&
-           actor_far > bounds.z && actor_near < bounds.z + bounds.depth;
+    return actor_right > bounds.x && actor_left < bounds.x + bounds.width && actor_far > bounds.z &&
+           actor_near < bounds.z + bounds.depth;
 }
 
 // Pushing out of one solid can seat a body inside a neighbouring one, so a
@@ -43,8 +40,7 @@ constexpr int depenetration_passes = 4;
 } // namespace
 
 GroundMap::GroundMap(GroundMapDefinition definition)
-    : walkable_bounds_{definition.walkable_bounds},
-      max_step_height_{definition.max_step_height},
+    : walkable_bounds_{definition.walkable_bounds}, max_step_height_{definition.max_step_height},
       areas_{std::move(definition.areas)} {
     if (!valid(walkable_bounds_) || !std::isfinite(max_step_height_) || max_step_height_ < 0.0F) {
         throw std::invalid_argument{"Ground map bounds and step height must be valid."};
@@ -77,19 +73,17 @@ float GroundMap::elevation_at(const Vec2& ground_position) const noexcept {
     return elevation;
 }
 
-GroundMoveResult GroundMap::move(
-    const Vec3& start,
-    const Vec2& desired_ground_position,
-    const Vec2& half_extents
-) const {
+GroundMoveResult GroundMap::move(const Vec3& start, const Vec2& desired_ground_position,
+                                 const Vec2& half_extents) const {
     const bool finite_input = std::isfinite(start.x) && std::isfinite(start.y) &&
                               std::isfinite(start.z) && std::isfinite(desired_ground_position.x) &&
-                              std::isfinite(desired_ground_position.y) && std::isfinite(half_extents.x) &&
-                              std::isfinite(half_extents.y);
+                              std::isfinite(desired_ground_position.y) &&
+                              std::isfinite(half_extents.x) && std::isfinite(half_extents.y);
     if (!finite_input || half_extents.x < 0.0F || half_extents.y < 0.0F ||
         half_extents.x * 2.0F > walkable_bounds_.width ||
         half_extents.y * 2.0F > walkable_bounds_.depth) {
-        throw std::invalid_argument{"Ground movement requires finite positions and valid half extents."};
+        throw std::invalid_argument{
+            "Ground movement requires finite positions and valid half extents."};
     }
 
     const float minimum_x = walkable_bounds_.x + half_extents.x;
@@ -109,10 +103,8 @@ GroundMoveResult GroundMap::move(
     // Resolve the nearest solid face crossed by one axis. Destination-only
     // overlap tests let fast movement tunnel through thin geometry; swept axis
     // contact preserves the map's deliberate X-then-Z sliding semantics.
-    const auto sweep_x = [this, &half_extents](
-                             const Vec2& start_position,
-                             const float desired_x,
-                             bool& blocked_axis) {
+    const auto sweep_x = [this, &half_extents](const Vec2& start_position, const float desired_x,
+                                               bool& blocked_axis) {
         float resolved_x = desired_x;
         for (const GroundArea& area : solid_areas_) {
             const bool overlaps_z =
@@ -137,10 +129,8 @@ GroundMoveResult GroundMap::move(
         }
         return resolved_x;
     };
-    const auto sweep_z = [this, &half_extents](
-                             const Vec2& start_position,
-                             const float desired_z,
-                             bool& blocked_axis) {
+    const auto sweep_z = [this, &half_extents](const Vec2& start_position, const float desired_z,
+                                               bool& blocked_axis) {
         float resolved_z = desired_z;
         for (const GroundArea& area : solid_areas_) {
             const bool overlaps_x =
@@ -202,17 +192,14 @@ GroundMoveResult GroundMap::move(
                 continue;
             }
             const float exit_west = area.bounds.x - half_extents.x - resolved.x;
-            const float exit_east =
-                area.bounds.x + area.bounds.width + half_extents.x - resolved.x;
+            const float exit_east = area.bounds.x + area.bounds.width + half_extents.x - resolved.x;
             const float exit_north = area.bounds.z - half_extents.y - resolved.y;
             const float exit_south =
                 area.bounds.z + area.bounds.depth + half_extents.y - resolved.y;
-            const float shift_x = std::abs(exit_west) <= std::abs(exit_east)
-                                      ? exit_west
-                                      : exit_east;
-            const float shift_z = std::abs(exit_north) <= std::abs(exit_south)
-                                      ? exit_north
-                                      : exit_south;
+            const float shift_x =
+                std::abs(exit_west) <= std::abs(exit_east) ? exit_west : exit_east;
+            const float shift_z =
+                std::abs(exit_north) <= std::abs(exit_south) ? exit_north : exit_south;
             if (std::abs(shift_x) <= std::abs(shift_z)) {
                 resolved.x += shift_x;
                 result.blocked_x = true;

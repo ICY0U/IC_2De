@@ -5,18 +5,16 @@
 
 namespace ic2d {
 
-CanvasViewport compute_canvas_viewport(
-    const int output_width,
-    const int output_height,
-    const int canvas_width,
-    const int canvas_height
-) noexcept {
+CanvasViewport compute_canvas_viewport(const int output_width, const int output_height,
+                                       const int canvas_width, const int canvas_height) noexcept {
     if (output_width <= 0 || output_height <= 0 || canvas_width <= 0 || canvas_height <= 0) {
         return {};
     }
 
-    const float horizontal_scale = static_cast<float>(output_width) / static_cast<float>(canvas_width);
-    const float vertical_scale = static_cast<float>(output_height) / static_cast<float>(canvas_height);
+    const float horizontal_scale =
+        static_cast<float>(output_width) / static_cast<float>(canvas_width);
+    const float vertical_scale =
+        static_cast<float>(output_height) / static_cast<float>(canvas_height);
     const float scale = std::min(horizontal_scale, vertical_scale);
     const float width = static_cast<float>(canvas_width) * scale;
     const float height = static_cast<float>(canvas_height) * scale;

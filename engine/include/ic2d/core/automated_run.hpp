@@ -34,9 +34,7 @@ enum class AutomatedRunExit {
 // Applies the automated-run verdict in a fixed order and logs one line per
 // decision. A run without automated movement only reports resource checks,
 // because nothing drove the character far enough to observe gameplay state.
-[[nodiscard]] AutomatedRunExit evaluate_automated_run(
-    const AutomatedRunObservations& observations
-);
+[[nodiscard]] AutomatedRunExit evaluate_automated_run(const AutomatedRunObservations& observations);
 
 [[nodiscard]] int exit_code(AutomatedRunExit result) noexcept;
 

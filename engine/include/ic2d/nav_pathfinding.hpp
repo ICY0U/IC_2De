@@ -30,11 +30,7 @@ struct NavPathResult {
 // Deterministic eight-way A* over NavGrid's public movement contract. Results
 // are copied and retain no pointer into the grid. Equal candidates use a stable
 // heuristic/row/column tie-break; hard blocks are never assigned a high cost.
-[[nodiscard]] NavPathResult find_nav_path(
-    const NavGrid& grid,
-    NavCell start,
-    NavCell goal
-);
+[[nodiscard]] NavPathResult find_nav_path(const NavGrid& grid, NavCell start, NavCell goal);
 
 // How firmly an actor is kept off nearby solid ground.
 struct NavClearanceSettings {
@@ -63,12 +59,8 @@ struct NavClearanceSettings {
 // its radius, or that can point an actor back the way it came, leaves an actor
 // whose route ends at a wall oscillating on the spot rather than settling
 // against it.
-[[nodiscard]] Vec2 nav_avoid_obstacles(
-    const NavGrid& grid,
-    Vec2 position,
-    Vec2 desired,
-    NavClearanceSettings settings = {}
-);
+[[nodiscard]] Vec2 nav_avoid_obstacles(const NavGrid& grid, Vec2 position, Vec2 desired,
+                                       NavClearanceSettings settings = {});
 
 // True when an agent may walk the straight line between two world points.
 //
@@ -87,10 +79,7 @@ struct NavClearanceSettings {
 
 // World bounds are converted through NavGrid's half-open cell policy before
 // the same cell search runs.
-[[nodiscard]] NavPathResult find_nav_path_world(
-    const NavGrid& grid,
-    Vec2 start_world,
-    Vec2 goal_world
-);
+[[nodiscard]] NavPathResult find_nav_path_world(const NavGrid& grid, Vec2 start_world,
+                                                Vec2 goal_world);
 
 } // namespace ic2d

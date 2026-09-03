@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <string>
 
+#include "ic2d/core/automated_expectations.hpp"
 #include "ic2d/types.hpp"
 
 namespace ic2d {
@@ -46,25 +47,11 @@ struct ApplicationConfig {
     Vec2 automated_aim_direction{1.0F, 0.0F};
     std::uint64_t automated_fire_hold_ticks{0};
     std::uint64_t automated_dodge_tick{0};
-    std::uint64_t minimum_automated_projectile_spawns{0};
-    std::uint64_t minimum_automated_projectile_impacts{0};
-    std::uint64_t minimum_automated_target_deaths{0};
-    std::uint64_t minimum_automated_terminal_animation_completions{0};
-    // Restarts the running scene once a death has been observed, then requires
-    // another death afterwards. Reviving an actor has to restore everything it
-    // needs to be shot again, not merely put its sprite back, and that is not
-    // observable from any single-run assertion.
-    bool validate_restart_recovery{false};
-    std::uint64_t minimum_automated_dodge_starts{0};
-    float expected_automated_dodge_distance{0.0F};
-    std::uint64_t minimum_automated_enemy_acquisitions{0};
-    std::uint64_t minimum_automated_enemy_attacks{0};
-    float minimum_automated_enemy_distance{0.0F};
-    float minimum_automated_player_damage{0.0F};
-    bool require_automated_zero_player_damage{false};
-    std::uint64_t minimum_automated_navigation_searches{0};
-    std::uint64_t minimum_automated_navigation_waypoint_advances{0};
-    std::size_t minimum_automated_navigation_agents{0};
+    // What the run must have achieved by the time it ends. Empty for an
+    // ordinary launch: only the smoke scenarios assert anything, and the
+    // shipping runtime should not carry two dozen test thresholds it can
+    // never use.
+    AutomatedExpectations expectations{};
     bool report_gameplay_state_digest{false};
     bool validate_automated_route{true};
     bool validate_content_only{false};
@@ -81,10 +68,6 @@ struct ApplicationConfig {
     bool start_with_navigation_path_debug{false};
     // Development editor only. Zero keeps the authored Runner count.
     std::size_t initial_editor_enemy_stress_count{0};
-    // Crowd actors hold no rigid body, so their killability rests on the
-    // scene's own actor index rather than the physics broadphase. This
-    // requires a run to prove that path end to end.
-    std::uint64_t minimum_automated_crowd_actor_retirements{0};
     std::filesystem::path editor_layout_path{};
     std::string capture_path{};
     // Automatic RenderDoc frame captures, spaced by wall-clock time rather than

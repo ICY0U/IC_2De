@@ -70,12 +70,8 @@ std::size_t Interaction::load(const std::span<const Interactable> interactables)
     return impl_->authored.size();
 }
 
-bool Interaction::fixed_update(
-    const std::uint64_t tick,
-    const EntityUuid actor,
-    const Vec3 actor_position,
-    const bool requested
-) {
+bool Interaction::fixed_update(const std::uint64_t tick, const EntityUuid actor,
+                               const Vec3 actor_position, const bool requested) {
     impl_->snapshot.tick = tick;
     impl_->snapshot.candidate.reset();
     impl_->snapshot.available_count = 0;

@@ -16,8 +16,8 @@ AutomatedRunExit evaluate_automated_run(const AutomatedRunObservations& observat
 
         if (!observations.physics_contact_observed || !observations.trigger_observed ||
             !observations.dynamic_prop_moved) {
-            log(LogLevel::error,
-                "Automated Physics2D validation missed a contact, trigger, or dynamic prop movement.");
+            log(LogLevel::error, "Automated Physics2D validation missed a contact, trigger, or "
+                                 "dynamic prop movement.");
             return AutomatedRunExit::physics_incomplete;
         }
         log(LogLevel::info,

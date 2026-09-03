@@ -31,10 +31,8 @@ ProjectileSimulation::~ProjectileSimulation() = default;
 ProjectileSimulation::ProjectileSimulation(ProjectileSimulation&&) noexcept = default;
 ProjectileSimulation& ProjectileSimulation::operator=(ProjectileSimulation&&) noexcept = default;
 
-bool ProjectileSimulation::spawn(
-    const ProjectileSpawnedEvent& event,
-    const Vec3& world_origin
-) noexcept {
+bool ProjectileSimulation::spawn(const ProjectileSpawnedEvent& event,
+                                 const Vec3& world_origin) noexcept {
     const float direction_length = std::sqrt(event.aim_direction.x * event.aim_direction.x +
                                              event.aim_direction.y * event.aim_direction.y);
     if (event.tick != impl_->snapshot.tick + 1 || event.projectile_id == 0 || !event.actor ||
@@ -57,10 +55,11 @@ bool ProjectileSimulation::spawn(
         .weapon = event.weapon,
         .previous_position = world_origin,
         .position = world_origin,
-        .direction = {
-            event.aim_direction.x / direction_length,
-            event.aim_direction.y / direction_length,
-        },
+        .direction =
+            {
+                event.aim_direction.x / direction_length,
+                event.aim_direction.y / direction_length,
+            },
         .speed = event.speed,
         .lifetime_ticks_remaining = event.lifetime_ticks,
         .damage = event.damage,
@@ -69,10 +68,7 @@ bool ProjectileSimulation::spawn(
     return true;
 }
 
-void ProjectileSimulation::fixed_update(
-    const std::uint64_t tick,
-    const float fixed_step_seconds
-) {
+void ProjectileSimulation::fixed_update(const std::uint64_t tick, const float fixed_step_seconds) {
     if (tick != impl_->snapshot.tick + 1 || !std::isfinite(fixed_step_seconds) ||
         !(fixed_step_seconds > 0.0F)) {
         throw std::invalid_argument{
@@ -114,11 +110,9 @@ bool ProjectileSimulation::resolve_impact(const ProjectileImpact& impact) noexce
         !finite(impact.position) || !finite(impact.normal)) {
         return false;
     }
-    const auto found = std::ranges::find(
-        impl_->snapshot.active, impact.projectile_id,
-        &ProjectileStateSnapshot::projectile_id);
-    if (found == impl_->snapshot.active.end() ||
-        (impact.target && impact.target == found->actor)) {
+    const auto found = std::ranges::find(impl_->snapshot.active, impact.projectile_id,
+                                         &ProjectileStateSnapshot::projectile_id);
+    if (found == impl_->snapshot.active.end() || (impact.target && impact.target == found->actor)) {
         return false;
     }
 
@@ -138,9 +132,7 @@ bool ProjectileSimulation::resolve_impact(const ProjectileImpact& impact) noexce
     return true;
 }
 
-ProjectileSimulationSnapshot ProjectileSimulation::snapshot() const {
-    return impl_->snapshot;
-}
+ProjectileSimulationSnapshot ProjectileSimulation::snapshot() const { return impl_->snapshot; }
 
 std::vector<ProjectileExpiredEvent> ProjectileSimulation::drain_expired_events() {
     std::vector<ProjectileExpiredEvent> drained;

@@ -31,8 +31,7 @@ std::size_t JobSystem::recommended_worker_count() noexcept {
     return std::min(available, maximum_workers);
 }
 
-JobSystem::JobSystem(std::size_t worker_count)
-    : impl_{std::make_unique<Impl>()} {
+JobSystem::JobSystem(std::size_t worker_count) : impl_{std::make_unique<Impl>()} {
     if (worker_count == 0) {
         worker_count = recommended_worker_count();
     }
@@ -44,9 +43,8 @@ JobSystem::JobSystem(std::size_t worker_count)
                 Job job;
                 {
                     std::unique_lock lock{impl_->mutex};
-                    impl_->work_available.wait(lock, [this] {
-                        return impl_->stopping || !impl_->queue.empty();
-                    });
+                    impl_->work_available.wait(
+                        lock, [this] { return impl_->stopping || !impl_->queue.empty(); });
                     if (impl_->stopping && impl_->queue.empty()) {
                         return;
                     }
@@ -108,9 +106,8 @@ void JobSystem::wait_idle() {
     std::exception_ptr failure;
     {
         std::unique_lock lock{impl_->mutex};
-        impl_->idle.wait(lock, [this] {
-            return impl_->queue.empty() && impl_->active_workers == 0;
-        });
+        impl_->idle.wait(lock,
+                         [this] { return impl_->queue.empty() && impl_->active_workers == 0; });
         failure = impl_->first_failure;
         impl_->first_failure = nullptr;
     }
@@ -120,11 +117,8 @@ void JobSystem::wait_idle() {
     }
 }
 
-void JobSystem::parallel_for(
-    const std::size_t item_count,
-    const std::size_t minimum_batch_size,
-    const RangeJob& job
-) {
+void JobSystem::parallel_for(const std::size_t item_count, const std::size_t minimum_batch_size,
+                             const RangeJob& job) {
     if (item_count == 0) {
         return;
     }
@@ -134,20 +128,17 @@ void JobSystem::parallel_for(
 
     const std::size_t safe_minimum = std::max<std::size_t>(minimum_batch_size, 1);
     const std::size_t maximum_job_count = (item_count + safe_minimum - 1) / safe_minimum;
-    const std::size_t job_count = std::max<std::size_t>(1, std::min(worker_count(), maximum_job_count));
+    const std::size_t job_count =
+        std::max<std::size_t>(1, std::min(worker_count(), maximum_job_count));
     const std::size_t batch_size = (item_count + job_count - 1) / job_count;
 
     for (std::size_t begin = 0; begin < item_count; begin += batch_size) {
         const std::size_t end = std::min(begin + batch_size, item_count);
-        submit([job, begin, end] {
-            job(begin, end);
-        });
+        submit([job, begin, end] { job(begin, end); });
     }
     wait_idle();
 }
 
-std::size_t JobSystem::worker_count() const noexcept {
-    return impl_->workers.size();
-}
+std::size_t JobSystem::worker_count() const noexcept { return impl_->workers.size(); }
 
 } // namespace ic2d

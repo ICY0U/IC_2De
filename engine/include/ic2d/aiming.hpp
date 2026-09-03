@@ -27,11 +27,8 @@ struct MuzzleGeometry {
 // The world position a shot leaves from. The aim direction need not be
 // normalized; a zero direction yields the actor's own position raised to
 // muzzle height rather than a division by zero.
-[[nodiscard]] Vec3 muzzle_origin(
-    Vec3 actor_position,
-    Vec2 aim_direction,
-    MuzzleGeometry geometry
-) noexcept;
+[[nodiscard]] Vec3 muzzle_origin(Vec3 actor_position, Vec2 aim_direction,
+                                 MuzzleGeometry geometry) noexcept;
 
 // Feel, expressed as data so it can be tuned without touching resolution rules.
 struct AimingConfig {

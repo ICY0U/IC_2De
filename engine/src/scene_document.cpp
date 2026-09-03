@@ -122,9 +122,9 @@ template <typename Number>
 
 [[nodiscard]] std::string format_float(const float value) {
     char buffer[64]{};
-    const auto result = std::to_chars(
-        std::begin(buffer), std::end(buffer), value, std::chars_format::general,
-        std::numeric_limits<float>::max_digits10);
+    const auto result =
+        std::to_chars(std::begin(buffer), std::end(buffer), value, std::chars_format::general,
+                      std::numeric_limits<float>::max_digits10);
     if (result.ec != std::errc{}) {
         throw std::runtime_error{"Scene document could not format a position."};
     }
@@ -154,14 +154,12 @@ template <typename Number>
     // Schema 10 entity records carry an optional trailing depth span. Every
     // field this class edits sits before it, and formatting rewrites the whole
     // record, so a spanned wall keeps its span across a rename or a move.
-    if (record.key == "entity" &&
-        (record.fields.size() == entity_field_count ||
-         record.fields.size() == entity_field_count + 1)) {
+    if (record.key == "entity" && (record.fields.size() == entity_field_count ||
+                                   record.fields.size() == entity_field_count + 1)) {
         layout = {.uuid = 1, .prefab = 0, .name = 2, .binding = 3, .position = 4};
         return true;
     }
-    if (record.key == "prefab_instance" &&
-        record.fields.size() == prefab_instance_field_count) {
+    if (record.key == "prefab_instance" && record.fields.size() == prefab_instance_field_count) {
         layout = {.uuid = 1, .prefab = 2, .name = 3, .binding = 4, .position = 5};
         return true;
     }
@@ -189,20 +187,17 @@ constexpr std::size_t entity_sprite_base = 7;
         static_cast<std::uint8_t>(parse_number<std::uint32_t>(f[entity_sprite_base + 7], "tint A")),
     };
     sprite.layer = parse_number<std::int32_t>(f[entity_sprite_base + 8], "sprite layer");
-    sprite.texture_id = f[entity_sprite_base + 9] == "-" ? std::string{} : f[entity_sprite_base + 9];
+    sprite.texture_id =
+        f[entity_sprite_base + 9] == "-" ? std::string{} : f[entity_sprite_base + 9];
     if (f.size() > entity_sprite_base + 10) {
         sprite.depth_span = parse_number<float>(f[entity_sprite_base + 10], "entity depth span");
     }
     return sprite;
 }
 
-[[nodiscard]] bool find_placement(
-    const std::vector<std::string>& lines,
-    const EntityUuid uuid,
-    std::size_t& line_index,
-    TextRecord& found_record,
-    PlacementLayout& found_layout
-) {
+[[nodiscard]] bool find_placement(const std::vector<std::string>& lines, const EntityUuid uuid,
+                                  std::size_t& line_index, TextRecord& found_record,
+                                  PlacementLayout& found_layout) {
     for (std::size_t index = 0; index < lines.size(); ++index) {
         TextRecord record;
         PlacementLayout layout;
@@ -230,10 +225,8 @@ constexpr std::size_t entity_sprite_base = 7;
     return {};
 }
 
-[[nodiscard]] std::uint64_t stable_uuid(
-    const std::string_view scene_id,
-    const std::string_view entity_id
-) noexcept {
+[[nodiscard]] std::uint64_t stable_uuid(const std::string_view scene_id,
+                                        const std::string_view entity_id) noexcept {
     constexpr std::uint64_t offset = 14695981039346656037ULL;
     constexpr std::uint64_t prime = 1099511628211ULL;
     std::uint64_t value = offset;
@@ -250,10 +243,7 @@ constexpr std::size_t entity_sprite_base = 7;
     return value == 0 ? 1 : value;
 }
 
-void write_candidate(
-    const std::filesystem::path& path,
-    const std::vector<std::string>& lines
-) {
+void write_candidate(const std::filesystem::path& path, const std::vector<std::string>& lines) {
     std::ofstream stream{path, std::ios::binary | std::ios::trunc};
     if (!stream) {
         throw std::runtime_error{"Scene candidate could not be created: " + path.string()};
@@ -263,25 +253,23 @@ void write_candidate(
     }
     stream.flush();
     if (!stream) {
-        throw std::runtime_error{"Scene candidate could not be written completely: " + path.string()};
+        throw std::runtime_error{"Scene candidate could not be written completely: " +
+                                 path.string()};
     }
 }
 
-void replace_file(
-    const std::filesystem::path& candidate,
-    const std::filesystem::path& destination
-) {
+void replace_file(const std::filesystem::path& candidate,
+                  const std::filesystem::path& destination) {
 #if defined(_WIN32)
     const bool destination_exists = std::filesystem::exists(destination);
-    const BOOL replaced = destination_exists
-                              ? ReplaceFileW(destination.c_str(), candidate.c_str(), nullptr,
-                                             REPLACEFILE_WRITE_THROUGH, nullptr, nullptr)
-                              : MoveFileExW(candidate.c_str(), destination.c_str(),
-                                            MOVEFILE_WRITE_THROUGH);
+    const BOOL replaced =
+        destination_exists
+            ? ReplaceFileW(destination.c_str(), candidate.c_str(), nullptr,
+                           REPLACEFILE_WRITE_THROUGH, nullptr, nullptr)
+            : MoveFileExW(candidate.c_str(), destination.c_str(), MOVEFILE_WRITE_THROUGH);
     if (replaced == FALSE) {
-        throw std::runtime_error{
-            "Atomic scene replacement failed with Windows error " +
-            std::to_string(static_cast<unsigned long>(GetLastError())) + '.'};
+        throw std::runtime_error{"Atomic scene replacement failed with Windows error " +
+                                 std::to_string(static_cast<unsigned long>(GetLastError())) + '.'};
     }
 #else
     std::filesystem::rename(candidate, destination);
@@ -327,13 +315,9 @@ void set_schema_version(std::vector<std::string>& lines, const std::uint32_t sch
 
 } // namespace
 
-SceneDocument::SceneDocument(
-    std::filesystem::path source_path,
-    std::vector<std::string> lines,
-    const std::uint32_t schema_version
-)
-    : source_path_{std::move(source_path)},
-      lines_{std::move(lines)},
+SceneDocument::SceneDocument(std::filesystem::path source_path, std::vector<std::string> lines,
+                             const std::uint32_t schema_version)
+    : source_path_{std::move(source_path)}, lines_{std::move(lines)},
       schema_version_{schema_version} {}
 
 SceneDocument SceneDocument::open(const std::filesystem::path& path) {
@@ -358,8 +342,7 @@ SceneDocument SceneDocument::migrate_to_current(const std::filesystem::path& pat
     }
     const std::string scene_id = scene_id_of(lines);
     if ((schema < 5 || schema > 11) || scene_id.empty()) {
-        throw std::runtime_error{
-            "Only scene schema 5 through 11 can be migrated to schema 12."};
+        throw std::runtime_error{"Only scene schema 5 through 11 can be migrated to schema 12."};
     }
     if (schema == 5) {
         migrate_five_to_six(lines, scene_id);
@@ -392,11 +375,12 @@ std::vector<SceneDocumentEntity> SceneDocument::entities() const {
             .name = record.fields[layout.name],
             .prefab_id = layout.prefab == 0 ? std::string{} : record.fields[layout.prefab],
             .physics_bound = record.fields[layout.binding] != "-",
-            .position = {
-                parse_number<float>(record.fields[layout.position], "entity X"),
-                parse_number<float>(record.fields[layout.position + 1], "entity Y"),
-                parse_number<float>(record.fields[layout.position + 2], "entity Z"),
-            },
+            .position =
+                {
+                    parse_number<float>(record.fields[layout.position], "entity X"),
+                    parse_number<float>(record.fields[layout.position + 1], "entity Y"),
+                    parse_number<float>(record.fields[layout.position + 2], "entity Z"),
+                },
             .has_own_sprite = layout.prefab == 0,
             .sprite = layout.prefab == 0 ? read_entity_sprite(record) : SceneDocumentSprite{},
         });
@@ -437,7 +421,8 @@ std::vector<SceneDocumentPrefab> SceneDocument::prefabs() const {
 
 bool SceneDocument::rename_entity(const EntityUuid uuid, const std::string_view name) {
     if (!uuid || !valid_name(name)) {
-        throw std::invalid_argument{"Entity rename requires a non-zero UUID and a non-empty plain name."};
+        throw std::invalid_argument{
+            "Entity rename requires a non-zero UUID and a non-empty plain name."};
     }
     std::size_t index = 0;
     TextRecord record;
@@ -453,7 +438,8 @@ bool SceneDocument::rename_entity(const EntityUuid uuid, const std::string_view 
 bool SceneDocument::set_unbound_entity_position(const EntityUuid uuid, const Vec3 position) {
     if (!uuid || !std::isfinite(position.x) || !std::isfinite(position.y) ||
         !std::isfinite(position.z)) {
-        throw std::invalid_argument{"Entity movement requires a non-zero UUID and finite position."};
+        throw std::invalid_argument{
+            "Entity movement requires a non-zero UUID and finite position."};
     }
     std::size_t index = 0;
     TextRecord record;
@@ -472,14 +458,10 @@ bool SceneDocument::set_unbound_entity_position(const EntityUuid uuid, const Vec
     return true;
 }
 
-bool SceneDocument::set_entity_sprite(
-    const EntityUuid uuid,
-    const SceneDocumentSprite& sprite
-) {
+bool SceneDocument::set_entity_sprite(const EntityUuid uuid, const SceneDocumentSprite& sprite) {
     if (!uuid || !std::isfinite(sprite.size.x) || !std::isfinite(sprite.size.y) ||
         !(sprite.size.x > 0.0F) || !(sprite.size.y > 0.0F) ||
-        !std::isfinite(sprite.normalized_origin.x) ||
-        !std::isfinite(sprite.normalized_origin.y) ||
+        !std::isfinite(sprite.normalized_origin.x) || !std::isfinite(sprite.normalized_origin.y) ||
         !std::isfinite(sprite.depth_span) || sprite.depth_span < 0.0F) {
         throw std::invalid_argument{
             "Sprite edits require a non-zero UUID, a positive size, a finite origin, "
@@ -564,8 +546,8 @@ EntityUuid SceneDocument::create_prefab_instance(const ScenePrefabPlacement& pla
         return {};
     }
     if (placed_ids.contains(placement.instance_id)) {
-        throw std::invalid_argument{
-            "Prefab instance ids must be unique within a scene: " + placement.instance_id};
+        throw std::invalid_argument{"Prefab instance ids must be unique within a scene: " +
+                                    placement.instance_id};
     }
 
     std::uint64_t uuid = stable_uuid(scene_id, placement.instance_id);
@@ -577,16 +559,17 @@ EntityUuid SceneDocument::create_prefab_instance(const ScenePrefabPlacement& pla
     }
     const TextRecord record{
         .key = "prefab_instance",
-        .fields = {
-            placement.instance_id,
-            std::to_string(uuid),
-            placement.prefab_id,
-            std::string{trim(placement.name)},
-            "-",
-            format_float(placement.position.x),
-            format_float(placement.position.y),
-            format_float(placement.position.z),
-        },
+        .fields =
+            {
+                placement.instance_id,
+                std::to_string(uuid),
+                placement.prefab_id,
+                std::string{trim(placement.name)},
+                "-",
+                format_float(placement.position.x),
+                format_float(placement.position.y),
+                format_float(placement.position.z),
+            },
     };
     const std::size_t insert_at = has_placement ? last_placement_line + 1 : lines_.size();
     lines_.insert(lines_.begin() + static_cast<std::ptrdiff_t>(insert_at), format_record(record));
@@ -646,25 +629,26 @@ EntityUuid SceneDocument::create_entity(const SceneEntityPlacement& placement) {
     const SceneDocumentSprite& sprite = placement.sprite;
     TextRecord record{
         .key = "entity",
-        .fields = {
-            placement.id,
-            std::to_string(uuid),
-            std::string{trim(placement.name)},
-            "-",
-            format_float(placement.position.x),
-            format_float(placement.position.y),
-            format_float(placement.position.z),
-            format_float(sprite.size.x),
-            format_float(sprite.size.y),
-            format_float(sprite.normalized_origin.x),
-            format_float(sprite.normalized_origin.y),
-            std::to_string(static_cast<unsigned>(sprite.tint.red)),
-            std::to_string(static_cast<unsigned>(sprite.tint.green)),
-            std::to_string(static_cast<unsigned>(sprite.tint.blue)),
-            std::to_string(static_cast<unsigned>(sprite.tint.alpha)),
-            std::to_string(sprite.layer),
-            sprite.texture_id.empty() ? "-" : sprite.texture_id,
-        },
+        .fields =
+            {
+                placement.id,
+                std::to_string(uuid),
+                std::string{trim(placement.name)},
+                "-",
+                format_float(placement.position.x),
+                format_float(placement.position.y),
+                format_float(placement.position.z),
+                format_float(sprite.size.x),
+                format_float(sprite.size.y),
+                format_float(sprite.normalized_origin.x),
+                format_float(sprite.normalized_origin.y),
+                std::to_string(static_cast<unsigned>(sprite.tint.red)),
+                std::to_string(static_cast<unsigned>(sprite.tint.green)),
+                std::to_string(static_cast<unsigned>(sprite.tint.blue)),
+                std::to_string(static_cast<unsigned>(sprite.tint.alpha)),
+                std::to_string(sprite.layer),
+                sprite.texture_id.empty() ? "-" : sprite.texture_id,
+            },
     };
     if (sprite.depth_span > 0.0F) {
         record.fields.push_back(format_float(sprite.depth_span));
@@ -697,14 +681,14 @@ bool SceneDocument::destroy_entity(const EntityUuid uuid) {
         if (referencing.key == "animation_binding" &&
             referencing.fields.size() == animation_binding_field_count &&
             referencing.fields[0] == entity_id) {
-            throw std::invalid_argument{
-                "Animation bindings still reference this entity: " + entity_id};
+            throw std::invalid_argument{"Animation bindings still reference this entity: " +
+                                        entity_id};
         }
         if (referencing.key == "animation_auto" &&
             referencing.fields.size() == animation_auto_field_count &&
             referencing.fields[0] == entity_id) {
-            throw std::invalid_argument{
-                "Automatic animations still reference this entity: " + entity_id};
+            throw std::invalid_argument{"Automatic animations still reference this entity: " +
+                                        entity_id};
         }
     }
     lines_.erase(lines_.begin() + static_cast<std::ptrdiff_t>(index));
@@ -765,8 +749,7 @@ bool SceneDocument::destroy_prefab_instance(const EntityUuid uuid) {
         // The instance is leaving, so the record naming its parent goes with
         // it exactly as its overrides do.
         if (parse_record(lines_[line_index], candidate) && candidate.key == "parent" &&
-            candidate.fields.size() == parent_field_count &&
-            candidate.fields[0] == instance_id) {
+            candidate.fields.size() == parent_field_count && candidate.fields[0] == instance_id) {
             continue;
         }
         remaining.push_back(lines_[line_index]);
@@ -776,8 +759,8 @@ bool SceneDocument::destroy_prefab_instance(const EntityUuid uuid) {
 }
 
 SceneDefinition SceneDocument::runtime_copy() const {
-    const std::filesystem::path candidate = source_path_.parent_path() /
-        (source_path_.filename().string() + ".ic2de.runtime-copy.tmp");
+    const std::filesystem::path candidate =
+        source_path_.parent_path() / (source_path_.filename().string() + ".ic2de.runtime-copy.tmp");
     std::error_code cleanup_error;
     try {
         write_candidate(candidate, lines_);
@@ -795,9 +778,11 @@ void SceneDocument::save_atomic(const std::filesystem::path& destination) const 
         std::filesystem::absolute(destination).lexically_normal();
     if (absolute_destination.filename().empty() ||
         !std::filesystem::is_directory(absolute_destination.parent_path())) {
-        throw std::invalid_argument{"Scene save destination must have an existing parent directory."};
+        throw std::invalid_argument{
+            "Scene save destination must have an existing parent directory."};
     }
-    const std::filesystem::path candidate = absolute_destination.parent_path() /
+    const std::filesystem::path candidate =
+        absolute_destination.parent_path() /
         (absolute_destination.filename().string() + ".ic2de.tmp");
     std::error_code cleanup_error;
     try {

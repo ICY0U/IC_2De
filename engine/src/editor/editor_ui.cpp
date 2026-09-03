@@ -55,11 +55,8 @@ constexpr std::array<AxisStyle, 3> axis_styles{{
 #endif
 }
 
-[[nodiscard]] ImFont* load_face(
-    const std::filesystem::path& directory,
-    const char* file_name,
-    const float size
-) {
+[[nodiscard]] ImFont* load_face(const std::filesystem::path& directory, const char* file_name,
+                                const float size) {
     if (directory.empty()) {
         return nullptr;
     }
@@ -322,8 +319,7 @@ bool begin_property_grid(const char* id, const float label_width) {
     // holds its fixed width and the value column takes exactly what is left.
     // A fixed-fit table sizes the value column to its widest text instead, and
     // then a long value pushes the fields out of a narrow docked panel.
-    constexpr ImGuiTableFlags flags =
-        ImGuiTableFlags_PadOuterX | ImGuiTableFlags_NoSavedSettings;
+    constexpr ImGuiTableFlags flags = ImGuiTableFlags_PadOuterX | ImGuiTableFlags_NoSavedSettings;
     g_grid_is_stacked = ImGui::GetContentRegionAvail().x < stacked_layout_width;
     if (!ImGui::BeginTable(id, g_grid_is_stacked ? 1 : 2, flags)) {
         return false;
@@ -371,12 +367,8 @@ void property_text_colored(const ImU32 color, const char* label, const char* fmt
     ImGui::PopStyleColor();
 }
 
-Vec3ControlResult vec3_control(
-    const char* label,
-    float values[3],
-    const float reset_value,
-    const float speed
-) {
+Vec3ControlResult vec3_control(const char* label, float values[3], const float reset_value,
+                               const float speed) {
     Vec3ControlResult result{};
     ImGui::PushID(label);
     begin_property_row(label, nullptr);
@@ -454,12 +446,7 @@ bool accent_button(const char* label, const float width) {
     return pressed;
 }
 
-bool search_field(
-    const char* id,
-    char* buffer,
-    const std::size_t capacity,
-    const char* hint
-) {
+bool search_field(const char* id, char* buffer, const std::size_t capacity, const char* hint) {
     ImGui::PushID(id);
     const bool has_text = buffer[0] != '\0';
     const float clear_width =

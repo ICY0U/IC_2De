@@ -51,11 +51,8 @@ void append_bool(StableHasher& hash, const bool value) noexcept {
 }
 
 template <typename Value, typename Identity>
-[[nodiscard]] std::vector<const Value*> canonical_order(
-    const std::vector<Value>& values,
-    Identity identity,
-    const char* diagnostic
-) {
+[[nodiscard]] std::vector<const Value*> canonical_order(const std::vector<Value>& values,
+                                                        Identity identity, const char* diagnostic) {
     std::vector<const Value*> ordered;
     ordered.reserve(values.size());
     for (const Value& value : values) {
@@ -64,9 +61,7 @@ template <typename Value, typename Identity>
         }
         ordered.push_back(&value);
     }
-    std::ranges::sort(ordered, {}, [&identity](const Value* value) {
-        return identity(*value);
-    });
+    std::ranges::sort(ordered, {}, [&identity](const Value* value) { return identity(*value); });
     for (std::size_t index = 1; index < ordered.size(); ++index) {
         if (identity(*ordered[index - 1]) == identity(*ordered[index])) {
             throw std::invalid_argument{diagnostic};
@@ -79,8 +74,7 @@ void append_world(StableHasher& hash, const WorldSnapshot& world) {
     constexpr std::uint64_t section = 0x574F524C44ULL; // WORLD
     hash.append(section);
     const auto entities = canonical_order(
-        world.entities,
-        [](const EntityBlueprint& entity) { return entity.uuid.value; },
+        world.entities, [](const EntityBlueprint& entity) { return entity.uuid.value; },
         "Gameplay world snapshots require unique non-zero entity identities.");
     hash.append(entities.size());
     for (const EntityBlueprint* entity : entities) {
@@ -126,8 +120,7 @@ void append_combat(StableHasher& hash, const CombatSnapshot& combat) {
     hash.append(combat.next_projectile_id);
 
     const auto actors = canonical_order(
-        combat.actors,
-        [](const CombatActorSnapshot& actor) { return actor.actor.value; },
+        combat.actors, [](const CombatActorSnapshot& actor) { return actor.actor.value; },
         "Gameplay Combat snapshots require unique non-zero actor identities.");
     hash.append(actors.size());
     bool latest_actor_found = !combat.latest_actor;
@@ -183,8 +176,7 @@ void append_enemy_intent(StableHasher& hash, const EnemyIntentSnapshot& intent) 
     hash.append(intent.acquisition_count);
     hash.append(intent.attack_count);
     const auto actors = canonical_order(
-        intent.actors,
-        [](const EnemyActorIntentSnapshot& actor) { return actor.actor.value; },
+        intent.actors, [](const EnemyActorIntentSnapshot& actor) { return actor.actor.value; },
         "Gameplay EnemyIntent snapshots require unique non-zero actor identities.");
     hash.append(actors.size());
     for (const EnemyActorIntentSnapshot* actor : actors) {
@@ -211,17 +203,13 @@ void append_enemy_intent(StableHasher& hash, const EnemyIntentSnapshot& intent) 
 
 void append_nav_cell(StableHasher& hash, const NavCell cell) {
     if (cell.column < 0 || cell.row < 0) {
-        throw std::invalid_argument{
-            "Gameplay navigation snapshots require non-negative cells."};
+        throw std::invalid_argument{"Gameplay navigation snapshots require non-negative cells."};
     }
     hash.append(static_cast<std::uint64_t>(cell.column));
     hash.append(static_cast<std::uint64_t>(cell.row));
 }
 
-void append_optional_nav_cell(
-    StableHasher& hash,
-    const std::optional<NavCell>& cell
-) {
+void append_optional_nav_cell(StableHasher& hash, const std::optional<NavCell>& cell) {
     append_bool(hash, cell.has_value());
     if (cell) {
         append_nav_cell(hash, *cell);
@@ -230,8 +218,7 @@ void append_optional_nav_cell(
 
 void append_navigation(StableHasher& hash, const NavAgentSnapshot& navigation) {
     constexpr std::uint64_t section = 0x4E41564947415445ULL; // NAVIGATE
-    if (navigation.repath_interval_ticks == 0 ||
-        !std::isfinite(navigation.waypoint_tolerance) ||
+    if (navigation.repath_interval_ticks == 0 || !std::isfinite(navigation.waypoint_tolerance) ||
         !(navigation.waypoint_tolerance > 0.0F)) {
         throw std::invalid_argument{
             "Gameplay navigation snapshots require valid path-following settings."};
@@ -243,8 +230,7 @@ void append_navigation(StableHasher& hash, const NavAgentSnapshot& navigation) {
     hash.append_float(navigation.waypoint_tolerance);
 
     const auto actors = canonical_order(
-        navigation.actors,
-        [](const NavAgentStateSnapshot& actor) { return actor.actor.value; },
+        navigation.actors, [](const NavAgentStateSnapshot& actor) { return actor.actor.value; },
         "Gameplay navigation snapshots require unique non-zero actor identities.");
     hash.append(actors.size());
     for (const NavAgentStateSnapshot* actor : actors) {
@@ -313,8 +299,7 @@ void append_health(StableHasher& hash, const HealthSnapshot& health) {
     }
 
     const auto targets = canonical_order(
-        health.targets,
-        [](const HealthTargetSnapshot& target) { return target.target.value; },
+        health.targets, [](const HealthTargetSnapshot& target) { return target.target.value; },
         "Gameplay health snapshots require unique non-zero target identities.");
     hash.append(targets.size());
     for (const HealthTargetSnapshot* target : targets) {
@@ -328,15 +313,13 @@ void append_health(StableHasher& hash, const HealthSnapshot& health) {
 } // namespace
 
 GameplayStateDigest gameplay_state_digest(const GameplayStateSnapshot& state) {
-    if (state.combat.tick != state.projectiles.tick ||
-        state.combat.tick != state.health.tick ||
+    if (state.combat.tick != state.projectiles.tick || state.combat.tick != state.health.tick ||
         state.combat.tick != state.enemy_intent.tick ||
         state.combat.tick != state.navigation.tick) {
         throw std::invalid_argument{
             "Gameplay state snapshots must describe one completed fixed tick."};
     }
-    if (state.combat.pending_command_count != 0 ||
-        state.projectiles.pending_spawn_count != 0 ||
+    if (state.combat.pending_command_count != 0 || state.projectiles.pending_spawn_count != 0 ||
         state.health.pending_damage_count != 0) {
         throw std::invalid_argument{
             "Gameplay state digests require a completed fixed-tick boundary with no pending work."};

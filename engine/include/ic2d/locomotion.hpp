@@ -49,8 +49,7 @@ inline constexpr std::size_t locomotion_action_state_begin = 24;
 inline constexpr std::size_t locomotion_seated_state_count = 2;
 inline constexpr std::size_t locomotion_shoot_state_count = 4;
 inline constexpr std::size_t locomotion_reaction_state_begin =
-    locomotion_action_state_begin + locomotion_seated_state_count +
-    locomotion_shoot_state_count;
+    locomotion_action_state_begin + locomotion_seated_state_count + locomotion_shoot_state_count;
 inline constexpr std::size_t locomotion_reaction_state_count = 3;
 inline constexpr std::size_t locomotion_state_count =
     locomotion_reaction_state_begin + locomotion_reaction_state_count;
@@ -69,10 +68,7 @@ inline constexpr std::size_t locomotion_state_count =
 
 // Selects idle or moving presentation from an independent facing direction.
 // A zero/invalid direction preserves the previous facing.
-[[nodiscard]] LocomotionState locomotion_state(
-    LocomotionState previous_facing,
-    Vec2 facing_direction,
-    bool moving
-) noexcept;
+[[nodiscard]] LocomotionState locomotion_state(LocomotionState previous_facing,
+                                               Vec2 facing_direction, bool moving) noexcept;
 
 } // namespace ic2d

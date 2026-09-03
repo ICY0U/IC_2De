@@ -24,8 +24,9 @@ for death and explosion effects.
 
 The root files preserve the generated review sheets. `clean/` contains the
 successful genuine-alpha versions. The walk sheet resisted two alpha
-extraction attempts and remains source-only; rejected derivatives are isolated
-under `failed-alpha/`.
+extraction attempts and remains source-only; the rejected derivatives it
+produced have been deleted rather than kept, since nothing consumed them and
+they must never be treated as production art.
 
 After approval this needs a native-grid cleanup pass, uniform cells and roots,
 exact timings, separate explosion VFX, and direction coverage chosen from the

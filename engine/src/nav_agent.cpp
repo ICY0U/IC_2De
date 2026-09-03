@@ -25,10 +25,8 @@ namespace {
     return {delta.x / length, delta.y / length};
 }
 
-[[nodiscard]] std::uint64_t next_repath_tick(
-    const std::uint64_t tick,
-    const std::uint32_t interval
-) noexcept {
+[[nodiscard]] std::uint64_t next_repath_tick(const std::uint64_t tick,
+                                             const std::uint32_t interval) noexcept {
     const std::uint64_t maximum = std::numeric_limits<std::uint64_t>::max();
     return tick > maximum - interval ? maximum : tick + interval;
 }
@@ -64,10 +62,8 @@ struct NavAgentSystem::Impl {
     std::uint64_t total_search_count{0};
 };
 
-NavAgentSystem::NavAgentSystem(const NavAgentSettings settings)
-    : impl_{std::make_unique<Impl>()} {
-    if (settings.repath_interval_ticks == 0 ||
-        !std::isfinite(settings.waypoint_tolerance) ||
+NavAgentSystem::NavAgentSystem(const NavAgentSettings settings) : impl_{std::make_unique<Impl>()} {
+    if (settings.repath_interval_ticks == 0 || !std::isfinite(settings.waypoint_tolerance) ||
         !(settings.waypoint_tolerance > 0.0F)) {
         throw std::invalid_argument{
             "NavAgent settings require a positive repath interval and waypoint tolerance."};
@@ -83,22 +79,17 @@ bool NavAgentSystem::register_agent(const EntityUuid actor) noexcept {
     if (impl_->tick != 0 || !actor) {
         return false;
     }
-    return impl_->actors.emplace(
-        actor.value, Impl::ActorState{.actor = actor}).second;
+    return impl_->actors.emplace(actor.value, Impl::ActorState{.actor = actor}).second;
 }
 
-std::vector<NavAgentMotion> NavAgentSystem::fixed_update(
-    const std::uint64_t tick,
-    const NavGrid& grid,
-    const std::vector<NavAgentRequest>& requests
-) {
+std::vector<NavAgentMotion>
+NavAgentSystem::fixed_update(const std::uint64_t tick, const NavGrid& grid,
+                             const std::vector<NavAgentRequest>& requests) {
     if (tick != impl_->tick + 1) {
-        throw std::invalid_argument{
-            "NavAgent fixed ticks must be one-based and sequential."};
+        throw std::invalid_argument{"NavAgent fixed ticks must be one-based and sequential."};
     }
     if (requests.size() != impl_->actors.size()) {
-        throw std::invalid_argument{
-            "NavAgent requires one request per registered actor."};
+        throw std::invalid_argument{"NavAgent requires one request per registered actor."};
     }
 
     std::unordered_map<std::uint64_t, const NavAgentRequest*> request_by_actor;
@@ -125,8 +116,7 @@ std::vector<NavAgentMotion> NavAgentSystem::fixed_update(
         const NavAgentRequest& request = *request_by_actor.at(actor_id);
         const std::optional<NavCell> current_cell = grid.cell_at(request.actor_position);
         const std::optional<NavCell> goal_cell = grid.cell_at(request.target_position);
-        const bool target_changed = state.target != request.target ||
-                                    state.goal_cell != goal_cell;
+        const bool target_changed = state.target != request.target || state.goal_cell != goal_cell;
         const bool activated = request.active && !state.active;
         state.target = request.target;
         state.current_cell = current_cell;
@@ -155,40 +145,35 @@ std::vector<NavAgentMotion> NavAgentSystem::fixed_update(
         if (state.path_status == NavPathStatus::found && !state.path.empty() && current_cell) {
             const std::size_t first_remaining =
                 state.reached_index == 0 ? 0 : state.reached_index - 1;
-            route_lost = std::find(
-                             state.path.begin() +
-                                 static_cast<std::ptrdiff_t>(
-                                     std::min(first_remaining, state.path.size())),
-                             state.path.end(), *current_cell) == state.path.end();
+            route_lost = std::find(state.path.begin() + static_cast<std::ptrdiff_t>(std::min(
+                                                            first_remaining, state.path.size())),
+                                   state.path.end(), *current_cell) == state.path.end();
         } else if (state.path_status == NavPathStatus::found) {
             route_lost = true;
         }
 
         const bool interval_due = tick >= state.next_repath_tick;
-        const bool needs_path =
-            activated || target_changed || route_lost || interval_due;
+        const bool needs_path = activated || target_changed || route_lost || interval_due;
         if (needs_path) {
-            const NavPathResult path = find_nav_path_world(
-                grid, request.actor_position, request.target_position);
+            const NavPathResult path =
+                find_nav_path_world(grid, request.actor_position, request.target_position);
             state.path_status = path.status;
             state.path = path.cells;
-            state.waypoint_index = path.status == NavPathStatus::found &&
-                                           path.cells.size() > 1
+            state.waypoint_index = path.status == NavPathStatus::found && path.cells.size() > 1
                                        ? 1
                                        : path.cells.size();
             state.reached_index = state.waypoint_index;
             state.path_distance = path.total_distance;
             state.expanded_cell_count = path.expanded_cell_count;
-            state.next_repath_tick = next_repath_tick(
-                tick, impl_->settings.repath_interval_ticks);
+            state.next_repath_tick = next_repath_tick(tick, impl_->settings.repath_interval_ticks);
             ++state.search_count;
             ++impl_->total_search_count;
             repathed = true;
         }
 
         if (state.path_status == NavPathStatus::found) {
-            const float tolerance_squared = impl_->settings.waypoint_tolerance *
-                                            impl_->settings.waypoint_tolerance;
+            const float tolerance_squared =
+                impl_->settings.waypoint_tolerance * impl_->settings.waypoint_tolerance;
             while (state.waypoint_index < state.path.size()) {
                 const std::optional<NavGridCell> waypoint =
                     grid.cell(state.path[state.waypoint_index]);
@@ -218,8 +203,7 @@ std::vector<NavAgentMotion> NavAgentSystem::fixed_update(
                     state.waypoint_index + impl_->settings.smoothing_lookahead_cells);
                 for (std::size_t candidate = window; candidate > state.waypoint_index;
                      --candidate) {
-                    const std::optional<NavGridCell> ahead =
-                        grid.cell(state.path[candidate - 1]);
+                    const std::optional<NavGridCell> ahead = grid.cell(state.path[candidate - 1]);
                     if (!ahead) {
                         throw std::logic_error{
                             "NavAgent path referenced a cell absent from its source grid."};
@@ -227,8 +211,7 @@ std::vector<NavAgentMotion> NavAgentSystem::fixed_update(
                     if (!nav_line_of_sight(grid, request.actor_position, ahead->center)) {
                         continue;
                     }
-                    state.waypoint_advance_count +=
-                        (candidate - 1) - state.waypoint_index;
+                    state.waypoint_advance_count += (candidate - 1) - state.waypoint_index;
                     state.waypoint_index = candidate - 1;
                     break;
                 }
@@ -239,8 +222,7 @@ std::vector<NavAgentMotion> NavAgentSystem::fixed_update(
                 // A visible target is walked at directly. The route exists to
                 // get around what cannot be seen; once the target itself is in
                 // sight, steering to a cell centre beside it only detours.
-                if (!nav_line_of_sight(grid, request.actor_position,
-                                       request.target_position)) {
+                if (!nav_line_of_sight(grid, request.actor_position, request.target_position)) {
                     const std::optional<NavGridCell> waypoint =
                         grid.cell(state.path[state.waypoint_index]);
                     if (!waypoint) {

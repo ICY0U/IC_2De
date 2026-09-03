@@ -72,15 +72,13 @@ struct EnemyActorIntentSnapshot {
 
     [[nodiscard]] bool operator==(const EnemyActorIntentSnapshot& other) const noexcept {
         return actor == other.actor && target == other.target && state == other.state &&
-               acquired == other.acquired &&
-               movement_direction.x == other.movement_direction.x &&
+               acquired == other.acquired && movement_direction.x == other.movement_direction.x &&
                movement_direction.y == other.movement_direction.y &&
                facing_direction.x == other.facing_direction.x &&
                facing_direction.y == other.facing_direction.y &&
                distance_to_target == other.distance_to_target &&
                movement_speed == other.movement_speed &&
-               acquisition_range == other.acquisition_range &&
-               attack_range == other.attack_range &&
+               acquisition_range == other.acquisition_range && attack_range == other.attack_range &&
                attack_cooldown_ticks == other.attack_cooldown_ticks &&
                attack_cooldown_ticks_remaining == other.attack_cooldown_ticks_remaining &&
                attack_damage == other.attack_damage && attack_count == other.attack_count;

@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Pushes to a working branch match neither trigger above until a pull request
+  # exists for it, which is the intended flow but leaves no way to check that
+  # the workflow itself is sound before opening one. This adds a Run workflow
+  # button on the Actions tab for exactly that.
+  workflow_dispatch:
+
+# A newer push to the same branch makes the previous run's answer irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Formatting
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Runs first and on its own: a formatting failure should be obvious at a
+      # glance rather than buried in a build log.
+      - name: Check formatting
+        run: powershell -ExecutionPolicy Bypass -File .\tools\format.ps1 -Check
+
+  hygiene:
+    name: Repository hygiene
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The enforcement half of the pre-commit hook in tools/install-hooks.ps1.
+      # Hooks are local to a clone and can be skipped with --no-verify, so this
+      # is what actually keeps build output, scratch directories and stray
+      # screenshots out of the repository.
+      - name: Check for files that should not be committed
+        run: powershell -ExecutionPolicy Bypass -File .\tools\check-repository-hygiene.ps1
+
+  build:
+    # Both configurations are built. The shipping preset compiles with
+    # IC2DE_ENABLE_DEVELOPMENT_TOOLS off, which is a genuinely different
+    # translation of application.cpp: it had been broken without anyone
+    # noticing, precisely because nothing built it automatically.
+    name: ${{ matrix.name }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Debug and tests
+            preset: windows-debug
+            arguments: -Configuration Debug -RunTests -ExcludeGpuTests
+          - name: Shipping runtime
+            preset: windows-shipping
+            arguments: -Configuration Release -Shipping
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # raylib, EnTT, Box2D, Dear ImGui and nlohmann JSON are fetched at
+      # configure time. Without this every run re-downloads and rebuilds them,
+      # which costs far more than the project's own compilation. The pinned
+      # revisions all live in CMakeLists.txt, so its hash is the correct key.
+      - name: Cache fetched dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/${{ matrix.preset }}/_deps
+          key: deps-${{ matrix.preset }}-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            deps-${{ matrix.preset }}-
+
+      # The same entry point developers use, so continuous integration cannot
+      # drift away from the local build.
+      - name: Build
+        run: powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 ${{ matrix.arguments }}

@@ -92,7 +92,7 @@ Editor enemy-stress checkpoint:
 - versioned runtime-project manifests with package-relative content paths;
 - separate development and shipping executables, a development-tools-off shipping preset, and static MSVC runtime linkage;
 - one-command minimal folder/ZIP packaging with a real GPU runtime smoke test;
-- headless clock, frame telemetry, flow/layers, input, Combat, EnemyIntent, projectiles, Health, GameplayState, project, GroundMap, NavGrid, NavPathfinding, NavAgent, Physics2D, animation, Aseprite, scene, presentation, jobs, World, and Render2D tests through CTest;
+- headless clock, frame telemetry, flow/layers, input, Combat, EnemyIntent, projectiles, Health, GameplayState, project, GroundMap, NavGrid, NavPathfinding, NavAgent, Physics2D, animation, Aseprite, scene, presentation, jobs, World, and Render2D tests through CTest, registered one entry per case rather than one per executable;
 - project warnings treated as errors.
 
 ## Build on Windows
@@ -126,6 +126,26 @@ For a deterministic window/render smoke run that closes itself and captures a fr
 ```powershell
 .\build\windows-debug\ic2de_testbed.exe --smoke-window
 ```
+
+Every smoke run is one entry in the registry in `game/src/smoke_scenarios.cpp`,
+which also generates the `--help` listing. To see what is registered, without
+opening a window:
+
+```powershell
+.\build\windows-debug\IC_2DE-Editor.exe --list-scenarios
+```
+
+Adding a run means adding a name, a description and the configuration it needs
+to that one table. It previously meant adding a field to `ApplicationConfig`, a
+branch of a two-hundred-line `if`/`else` chain in `main`, a line of `--help`
+text, and a hand-written `add_test`, with nothing connecting the four.
+
+The runs CTest registers name themselves through the `SCENARIO` keyword of
+`ic2de_add_smoke_test`, and `ic2de.smoke_scenario_registry` checks those names
+against the binary's own list. Renaming a scenario without updating its
+registration would otherwise only surface on a machine that can run the GPU
+tests; that check needs no GPU, because `--list-scenarios` returns before a
+window is opened.
 
 Rendering is uncapped by default. Temporary caps are available for frame-rate checks:
 
@@ -245,6 +265,106 @@ for the Release development editor. All three use the same adjacent
 `IC_2DE.runtime` manifest and `Content` directory and can be double-clicked
 without setting a working directory. Scene edits saved from the packaged editor
 are written to that folder's `Content` copy, never back to the source checkout.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` builds both configurations on every push and pull
+request, and checks formatting as a separate job so a style failure is obvious
+at a glance rather than buried in a build log.
+
+Both the Debug and the shipping preset are built. The shipping preset compiles
+with `IC2DE_ENABLE_DEVELOPMENT_TOOLS` off, which is a genuinely different
+translation of `application.cpp`, and it had been broken without anyone noticing
+precisely because nothing built it automatically.
+
+The three tests that drive a real executable open a window and need a GPU, so
+they carry the `gpu` CTest label. A headless machine runs everything else:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .	oolsuild.ps1 -Configuration Debug -RunTests -ExcludeGpuTests
+```
+
+Adding a smoke test through `ic2de_add_smoke_test` applies that label
+automatically, so a new one cannot accidentally be handed to a machine that
+cannot run it.
+
+## Keeping the repository clean
+
+`.gitignore` covers build output, editor state, archives and scratch paths, but
+it is advisory: `git add -f` walks straight past it, and it says nothing about a
+file that sits in an allowed directory and still has no business being
+committed.
+
+`tools/check-repository-hygiene.ps1` is the actual rule. It rejects files over
+10 MB, non-asset files over 1 MB, images outside `art/`, `game/assets/` and
+`tests/fixtures/`, build output and operating-system leftovers by extension, and
+paths naming scratch work such as `-probe/` or `bug-repros/`.
+
+It runs in two places on purpose. Install the hook once per clone for immediate
+feedback:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\install-hooks.ps1
+```
+
+Git does not share hooks — `.git/hooks` is local to a clone and is never
+committed or fetched — and a hook can be skipped with `git commit --no-verify`.
+So the same check runs as the `Repository hygiene` job in continuous
+integration, and that is what enforces it.
+
+If something the check rejects is genuinely wanted, change the rules in that
+script rather than bypassing it, so the next person meets the same decision
+rather than rediscovering it.
+
+## Tests
+
+Tests use doctest. Each `TEST_CASE` is registered with CTest individually, so a
+failure names the case rather than the executable that contained it, and a
+single case can be run on its own:
+
+```powershell
+ctest --preset windows-debug -R "ic2de.combat.dodge starts"
+```
+
+`ic2de_add_test` wires doctest in for every test target, so a new test file
+needs no harness of its own: no failure counter, no `expect` helper and no
+`main`. Two files in one target is likewise just two entries under `SOURCES`;
+doctest collects cases across translation units.
+
+## Formatting and static analysis
+
+`.clang-format` describes the house style. Its values were chosen by measuring
+the existing sources rather than by preference: each candidate configuration was
+run across `engine/`, `game/` and `tests/`, and the one that rewrote the fewest
+lines was kept, so the file records the style already in use instead of imposing
+a new one.
+
+clang-format is not on PATH on a stock Windows machine, so the helper locates
+the copy bundled with Visual Studio, the same way `tools/build.ps1` locates
+CMake and Ninja:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\format.ps1
+```
+
+`-Check` reports unformatted files and exits non-zero without writing to them,
+which is the mode continuous integration runs.
+
+Vendored third-party sources are excluded; reformatting them would create a
+permanent diff against upstream and make future updates harder to apply.
+
+`.clang-tidy` holds a deliberately curated check list. Enabling every available
+check on a codebase this size produces thousands of findings, and a diagnostic
+set nobody can clear is one nobody reads, so the list is kept to checks that are
+expected to hold at zero. The three suppressed checks are documented in the file
+with the reasoning for each.
+
+`git blame` skips the one-time reformatting commit through
+`.git-blame-ignore-revs`. To have it applied automatically:
+
+```powershell
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
 
 ## Documents
 

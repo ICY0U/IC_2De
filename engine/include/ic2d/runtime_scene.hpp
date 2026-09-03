@@ -76,26 +76,19 @@ public:
     // copied behind this interface. This is initialization-only so gameplay
     // modules can register the returned stable UUIDs before fixed tick one.
     // The authored SceneDefinition and its source file are never modified.
-    [[nodiscard]] std::vector<EntityUuid> spawn_actor_copies(
-        ScenePhysicsRole role,
-        const std::vector<Vec2>& ground_positions
-    );
+    [[nodiscard]] std::vector<EntityUuid>
+    spawn_actor_copies(ScenePhysicsRole role, const std::vector<Vec2>& ground_positions);
 
     void reset();
-    [[nodiscard]] RuntimeSceneTickResult tick(
-        const RuntimeScenePlayerMotion& player,
-        float fixed_step_seconds
-    );
+    [[nodiscard]] RuntimeSceneTickResult tick(const RuntimeScenePlayerMotion& player,
+                                              float fixed_step_seconds);
     // Resolving a crowd's ground movement is the bulk of a tick at scale and
     // divides cleanly, since each actor reads shared immutable ground data and
     // produces only its own result. An optional job system spreads that phase;
     // applying the results stays ordered, so the outcome does not depend on it.
-    [[nodiscard]] RuntimeSceneTickResult tick(
-        const RuntimeScenePlayerMotion& player,
-        const std::vector<RuntimeSceneActorMotion>& actors,
-        float fixed_step_seconds,
-        JobSystem* jobs = nullptr
-    );
+    [[nodiscard]] RuntimeSceneTickResult tick(const RuntimeScenePlayerMotion& player,
+                                              const std::vector<RuntimeSceneActorMotion>& actors,
+                                              float fixed_step_seconds, JobSystem* jobs = nullptr);
 
     [[nodiscard]] const std::string& id() const noexcept;
     [[nodiscard]] const Camera25DState& initial_camera() const noexcept;
@@ -115,11 +108,16 @@ public:
     // Returns false for missing, already retired, or player identities.
     [[nodiscard]] bool retire_actor(EntityUuid actor) noexcept;
     // Starts a non-authoritative reaction override on a bound actor. Hurt
-    // returns to locomotion; death chains into explosion and keeps the sprite
-    // presented after gameplay retirement until both one-shots finish.
+    // returns to locomotion. Death and explosion are independent terminal
+    // one-shots: projectile death must never imply a detonation.
     [[nodiscard]] bool play_actor_hurt(EntityUuid actor);
     [[nodiscard]] bool begin_actor_death(EntityUuid actor);
+    [[nodiscard]] bool begin_actor_explosion(EntityUuid actor);
+    [[nodiscard]] bool is_actor_active(EntityUuid actor) const noexcept;
+    [[nodiscard]] std::uint64_t completed_actor_hurt_animation_count() const noexcept;
     [[nodiscard]] std::uint64_t completed_actor_terminal_animation_count() const noexcept;
+    [[nodiscard]] std::uint64_t completed_actor_death_animation_count() const noexcept;
+    [[nodiscard]] std::uint64_t completed_actor_explosion_animation_count() const noexcept;
     // Removes a non-player entity from presentation until reset(). Unlike
     // retire_actor this needs no physics body, so a pickup or any other plain
     // placement can be taken out of the scene once it has been used.
@@ -131,19 +129,15 @@ public:
     // viewport picking or a selection outline, has to ask this rather than
     // trust the snapshot alone.
     [[nodiscard]] bool is_entity_presented(EntityUuid entity) const noexcept;
-    [[nodiscard]] std::optional<RuntimeSceneSegmentHit> cast_segment(
-        const Vec2& start,
-        const Vec2& end,
-        EntityUuid ignored_entity = {}
-    ) const;
+    [[nodiscard]] std::optional<RuntimeSceneSegmentHit>
+    cast_segment(const Vec2& start, const Vec2& end, EntityUuid ignored_entity = {}) const;
     [[nodiscard]] WorldSnapshot world_snapshot() const;
     // The optional region is a world-space X/Z bound on what to gather. It must
     // be generous enough to cover a sprite whose origin sits outside it and a
     // body that has moved since the last fixed tick.
-    [[nodiscard]] std::vector<RenderItem2D> collect_render_items(
-        float interpolation_alpha,
-        std::optional<RectXZ> region = std::nullopt
-    ) const;
+    [[nodiscard]] std::vector<RenderItem2D>
+    collect_render_items(float interpolation_alpha,
+                         std::optional<RectXZ> region = std::nullopt) const;
     [[nodiscard]] std::vector<PhysicsFootprint> debug_footprints() const;
     [[nodiscard]] std::size_t entity_count() const noexcept;
     [[nodiscard]] std::size_t physics_body_count() const noexcept;

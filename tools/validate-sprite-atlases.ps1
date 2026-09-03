@@ -275,8 +275,48 @@ foreach ($atlasCheck in $atlasChecks) {
             })
             $terminalTagsAreOnce = $terminalTags.Count -eq 3 -and
                 @($terminalTags | Where-Object { $_.ic2d_loop_mode -ne 'once' }).Count -eq 0
-            Write-Output "$($atlasCheck.Metadata): terminal-tags=$($terminalTags.Count) once=$terminalTagsAreOnce"
-            if (-not $terminalTagsAreOnce) {
+
+            $explodeTag = $terminalTags | Where-Object { $_.name -like '*-explode-*' }
+            $explodeFrames = @($metadata.frames[[int]$explodeTag.from..[int]$explodeTag.to])
+            $displaySize = if ($atlasCheck.Metadata -like '*stalker*') { 68.0 } else { 96.0 }
+            $effectiveBlastWidths = @()
+            foreach ($explodeFrame in $explodeFrames[5..8]) {
+                $frame = $explodeFrame.frame
+                $minimumX = [int]$frame.w
+                $maximumX = -1
+                for ($localY = 0; $localY -lt [int]$frame.h; $localY++) {
+                    for ($localX = 0; $localX -lt [int]$frame.w; $localX++) {
+                        if ($bitmap.GetPixel(
+                                [int]$frame.x + $localX,
+                                [int]$frame.y + $localY).A -eq 0) {
+                            continue
+                        }
+                        $minimumX = [Math]::Min($minimumX, $localX)
+                        $maximumX = [Math]::Max($maximumX, $localX)
+                    }
+                }
+                $presentationScale = if (
+                    $explodeFrame.PSObject.Properties.Name -contains 'ic2d_scale'
+                ) { [double]$explodeFrame.ic2d_scale } else { 1.0 }
+                $sourceWidth = if ($maximumX -ge $minimumX) {
+                    $maximumX - $minimumX + 1
+                } else { 0 }
+                $effectiveBlastWidths +=
+                    $sourceWidth * $displaySize / [double]$frame.w * $presentationScale
+            }
+            $peakBlastWidth = ($effectiveBlastWidths | Measure-Object -Maximum).Maximum
+            $readableBlastFrames = @($effectiveBlastWidths | Where-Object {
+                $_ -ge ($displaySize * 0.7)
+            }).Count
+            $explodeDuration = ($explodeFrames.duration | Measure-Object -Sum).Sum
+            Write-Output (
+                "$($atlasCheck.Metadata): terminal-tags=$($terminalTags.Count) " +
+                "once=$terminalTagsAreOnce explosion-peak=$([Math]::Round($peakBlastWidth, 1))px " +
+                "readable-blast-frames=$readableBlastFrames duration=${explodeDuration}ms"
+            )
+            if (-not $terminalTagsAreOnce -or
+                $peakBlastWidth -lt ($displaySize * 0.9) -or
+                $readableBlastFrames -lt 2 -or $explodeDuration -lt 1000) {
                 $failed = $true
             }
         }

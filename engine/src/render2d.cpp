@@ -7,36 +7,26 @@
 
 namespace ic2d {
 
-const Camera2DState& RenderFrame2D::camera() const noexcept {
-    return camera_;
-}
+const Camera2DState& RenderFrame2D::camera() const noexcept { return camera_; }
 
 std::span<const GroundQuadSubmission2D> RenderFrame2D::ground_quads() const noexcept {
     return ground_quads_;
 }
 
-std::span<const SpriteSubmission2D> RenderFrame2D::sprites() const noexcept {
-    return sprites_;
-}
+std::span<const SpriteSubmission2D> RenderFrame2D::sprites() const noexcept { return sprites_; }
 
 std::size_t RenderFrame2D::submitted_sprites() const noexcept { return submitted_sprites_; }
 
 std::size_t RenderFrame2D::culled_sprites() const noexcept { return culled_sprites_; }
 
-std::size_t RenderFrame2D::submitted_ground_quads() const noexcept {
-    return ground_quads_.size();
-}
+std::size_t RenderFrame2D::submitted_ground_quads() const noexcept { return ground_quads_.size(); }
 
 namespace {
 
 // A sprite is kept when its bounding box meets the view. A rotated camera has
 // no axis-aligned view box to test against, so nothing is rejected there.
-[[nodiscard]] bool sprite_visible(
-    const SpriteSubmission2D& sprite,
-    const Camera2DState& camera,
-    const int canvas_width,
-    const int canvas_height
-) noexcept {
+[[nodiscard]] bool sprite_visible(const SpriteSubmission2D& sprite, const Camera2DState& camera,
+                                  const int canvas_width, const int canvas_height) noexcept {
     if (camera.rotation_degrees != 0.0F || canvas_width <= 0 || canvas_height <= 0) {
         return true;
     }
@@ -50,17 +40,14 @@ namespace {
     const float view_right = camera.center.x + half_view_width;
     const float view_top = camera.center.y - half_view_height;
     const float view_bottom = camera.center.y + half_view_height;
-    return left + width >= view_left && left <= view_right &&
-           top + height >= view_top && top <= view_bottom;
+    return left + width >= view_left && left <= view_right && top + height >= view_top &&
+           top <= view_bottom;
 }
 
 } // namespace
 
-void RenderQueue2D::begin(
-    const Camera2DState& camera,
-    const int canvas_width,
-    const int canvas_height
-) {
+void RenderQueue2D::begin(const Camera2DState& camera, const int canvas_width,
+                          const int canvas_height) {
     if (!std::isfinite(camera.zoom) || camera.zoom <= 0.0F) {
         throw std::invalid_argument{"Camera zoom must be finite and greater than zero."};
     }
@@ -156,8 +143,6 @@ RenderFrame2D RenderQueue2D::finish() {
     return frame;
 }
 
-bool RenderQueue2D::building() const noexcept {
-    return building_;
-}
+bool RenderQueue2D::building() const noexcept { return building_; }
 
 } // namespace ic2d

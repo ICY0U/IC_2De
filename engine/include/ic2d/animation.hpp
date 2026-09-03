@@ -27,6 +27,9 @@ struct AnimationFrame {
     std::uint32_t duration_ticks{1};
     std::vector<std::string> events;
     bool flip_x{false};
+    // Presentation-only scaling lets authored effect frames expand beyond an
+    // actor's normal sprite box without changing its transform or collision.
+    float presentation_scale{1.0F};
 };
 
 struct AnimationClip {
@@ -49,6 +52,7 @@ struct AnimationSample {
     bool paused{false};
     bool finished{false};
     bool flip_x{false};
+    float presentation_scale{1.0F};
 };
 
 // Deterministic integer-tick clip playback. Construction validates the complete

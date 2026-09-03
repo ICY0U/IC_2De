@@ -51,11 +51,12 @@ int main(const int argc, const char* const argv[]) {
                 std::cerr << "Invalid FPS cap. Use --fps=0 or a positive integer.\n";
                 return 64;
             }
-            config.render_pacing = requested_fps == 0
-                                       ? ic2d::RenderPacingConfig{.mode = ic2d::RenderPacingMode::uncapped,
-                                                                 .fixed_hz = 0}
-                                       : ic2d::RenderPacingConfig{.mode = ic2d::RenderPacingMode::fixed_hz,
-                                                                 .fixed_hz = requested_fps};
+            config.render_pacing =
+                requested_fps == 0
+                    ? ic2d::RenderPacingConfig{.mode = ic2d::RenderPacingMode::uncapped,
+                                               .fixed_hz = 0}
+                    : ic2d::RenderPacingConfig{.mode = ic2d::RenderPacingMode::fixed_hz,
+                                               .fixed_hz = requested_fps};
         } else if (argument == "--help") {
             std::cout << "IC_2DE Shipped Test\n"
                          "  --monitor-hz      Synchronize to the active monitor (default).\n"

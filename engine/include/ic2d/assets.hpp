@@ -54,27 +54,14 @@ public:
     TextureAssets(TextureAssets&&) = delete;
     TextureAssets& operator=(TextureAssets&&) = delete;
 
-    [[nodiscard]] TextureHandle acquire(
-        const std::filesystem::path& path,
-        TextureSampling sampling = TextureSampling::pixel
-    );
-    [[nodiscard]] TextureHandle create_checker(
-        std::string name,
-        int width,
-        int height,
-        int cell_size,
-        ColorRgba8 first,
-        ColorRgba8 second,
-        TextureSampling sampling = TextureSampling::pixel
-    );
-    [[nodiscard]] TextureHandle create_radial_gradient(
-        std::string name,
-        int width,
-        int height,
-        ColorRgba8 inner,
-        ColorRgba8 outer,
-        TextureSampling sampling = TextureSampling::smooth
-    );
+    [[nodiscard]] TextureHandle acquire(const std::filesystem::path& path,
+                                        TextureSampling sampling = TextureSampling::pixel);
+    [[nodiscard]] TextureHandle create_checker(std::string name, int width, int height,
+                                               int cell_size, ColorRgba8 first, ColorRgba8 second,
+                                               TextureSampling sampling = TextureSampling::pixel);
+    [[nodiscard]] TextureHandle
+    create_radial_gradient(std::string name, int width, int height, ColorRgba8 inner,
+                           ColorRgba8 outer, TextureSampling sampling = TextureSampling::smooth);
     void release(TextureHandle handle) noexcept;
     void shutdown() noexcept;
 

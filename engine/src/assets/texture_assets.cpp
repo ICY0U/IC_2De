@@ -26,9 +26,7 @@ namespace {
     return next == 0U ? 1U : next;
 }
 
-[[nodiscard]] TextureFileStamp file_stamp(
-    const std::filesystem::path& path
-) noexcept {
+[[nodiscard]] TextureFileStamp file_stamp(const std::filesystem::path& path) noexcept {
     std::error_code error;
     if (!std::filesystem::is_regular_file(path, error) || error) {
         return {};
@@ -55,7 +53,8 @@ TextureAssets::Impl::Slot* TextureAssets::Impl::resolve(const TextureHandle hand
     return slot.occupied && slot.generation == handle.generation ? &slot : nullptr;
 }
 
-const TextureAssets::Impl::Slot* TextureAssets::Impl::resolve(const TextureHandle handle) const noexcept {
+const TextureAssets::Impl::Slot*
+TextureAssets::Impl::resolve(const TextureHandle handle) const noexcept {
     if (!handle || handle.index > slots.size()) {
         return nullptr;
     }
@@ -63,8 +62,7 @@ const TextureAssets::Impl::Slot* TextureAssets::Impl::resolve(const TextureHandl
     return slot.occupied && slot.generation == handle.generation ? &slot : nullptr;
 }
 
-TextureAssets::TextureAssets()
-    : impl_{std::make_unique<Impl>()} {
+TextureAssets::TextureAssets() : impl_{std::make_unique<Impl>()} {
     Image checker = GenImageChecked(16, 16, 4, 4, MAGENTA, BLACK);
     Texture2D texture = LoadTextureFromImage(checker);
     UnloadImage(checker);
@@ -81,9 +79,7 @@ TextureAssets::TextureAssets()
     impl_->fallback_handle = {.index = 1, .generation = 1};
 }
 
-TextureAssets::~TextureAssets() {
-    shutdown();
-}
+TextureAssets::~TextureAssets() { shutdown(); }
 
 void TextureAssets::shutdown() noexcept {
     for (Impl::Slot& slot : impl_->slots) {
@@ -97,10 +93,8 @@ void TextureAssets::shutdown() noexcept {
     impl_->free_indices.clear();
 }
 
-TextureHandle TextureAssets::acquire(
-    const std::filesystem::path& path,
-    const TextureSampling sampling
-) {
+TextureHandle TextureAssets::acquire(const std::filesystem::path& path,
+                                     const TextureSampling sampling) {
     const std::string key = normalized_key(path);
     if (const auto cached = impl_->path_cache.find(key); cached != impl_->path_cache.end()) {
         Impl::Slot& slot = impl_->slots[cached->second];
@@ -113,7 +107,8 @@ TextureHandle TextureAssets::acquire(
         log(LogLevel::warning, "Texture load failed; using fallback: " + key);
         return impl_->fallback_handle;
     }
-    SetTextureFilter(texture, sampling == TextureSampling::pixel ? TEXTURE_FILTER_POINT : TEXTURE_FILTER_BILINEAR);
+    SetTextureFilter(texture, sampling == TextureSampling::pixel ? TEXTURE_FILTER_POINT
+                                                                 : TEXTURE_FILTER_BILINEAR);
 
     std::uint32_t slot_index = 0;
     if (!impl_->free_indices.empty()) {
@@ -140,15 +135,10 @@ TextureHandle TextureAssets::acquire(
     return {.index = slot_index + 1U, .generation = slot.generation};
 }
 
-TextureHandle TextureAssets::create_checker(
-    std::string name,
-    const int width,
-    const int height,
-    const int cell_size,
-    const ColorRgba8 first,
-    const ColorRgba8 second,
-    const TextureSampling sampling
-) {
+TextureHandle TextureAssets::create_checker(std::string name, const int width, const int height,
+                                            const int cell_size, const ColorRgba8 first,
+                                            const ColorRgba8 second,
+                                            const TextureSampling sampling) {
     if (name.empty() || width <= 0 || height <= 0 || cell_size <= 0) {
         log(LogLevel::warning, "Invalid generated checker request; using fallback.");
         return impl_->fallback_handle;
@@ -170,7 +160,8 @@ TextureHandle TextureAssets::create_checker(
         log(LogLevel::warning, "Generated checker upload failed; using fallback: " + name);
         return impl_->fallback_handle;
     }
-    SetTextureFilter(texture, sampling == TextureSampling::pixel ? TEXTURE_FILTER_POINT : TEXTURE_FILTER_BILINEAR);
+    SetTextureFilter(texture, sampling == TextureSampling::pixel ? TEXTURE_FILTER_POINT
+                                                                 : TEXTURE_FILTER_BILINEAR);
 
     std::uint32_t slot_index = 0;
     if (!impl_->free_indices.empty()) {
@@ -197,14 +188,10 @@ TextureHandle TextureAssets::create_checker(
     return {.index = slot_index + 1U, .generation = slot.generation};
 }
 
-TextureHandle TextureAssets::create_radial_gradient(
-    std::string name,
-    const int width,
-    const int height,
-    const ColorRgba8 inner,
-    const ColorRgba8 outer,
-    const TextureSampling sampling
-) {
+TextureHandle TextureAssets::create_radial_gradient(std::string name, const int width,
+                                                    const int height, const ColorRgba8 inner,
+                                                    const ColorRgba8 outer,
+                                                    const TextureSampling sampling) {
     if (name.empty() || width <= 0 || height <= 0) {
         log(LogLevel::warning, "Invalid generated radial-gradient request; using fallback.");
         return impl_->fallback_handle;
@@ -226,9 +213,8 @@ TextureHandle TextureAssets::create_radial_gradient(
         log(LogLevel::warning, "Generated radial-gradient upload failed; using fallback: " + name);
         return impl_->fallback_handle;
     }
-    SetTextureFilter(texture, sampling == TextureSampling::pixel
-                                  ? TEXTURE_FILTER_POINT
-                                  : TEXTURE_FILTER_BILINEAR);
+    SetTextureFilter(texture, sampling == TextureSampling::pixel ? TEXTURE_FILTER_POINT
+                                                                 : TEXTURE_FILTER_BILINEAR);
 
     std::uint32_t slot_index = 0;
     if (!impl_->free_indices.empty()) {
@@ -311,8 +297,7 @@ TextureReloadSummary TextureAssets::reload_changed_files() {
         if (!current.exists) {
             ++summary.failed;
             log(LogLevel::warning,
-                "Texture hot reload kept the last good image; file is unavailable: " +
-                    slot.source);
+                "Texture hot reload kept the last good image; file is unavailable: " + slot.source);
             continue;
         }
 
@@ -336,15 +321,12 @@ TextureReloadSummary TextureAssets::reload_changed_files() {
         }
         ++summary.reloaded;
         log(LogLevel::info,
-            "Texture hot reloaded revision " + std::to_string(slot.revision) + ": " +
-                slot.source);
+            "Texture hot reloaded revision " + std::to_string(slot.revision) + ": " + slot.source);
     }
     return summary;
 }
 
-TextureHandle TextureAssets::fallback() const noexcept {
-    return impl_->fallback_handle;
-}
+TextureHandle TextureAssets::fallback() const noexcept { return impl_->fallback_handle; }
 
 bool TextureAssets::alive(const TextureHandle handle) const noexcept {
     return impl_->resolve(handle) != nullptr;

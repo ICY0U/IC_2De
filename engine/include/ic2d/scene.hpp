@@ -142,9 +142,8 @@ public:
     [[nodiscard]] std::uint32_t schema_version() const noexcept;
     [[nodiscard]] const std::string& id() const noexcept;
     [[nodiscard]] const std::filesystem::path& source_path() const noexcept;
-    [[nodiscard]] std::filesystem::path resolve_asset(
-        const std::filesystem::path& relative_path
-    ) const;
+    [[nodiscard]] std::filesystem::path
+    resolve_asset(const std::filesystem::path& relative_path) const;
     [[nodiscard]] const GroundMapDefinition& ground() const noexcept;
     [[nodiscard]] const SceneSimulationDefinition& simulation() const noexcept;
     [[nodiscard]] const Camera25DState& camera() const noexcept;
@@ -155,7 +154,8 @@ public:
     [[nodiscard]] const std::vector<SceneEntityDefinition>& entities() const noexcept;
     [[nodiscard]] const std::vector<SceneInteractableDefinition>& interactables() const noexcept;
     [[nodiscard]] const std::vector<SceneAnimationClipDefinition>& animation_clips() const noexcept;
-    [[nodiscard]] const std::vector<SceneAnimationBindingDefinition>& animation_bindings() const noexcept;
+    [[nodiscard]] const std::vector<SceneAnimationBindingDefinition>&
+    animation_bindings() const noexcept;
     [[nodiscard]] const std::vector<SceneAutoAnimationDefinition>& auto_animations() const noexcept;
 
 private:

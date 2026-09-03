@@ -28,12 +28,9 @@ struct SegmentBoxHit {
 // Slab intersection of a segment against an axis-aligned box. A segment that
 // begins inside the box reports no hit, matching the broadphase cast this
 // stands in for, so a projectile cannot be stopped by something it spawned on.
-[[nodiscard]] std::optional<SegmentBoxHit> segment_box_hit(
-    const Vec2& start,
-    const Vec2& end,
-    const Vec2& centre,
-    const Vec2& half_extents
-) noexcept {
+[[nodiscard]] std::optional<SegmentBoxHit> segment_box_hit(const Vec2& start, const Vec2& end,
+                                                           const Vec2& centre,
+                                                           const Vec2& half_extents) noexcept {
     const Vec2 delta{end.x - start.x, end.y - start.y};
     const Vec2 minimum{centre.x - half_extents.x, centre.y - half_extents.y};
     const Vec2 maximum{centre.x + half_extents.x, centre.y + half_extents.y};
@@ -47,8 +44,7 @@ struct SegmentBoxHit {
     const float axis_maximum[2]{maximum.x, maximum.y};
     for (int axis = 0; axis < 2; ++axis) {
         if (std::abs(axis_delta[axis]) < 1e-8F) {
-            if (axis_start[axis] < axis_minimum[axis] ||
-                axis_start[axis] > axis_maximum[axis]) {
+            if (axis_start[axis] < axis_minimum[axis] || axis_start[axis] > axis_maximum[axis]) {
                 return std::nullopt;
             }
             continue;
@@ -82,20 +78,17 @@ struct SegmentBoxHit {
     };
 }
 
-
 [[nodiscard]] bool finite(const Vec2& value) noexcept {
     return std::isfinite(value.x) && std::isfinite(value.y);
 }
 
 [[nodiscard]] TextureSampling to_texture_sampling(const SceneTextureSampling sampling) noexcept {
-    return sampling == SceneTextureSampling::pixel ? TextureSampling::pixel : TextureSampling::smooth;
+    return sampling == SceneTextureSampling::pixel ? TextureSampling::pixel
+                                                   : TextureSampling::smooth;
 }
 
-[[nodiscard]] bool footprint_fits_ground(
-    const GroundMapDefinition& ground,
-    const Vec2 position,
-    const Vec2 half_extents
-) noexcept {
+[[nodiscard]] bool footprint_fits_ground(const GroundMapDefinition& ground, const Vec2 position,
+                                         const Vec2 half_extents) noexcept {
     const RectXZ& bounds = ground.walkable_bounds;
     if (position.x - half_extents.x < bounds.x ||
         position.x + half_extents.x > bounds.x + bounds.width ||
@@ -203,10 +196,8 @@ struct RuntimeScene::Impl {
     };
 
     Impl(SceneDefinition authored_definition, TextureAssets& texture_assets)
-        : definition{std::move(authored_definition)},
-          textures{&texture_assets},
-          ground_map{definition.ground()},
-          physics{definition.simulation().physics} {
+        : definition{std::move(authored_definition)}, textures{&texture_assets},
+          ground_map{definition.ground()}, physics{definition.simulation().physics} {
         try {
             load_textures();
             index_animation_clips();
@@ -228,18 +219,17 @@ struct RuntimeScene::Impl {
         for (const SceneTextureDefinition& texture : definition.textures()) {
             TextureHandle handle{};
             if (texture.kind == SceneTextureKind::checker) {
-                handle = textures->create_checker(
-                    texture.id, texture.width, texture.height, texture.cell_size,
-                    texture.first_color, texture.second_color, to_texture_sampling(texture.sampling));
+                handle = textures->create_checker(texture.id, texture.width, texture.height,
+                                                  texture.cell_size, texture.first_color,
+                                                  texture.second_color,
+                                                  to_texture_sampling(texture.sampling));
             } else if (texture.kind == SceneTextureKind::radial) {
-                handle = textures->create_radial_gradient(
-                    texture.id, texture.width, texture.height,
-                    texture.first_color, texture.second_color,
-                    to_texture_sampling(texture.sampling));
+                handle = textures->create_radial_gradient(texture.id, texture.width, texture.height,
+                                                          texture.first_color, texture.second_color,
+                                                          to_texture_sampling(texture.sampling));
             } else {
-                handle = textures->acquire(
-                    definition.resolve_asset(texture.relative_path),
-                    to_texture_sampling(texture.sampling));
+                handle = textures->acquire(definition.resolve_asset(texture.relative_path),
+                                           to_texture_sampling(texture.sampling));
             }
             const auto info = textures->info(handle);
             if (!info || info->fallback) {
@@ -290,13 +280,11 @@ struct RuntimeScene::Impl {
         return result;
     }
 
-    [[nodiscard]] PhysicsBodyId create_static_footprint(
-        const RectXZ& bounds,
-        const std::uint32_t tag,
-        const std::uint64_t category_bits,
-        const std::uint64_t mask_bits,
-        const bool sensor
-    ) {
+    [[nodiscard]] PhysicsBodyId create_static_footprint(const RectXZ& bounds,
+                                                        const std::uint32_t tag,
+                                                        const std::uint64_t category_bits,
+                                                        const std::uint64_t mask_bits,
+                                                        const bool sensor) {
         const PhysicsBodyId body = physics.create_box({
             .motion = PhysicsMotionType::static_body,
             .center = {bounds.x + bounds.width * 0.5F, bounds.z + bounds.depth * 0.5F},
@@ -315,13 +303,13 @@ struct RuntimeScene::Impl {
         std::uint32_t static_tag = 100;
         for (const GroundArea& area : definition.ground().areas) {
             if (area.kind == GroundAreaKind::solid) {
-                static_cast<void>(create_static_footprint(
-                    area.bounds, static_tag++, simulation.ground_category_bits,
-                    simulation.ground_mask_bits, false));
+                static_cast<void>(create_static_footprint(area.bounds, static_tag++,
+                                                          simulation.ground_category_bits,
+                                                          simulation.ground_mask_bits, false));
             } else if (area.kind == GroundAreaKind::trigger) {
-                static_cast<void>(create_static_footprint(
-                    area.bounds, area.tag, simulation.trigger_category_bits,
-                    simulation.trigger_mask_bits, true));
+                static_cast<void>(create_static_footprint(area.bounds, area.tag,
+                                                          simulation.trigger_category_bits,
+                                                          simulation.trigger_mask_bits, true));
             }
         }
 
@@ -377,14 +365,15 @@ struct RuntimeScene::Impl {
                 .uuid = authored.uuid,
                 .name = authored.name,
                 .transform = {.position = authored.position},
-                .sprite = Sprite2D{
-                    .texture = texture,
-                    .size = authored.sprite.size,
-                    .normalized_origin = authored.sprite.normalized_origin,
-                    .tint = authored.sprite.tint,
-                    .layer = authored.sprite.layer,
-                    .depth_span = authored.sprite.depth_span,
-                },
+                .sprite =
+                    Sprite2D{
+                        .texture = texture,
+                        .size = authored.sprite.size,
+                        .normalized_origin = authored.sprite.normalized_origin,
+                        .tint = authored.sprite.tint,
+                        .layer = authored.sprite.layer,
+                        .depth_span = authored.sprite.depth_span,
+                    },
             });
             entity_ids.emplace(authored.id, entity);
             if (authored.physics_binding.empty()) {
@@ -407,15 +396,14 @@ struct RuntimeScene::Impl {
 
     void build_animations() {
         for (const auto& [clip_id, clip] : animation_clip_definitions) {
-            animation_clip_textures.emplace(
-                clip_id, texture_handles.at(clip->texture_id));
+            animation_clip_textures.emplace(clip_id, texture_handles.at(clip->texture_id));
         }
 
-        animated_entities.reserve(
-            definition.animation_bindings().size() + definition.auto_animations().size());
+        animated_entities.reserve(definition.animation_bindings().size() +
+                                  definition.auto_animations().size());
         for (const SceneAnimationBindingDefinition& binding : definition.animation_bindings()) {
-            const auto authored_entity = std::ranges::find(
-                definition.entities(), binding.entity_id, &SceneEntityDefinition::id);
+            const auto authored_entity = std::ranges::find(definition.entities(), binding.entity_id,
+                                                           &SceneEntityDefinition::id);
             if (authored_entity == definition.entities().end()) {
                 throw std::logic_error{"Validated animation entity disappeared."};
             }
@@ -447,13 +435,12 @@ struct RuntimeScene::Impl {
                 // player shadow) authored against the same physics body.
                 player_uuid = authored_entity->uuid;
             }
-            animation_indices.emplace(
-                animated_entities.back().entity.value, animation_index);
+            animation_indices.emplace(animated_entities.back().entity.value, animation_index);
         }
 
         for (const SceneAutoAnimationDefinition& binding : definition.auto_animations()) {
-            const auto authored_entity = std::ranges::find(
-                definition.entities(), binding.entity_id, &SceneEntityDefinition::id);
+            const auto authored_entity = std::ranges::find(definition.entities(), binding.entity_id,
+                                                           &SceneEntityDefinition::id);
             if (authored_entity == definition.entities().end()) {
                 throw std::logic_error{"Validated automatic-animation entity disappeared."};
             }
@@ -470,15 +457,13 @@ struct RuntimeScene::Impl {
                 .initial_tick_offset = binding.initial_tick_offset,
                 .player = std::move(player),
             });
-            animation_indices.emplace(
-                animated_entities.back().entity.value, animation_index);
+            animation_indices.emplace(animated_entities.back().entity.value, animation_index);
         }
     }
 
-    [[nodiscard]] AnimationPlayer make_locomotion_player(
-        const std::array<std::string, locomotion_state_count>& state_clips,
-        const LocomotionState initial_state
-    ) const {
+    [[nodiscard]] AnimationPlayer
+    make_locomotion_player(const std::array<std::string, locomotion_state_count>& state_clips,
+                           const LocomotionState initial_state) const {
         std::vector<AnimationClip> clips;
         std::unordered_set<std::string> included_clips;
         for (const std::string& clip_id : state_clips) {
@@ -498,16 +483,12 @@ struct RuntimeScene::Impl {
             return nullptr;
         }
         const auto animation = animation_indices.find(entity->value);
-        return animation == animation_indices.end()
-                   ? nullptr
-                   : &animated_entities[animation->second];
+        return animation == animation_indices.end() ? nullptr
+                                                    : &animated_entities[animation->second];
     }
 
-    [[nodiscard]] bool play_actor_reaction(
-        const EntityUuid actor,
-        const LocomotionState state,
-        const bool terminal
-    ) {
+    [[nodiscard]] bool play_actor_reaction(const EntityUuid actor, const LocomotionState state,
+                                           const bool terminal) {
         AnimatedEntity* const animation = animated_actor(actor);
         if (animation == nullptr || !animation->body_index) {
             return false;
@@ -529,13 +510,10 @@ struct RuntimeScene::Impl {
         return true;
     }
 
-    [[nodiscard]] std::vector<EntityUuid> spawn_actor_copies(
-        const ScenePhysicsRole role,
-        const std::vector<Vec2>& ground_positions
-    ) {
+    [[nodiscard]] std::vector<EntityUuid>
+    spawn_actor_copies(const ScenePhysicsRole role, const std::vector<Vec2>& ground_positions) {
         if (simulation_started) {
-            throw std::logic_error{
-                "Runtime actor copies must be created before fixed tick one."};
+            throw std::logic_error{"Runtime actor copies must be created before fixed tick one."};
         }
         if (ground_positions.empty()) {
             return {};
@@ -556,10 +534,9 @@ struct RuntimeScene::Impl {
         const std::vector<BoundEntity> source_entities = source_body->entities;
         std::set<std::pair<float, float>> unique_positions;
         for (const Vec2 position : ground_positions) {
-            if (!finite(position) ||
-                !unique_positions.emplace(position.x, position.y).second ||
-                !footprint_fits_ground(
-                    definition.ground(), position, source_definition.half_extents)) {
+            if (!finite(position) || !unique_positions.emplace(position.x, position.y).second ||
+                !footprint_fits_ground(definition.ground(), position,
+                                       source_definition.half_extents)) {
                 throw std::invalid_argument{
                     "Runtime actor copy positions must be finite, unique, and fully walkable."};
             }
@@ -597,8 +574,7 @@ struct RuntimeScene::Impl {
             const float elevation = ground_map.elevation_at(position);
             const std::size_t body_index = body_bindings.size();
             BodyBinding body{
-                .authored_id = source_body_id + "-runtime-" +
-                               std::to_string(copy_sequence),
+                .authored_id = source_body_id + "-runtime-" + std::to_string(copy_sequence),
                 .role = role,
                 .physics_body = {},
                 .definition = body_definition,
@@ -613,13 +589,11 @@ struct RuntimeScene::Impl {
             for (const BoundEntity& source_entity : source_entities) {
                 const std::optional<EntityUuid> source_uuid = world.uuid(source_entity.entity);
                 if (!source_uuid) {
-                    throw std::logic_error{
-                        "Runtime actor source entity lost its stable identity."};
+                    throw std::logic_error{"Runtime actor source entity lost its stable identity."};
                 }
                 const auto source_blueprint = blueprints.find(source_uuid->value);
                 if (source_blueprint == blueprints.end()) {
-                    throw std::logic_error{
-                        "Runtime actor source entity lost its World blueprint."};
+                    throw std::logic_error{"Runtime actor source entity lost its World blueprint."};
                 }
 
                 EntityBlueprint blueprint = *source_blueprint->second;
@@ -636,16 +610,15 @@ struct RuntimeScene::Impl {
                 };
                 const EntityId entity = world.queue_spawn(std::move(blueprint));
                 body.entities.push_back({.entity = entity, .offset = source_entity.offset});
-                entity_bindings.emplace(
-                    entity.value, EntityBindingLookup{body_index, source_entity.offset});
-                const std::string runtime_entity_id =
-                    "runtime-stress-" + std::to_string(copy_sequence) + "-" +
-                    std::to_string(body.entities.size());
+                entity_bindings.emplace(entity.value,
+                                        EntityBindingLookup{body_index, source_entity.offset});
+                const std::string runtime_entity_id = "runtime-stress-" +
+                                                      std::to_string(copy_sequence) + "-" +
+                                                      std::to_string(body.entities.size());
                 entity_ids.emplace(runtime_entity_id, entity);
 
                 const auto animation_template = std::ranges::find(
-                    animation_templates, source_entity.entity,
-                    &AnimationTemplate::source_entity);
+                    animation_templates, source_entity.entity, &AnimationTemplate::source_entity);
                 if (animation_template == animation_templates.end()) {
                     continue;
                 }
@@ -659,9 +632,8 @@ struct RuntimeScene::Impl {
                     .facing_state = idle_locomotion(animation_template->initial_state),
                     .current_state = animation_template->initial_state,
                     .state_clips = animation_template->state_clips,
-                    .player = make_locomotion_player(
-                        animation_template->state_clips,
-                        animation_template->initial_state),
+                    .player = make_locomotion_player(animation_template->state_clips,
+                                                     animation_template->initial_state),
                 });
                 animation_indices.emplace(entity.value, animation_index);
                 gameplay_actor = entity_uuid;
@@ -670,8 +642,7 @@ struct RuntimeScene::Impl {
                 gameplay_actor = first_bound_entity;
             }
             if (!gameplay_actor) {
-                throw std::logic_error{
-                    "Runtime actor copy produced no stable gameplay identity."};
+                throw std::logic_error{"Runtime actor copy produced no stable gameplay identity."};
             }
             body_indices.emplace(body.authored_id, body_index);
             body_bindings.push_back(std::move(body));
@@ -700,9 +671,9 @@ struct RuntimeScene::Impl {
                     body.requested_direction.x != 0.0F || body.requested_direction.y != 0.0F
                         ? body.requested_direction
                         : delta;
-                const Vec2 facing_direction =
-                    body.role == ScenePhysicsRole::player ? player_presentation_direction
-                                                          : steered_direction;
+                const Vec2 facing_direction = body.role == ScenePhysicsRole::player
+                                                  ? player_presentation_direction
+                                                  : steered_direction;
                 LocomotionState state =
                     locomotion_state(animation.facing_state, facing_direction, moving);
                 bool force_restart = false;
@@ -747,20 +718,17 @@ struct RuntimeScene::Impl {
                 if (state != animation.current_state || force_restart) {
                     const std::string& clip_id =
                         animation.state_clips[static_cast<std::size_t>(state)];
-                    const bool action_transition =
-                        is_dodging_locomotion(state) ||
-                        is_seated_locomotion(state) ||
-                        is_shooting_locomotion(state) ||
-                        is_dodging_locomotion(animation.current_state) ||
-                        is_seated_locomotion(animation.current_state) ||
-                        is_shooting_locomotion(animation.current_state);
+                    const bool action_transition = is_dodging_locomotion(state) ||
+                                                   is_seated_locomotion(state) ||
+                                                   is_shooting_locomotion(state) ||
+                                                   is_dodging_locomotion(animation.current_state) ||
+                                                   is_seated_locomotion(animation.current_state) ||
+                                                   is_shooting_locomotion(animation.current_state);
                     const AnimationTransitionMode transition =
-                        action_transition
-                            ? AnimationTransitionMode::restart
-                            : AnimationTransitionMode::preserve_cycle_phase;
-                    static_cast<void>(force_restart
-                                          ? animation.player.play(clip_id, true)
-                                          : animation.player.play(clip_id, transition));
+                        action_transition ? AnimationTransitionMode::restart
+                                          : AnimationTransitionMode::preserve_cycle_phase;
+                    static_cast<void>(force_restart ? animation.player.play(clip_id, true)
+                                                    : animation.player.play(clip_id, transition));
                     animation.current_state = state;
                 }
             }
@@ -780,6 +748,7 @@ struct RuntimeScene::Impl {
 
             BodyBinding& body = body_bindings[*animation.body_index];
             if (*animation.reaction_state == LocomotionState::hurt_south) {
+                ++completed_actor_hurt_animations;
                 animation.reaction_state.reset();
                 static_cast<void>(animation.player.play(
                     animation.state_clips[static_cast<std::size_t>(animation.current_state)],
@@ -787,13 +756,9 @@ struct RuntimeScene::Impl {
                 continue;
             }
             if (*animation.reaction_state == LocomotionState::death_south) {
-                const std::string& explosion = animation.state_clips[
-                    static_cast<std::size_t>(LocomotionState::explode_south)];
-                if (!explosion.empty()) {
-                    static_cast<void>(animation.player.play(explosion, true));
-                    animation.reaction_state = LocomotionState::explode_south;
-                    continue;
-                }
+                ++completed_actor_death_animations;
+            } else if (*animation.reaction_state == LocomotionState::explode_south) {
+                ++completed_actor_explosion_animations;
             }
 
             animation.reaction_state.reset();
@@ -811,11 +776,12 @@ struct RuntimeScene::Impl {
     void synchronize_binding(const std::size_t index) {
         BodyBinding& body = body_bindings[index];
         for (const BoundEntity& bound : body.entities) {
-            static_cast<void>(world.set_position(bound.entity, {
-                body.current_position.x + bound.offset.x,
-                body.current_position.y + bound.offset.y,
-                body.current_position.z + bound.offset.z,
-            }));
+            static_cast<void>(
+                world.set_position(bound.entity, {
+                                                     body.current_position.x + bound.offset.x,
+                                                     body.current_position.y + bound.offset.y,
+                                                     body.current_position.z + bound.offset.z,
+                                                 }));
         }
     }
 
@@ -823,9 +789,8 @@ struct RuntimeScene::Impl {
     // find its binding. Scanning the binding list for each is quadratic in the
     // body count, which dominates the tick once a scene holds thousands of
     // actors, so the mapping is kept alongside the bindings instead.
-    [[nodiscard]] std::optional<std::size_t> body_index_for_physics(
-        const PhysicsBodyId physics_body
-    ) const noexcept {
+    [[nodiscard]] std::optional<std::size_t>
+    body_index_for_physics(const PhysicsBodyId physics_body) const noexcept {
         const auto found = body_index_by_physics_body.find(physics_body_key(physics_body));
         return found == body_index_by_physics_body.end()
                    ? std::nullopt
@@ -839,10 +804,10 @@ struct RuntimeScene::Impl {
         index.dirty = false;
         index.bounds = definition.ground().walkable_bounds;
         index.cell_size = 64.0F;
-        index.columns = std::max(1, static_cast<std::int32_t>(
-                                        std::ceil(index.bounds.width / index.cell_size)));
-        index.rows = std::max(1, static_cast<std::int32_t>(
-                                     std::ceil(index.bounds.depth / index.cell_size)));
+        index.columns =
+            std::max(1, static_cast<std::int32_t>(std::ceil(index.bounds.width / index.cell_size)));
+        index.rows =
+            std::max(1, static_cast<std::int32_t>(std::ceil(index.bounds.depth / index.cell_size)));
         const std::size_t cell_count =
             static_cast<std::size_t>(index.columns) * static_cast<std::size_t>(index.rows);
         index.cell_start.assign(cell_count + 1U, 0U);
@@ -874,10 +839,8 @@ struct RuntimeScene::Impl {
         }
     }
 
-    [[nodiscard]] std::optional<std::size_t> actor_index_cell(
-        const float x,
-        const float z
-    ) const noexcept {
+    [[nodiscard]] std::optional<std::size_t> actor_index_cell(const float x,
+                                                              const float z) const noexcept {
         const auto column = static_cast<std::int32_t>(
             std::floor((x - actor_index.bounds.x) / actor_index.cell_size));
         const auto row = static_cast<std::int32_t>(
@@ -900,16 +863,15 @@ struct RuntimeScene::Impl {
     }
 
     void register_body_index(const std::size_t index) {
-        body_index_by_physics_body.emplace(
-            physics_body_key(body_bindings[index].physics_body), index);
+        body_index_by_physics_body.emplace(physics_body_key(body_bindings[index].physics_body),
+                                           index);
     }
 
     // A destroyed body's key must not stay in the lookup: the backend is free
     // to hand the same identifier to the next body it creates, and a stale
     // entry would then resolve contacts and casts to the wrong actor.
     void forget_body_index(const std::size_t index) {
-        body_index_by_physics_body.erase(
-            physics_body_key(body_bindings[index].physics_body));
+        body_index_by_physics_body.erase(physics_body_key(body_bindings[index].physics_body));
     }
 
     [[nodiscard]] PhysicsBodyId body_for(const EntityUuid entity_uuid) const noexcept {
@@ -923,9 +885,8 @@ struct RuntimeScene::Impl {
                    : body_bindings[binding->second.body_index].physics_body;
     }
 
-    [[nodiscard]] std::optional<std::size_t> body_index_for(
-        const EntityUuid entity_uuid
-    ) const noexcept {
+    [[nodiscard]] std::optional<std::size_t>
+    body_index_for(const EntityUuid entity_uuid) const noexcept {
         const std::optional<EntityId> entity = world.find(entity_uuid);
         if (!entity) {
             return std::nullopt;
@@ -936,7 +897,8 @@ struct RuntimeScene::Impl {
                    : std::optional<std::size_t>{binding->second.body_index};
     }
 
-    [[nodiscard]] EntityUuid gameplay_entity_for_index(const std::size_t body_index) const noexcept {
+    [[nodiscard]] EntityUuid
+    gameplay_entity_for_index(const std::size_t body_index) const noexcept {
         if (body_index >= body_bindings.size()) {
             return {};
         }
@@ -955,10 +917,9 @@ struct RuntimeScene::Impl {
 
     [[nodiscard]] EntityUuid gameplay_entity_for(const PhysicsBodyId physics_body) const noexcept {
         const BodyBinding* body = find_body(physics_body);
-        return body == nullptr
-                   ? EntityUuid{}
-                   : gameplay_entity_for_index(
-                         static_cast<std::size_t>(body - body_bindings.data()));
+        return body == nullptr ? EntityUuid{}
+                               : gameplay_entity_for_index(
+                                     static_cast<std::size_t>(body - body_bindings.data()));
     }
 
     SceneDefinition definition;
@@ -999,8 +960,7 @@ struct RuntimeScene::Impl {
     std::unordered_map<std::uint64_t, EntityBindingLookup> entity_bindings;
     std::unordered_map<std::string, EntityId> entity_ids;
     std::unordered_map<std::string, TextureHandle> animation_clip_textures;
-    std::unordered_map<std::string, const SceneAnimationClipDefinition*>
-        animation_clip_definitions;
+    std::unordered_map<std::string, const SceneAnimationClipDefinition*> animation_clip_definitions;
     std::vector<AnimatedEntity> animated_entities;
     std::unordered_map<std::uint64_t, std::size_t> animation_indices;
     std::size_t player_index{0};
@@ -1018,6 +978,9 @@ struct RuntimeScene::Impl {
     std::uint64_t runtime_spawn_sequence{0};
     bool simulation_started{false};
     std::uint64_t completed_actor_terminal_animations{0};
+    std::uint64_t completed_actor_hurt_animations{0};
+    std::uint64_t completed_actor_death_animations{0};
+    std::uint64_t completed_actor_explosion_animations{0};
 };
 
 RuntimeScene::RuntimeScene(SceneDefinition definition, TextureAssets& textures)
@@ -1027,10 +990,9 @@ RuntimeScene::~RuntimeScene() = default;
 RuntimeScene::RuntimeScene(RuntimeScene&&) noexcept = default;
 RuntimeScene& RuntimeScene::operator=(RuntimeScene&&) noexcept = default;
 
-std::vector<EntityUuid> RuntimeScene::spawn_actor_copies(
-    const ScenePhysicsRole role,
-    const std::vector<Vec2>& ground_positions
-) {
+std::vector<EntityUuid>
+RuntimeScene::spawn_actor_copies(const ScenePhysicsRole role,
+                                 const std::vector<Vec2>& ground_positions) {
     return impl_->spawn_actor_copies(role, ground_positions);
 }
 
@@ -1053,8 +1015,7 @@ void RuntimeScene::reset() {
         }
         body.presentation_active = true;
         body.hold_presentation_until_terminal = false;
-        if (body.physics_backed &&
-            body.definition.motion != PhysicsMotionType::static_body) {
+        if (body.physics_backed && body.definition.motion != PhysicsMotionType::static_body) {
             static_cast<void>(impl_->physics.set_linear_velocity(body.physics_body, {}));
         }
         impl_->synchronize_binding(index);
@@ -1078,35 +1039,31 @@ void RuntimeScene::reset() {
     impl_->player_stationary_ticks = 0;
     impl_->player_shot_restarted = false;
     impl_->completed_actor_terminal_animations = 0;
+    impl_->completed_actor_hurt_animations = 0;
+    impl_->completed_actor_death_animations = 0;
+    impl_->completed_actor_explosion_animations = 0;
 }
 
-RuntimeSceneTickResult RuntimeScene::tick(
-    const RuntimeScenePlayerMotion& player_motion,
-    const float fixed_step_seconds
-) {
+RuntimeSceneTickResult RuntimeScene::tick(const RuntimeScenePlayerMotion& player_motion,
+                                          const float fixed_step_seconds) {
     return tick(player_motion, {}, fixed_step_seconds);
 }
 
-RuntimeSceneTickResult RuntimeScene::tick(
-    const RuntimeScenePlayerMotion& player_motion,
-    const std::vector<RuntimeSceneActorMotion>& actor_motions,
-    const float fixed_step_seconds,
-    JobSystem* const jobs
-) {
-    if (!finite(player_motion.world_direction) ||
-        !finite(player_motion.presentation_direction) ||
-        !std::isfinite(player_motion.speed_multiplier) ||
-        player_motion.speed_multiplier <= 0.0F ||
+RuntimeSceneTickResult RuntimeScene::tick(const RuntimeScenePlayerMotion& player_motion,
+                                          const std::vector<RuntimeSceneActorMotion>& actor_motions,
+                                          const float fixed_step_seconds, JobSystem* const jobs) {
+    if (!finite(player_motion.world_direction) || !finite(player_motion.presentation_direction) ||
+        !std::isfinite(player_motion.speed_multiplier) || player_motion.speed_multiplier <= 0.0F ||
         !std::isfinite(fixed_step_seconds) || fixed_step_seconds <= 0.0F) {
-        throw std::invalid_argument{"Runtime scene ticks require finite input and a positive step."};
+        throw std::invalid_argument{
+            "Runtime scene ticks require finite input and a positive step."};
     }
     impl_->simulation_started = true;
 
     // Body indices are dense, so a flat slot per binding replaces a hash
     // insert and later hash lookup for every actor in the scene. The buffer is
     // reused, and only the slots touched this tick are cleared afterwards.
-    std::vector<const RuntimeSceneActorMotion*>& actor_motion_by_body =
-        impl_->actor_motion_slots;
+    std::vector<const RuntimeSceneActorMotion*>& actor_motion_by_body = impl_->actor_motion_slots;
     actor_motion_by_body.assign(impl_->body_bindings.size(), nullptr);
     for (const RuntimeSceneActorMotion& actor_motion : actor_motions) {
         const float direction_length_squared =
@@ -1116,13 +1073,13 @@ RuntimeSceneTickResult RuntimeScene::tick(
         if (!actor_motion.actor || !finite(actor_motion.world_direction) ||
             !std::isfinite(actor_motion.speed) || actor_motion.speed < 0.0F ||
             direction_length_squared > 1.0002F || !body_index ||
-            *body_index == impl_->player_index ||
-            !impl_->body_bindings[*body_index].active ||
+            *body_index == impl_->player_index || !impl_->body_bindings[*body_index].active ||
             impl_->body_bindings[*body_index].definition.motion !=
                 PhysicsMotionType::kinematic_body ||
             actor_motion_by_body[*body_index] != nullptr) {
             throw std::invalid_argument{
-                "Runtime actor motion requires one active non-player kinematic actor, a finite speed, and a normalized direction."};
+                "Runtime actor motion requires one active non-player kinematic actor, a finite "
+                "speed, and a normalized direction."};
         }
         actor_motion_by_body[*body_index] = &actor_motion;
     }
@@ -1143,13 +1100,13 @@ RuntimeSceneTickResult RuntimeScene::tick(
             requested != nullptr && requested->speed > 0.0F ? requested->world_direction : Vec2{};
     }
     Impl::BodyBinding& player = impl_->body_bindings[impl_->player_index];
-    const float movement_speed = impl_->definition.simulation().player_speed *
-                                 player_motion.speed_multiplier;
+    const float movement_speed =
+        impl_->definition.simulation().player_speed * player_motion.speed_multiplier;
     const Vec2 desired_position{
-        player.current_position.x + player_motion.world_direction.x *
-                                        movement_speed * fixed_step_seconds,
-        player.current_position.z + player_motion.world_direction.y *
-                                        movement_speed * fixed_step_seconds,
+        player.current_position.x +
+            player_motion.world_direction.x * movement_speed * fixed_step_seconds,
+        player.current_position.z +
+            player_motion.world_direction.y * movement_speed * fixed_step_seconds,
     };
     const GroundMoveResult movement = impl_->ground_map.move(
         player.current_position, desired_position, player.definition.half_extents);
@@ -1193,8 +1150,7 @@ RuntimeSceneTickResult RuntimeScene::tick(
         for (std::size_t entry = first; entry < last; ++entry) {
             const std::size_t body_index = candidates[entry];
             const Impl::BodyBinding& body = impl_->body_bindings[body_index];
-            const RuntimeSceneActorMotion* const requested =
-                actor_motion_by_body[body_index];
+            const RuntimeSceneActorMotion* const requested = actor_motion_by_body[body_index];
             Vec2 direction{};
             float speed = 0.0F;
             Impl::ResolvedMove& output = resolved[entry];
@@ -1208,8 +1164,8 @@ RuntimeSceneTickResult RuntimeScene::tick(
                 body.current_position.x + direction.x * speed * fixed_step_seconds,
                 body.current_position.z + direction.y * speed * fixed_step_seconds,
             };
-            output.movement = impl_->ground_map.move(
-                body.current_position, desired_actor_position, body.definition.half_extents);
+            output.movement = impl_->ground_map.move(body.current_position, desired_actor_position,
+                                                     body.definition.half_extents);
         }
     };
     constexpr std::size_t parallel_actor_threshold = 512;
@@ -1231,8 +1187,7 @@ RuntimeSceneTickResult RuntimeScene::tick(
         const Vec3 start_position = body.current_position;
         if (body.physics_backed) {
             if (!impl_->physics.set_kinematic_target(
-                    body.physics_body,
-                    {move.movement.position.x, move.movement.position.z},
+                    body.physics_body, {move.movement.position.x, move.movement.position.z},
                     fixed_step_seconds)) {
                 throw std::logic_error{"An authored actor body rejected its kinematic target."};
             }
@@ -1260,11 +1215,10 @@ RuntimeSceneTickResult RuntimeScene::tick(
     RuntimeSceneTickResult result{
         .player_blocked = movement.blocked_x || movement.blocked_z,
         .player_elevated = movement.position.y > 0.0F,
-        .player_distance_moved = std::sqrt(
-            (movement.position.x - player.current_position.x) *
-                (movement.position.x - player.current_position.x) +
-            (movement.position.z - player.current_position.z) *
-                (movement.position.z - player.current_position.z)),
+        .player_distance_moved = std::sqrt((movement.position.x - player.current_position.x) *
+                                               (movement.position.x - player.current_position.x) +
+                                           (movement.position.z - player.current_position.z) *
+                                               (movement.position.z - player.current_position.z)),
     };
     const PhysicsStepResult physics_step = impl_->physics.step(fixed_step_seconds);
     for (const PhysicsEvent& event : physics_step.events) {
@@ -1282,12 +1236,10 @@ RuntimeSceneTickResult RuntimeScene::tick(
                 .player_visitor = event.body_b == player.physics_body,
             });
         }
-        if (event.kind == PhysicsEventKind::trigger_begin &&
-            event.body_b == player.physics_body) {
+        if (event.kind == PhysicsEventKind::trigger_begin && event.body_b == player.physics_body) {
             impl_->active_trigger = event.tag_a;
         } else if (event.kind == PhysicsEventKind::trigger_end &&
-                   event.body_b == player.physics_body &&
-                   impl_->active_trigger == event.tag_a) {
+                   event.body_b == player.physics_body && impl_->active_trigger == event.tag_a) {
             impl_->active_trigger.reset();
         }
     }
@@ -1301,8 +1253,7 @@ RuntimeSceneTickResult RuntimeScene::tick(
                                     ? movement.position.y
                                     : impl_->ground_map.elevation_at(snapshot.center);
         body->current_position = {snapshot.center.x, elevation, snapshot.center.y};
-        impl_->synchronize_binding(
-            static_cast<std::size_t>(body - impl_->body_bindings.data()));
+        impl_->synchronize_binding(static_cast<std::size_t>(body - impl_->body_bindings.data()));
     }
 
     // Crowd positions have moved, so any index built for a segment cast this
@@ -1325,9 +1276,8 @@ RuntimeSceneTickResult RuntimeScene::tick(
     }
 
     const Impl::BodyBinding& prop = impl_->body_bindings[impl_->primary_prop_index];
-    result.primary_prop_moved =
-        std::abs(prop.current_position.x - prop.start_position.x) > 0.5F ||
-        std::abs(prop.current_position.z - prop.start_position.z) > 0.5F;
+    result.primary_prop_moved = std::abs(prop.current_position.x - prop.start_position.x) > 0.5F ||
+                                std::abs(prop.current_position.z - prop.start_position.z) > 0.5F;
     impl_->advance_animations(result);
     result.active_trigger = impl_->active_trigger;
     return result;
@@ -1421,8 +1371,34 @@ bool RuntimeScene::begin_actor_death(const EntityUuid actor) {
     return impl_->play_actor_reaction(actor, LocomotionState::death_south, true);
 }
 
+bool RuntimeScene::begin_actor_explosion(const EntityUuid actor) {
+    return impl_->play_actor_reaction(actor, LocomotionState::explode_south, true);
+}
+
+bool RuntimeScene::is_actor_active(const EntityUuid actor) const noexcept {
+    const std::optional<EntityId> entity = impl_->world.find(actor);
+    if (!entity) {
+        return false;
+    }
+    const auto binding = impl_->entity_bindings.find(entity->value);
+    return binding != impl_->entity_bindings.end() &&
+           impl_->body_bindings[binding->second.body_index].active;
+}
+
+std::uint64_t RuntimeScene::completed_actor_hurt_animation_count() const noexcept {
+    return impl_->completed_actor_hurt_animations;
+}
+
 std::uint64_t RuntimeScene::completed_actor_terminal_animation_count() const noexcept {
     return impl_->completed_actor_terminal_animations;
+}
+
+std::uint64_t RuntimeScene::completed_actor_death_animation_count() const noexcept {
+    return impl_->completed_actor_death_animations;
+}
+
+std::uint64_t RuntimeScene::completed_actor_explosion_animation_count() const noexcept {
+    return impl_->completed_actor_explosion_animations;
 }
 bool RuntimeScene::retire_entity(const EntityUuid entity) noexcept {
     if (!entity || entity == player_uuid()) {
@@ -1462,11 +1438,9 @@ bool RuntimeScene::retire_entity(const EntityUuid entity) noexcept {
     return true;
 }
 
-std::optional<RuntimeSceneSegmentHit> RuntimeScene::cast_segment(
-    const Vec2& start,
-    const Vec2& end,
-    const EntityUuid ignored_entity
-) const {
+std::optional<RuntimeSceneSegmentHit>
+RuntimeScene::cast_segment(const Vec2& start, const Vec2& end,
+                           const EntityUuid ignored_entity) const {
     // Authored geometry, the player and props still answer through the
     // broadphase; only body-less crowd actors need the separate query. The
     // nearer of the two wins, so a wall still stops a shot aimed past it.
@@ -1511,13 +1485,13 @@ std::optional<RuntimeSceneSegmentHit> RuntimeScene::cast_segment(
     const float maximum_z = std::max(start.y, end.y);
     const Impl::ActorIndex& index = impl_->actor_index;
     const auto clamp_column = [&index](const float value) {
-        const auto raw = static_cast<std::int32_t>(
-            std::floor((value - index.bounds.x) / index.cell_size));
+        const auto raw =
+            static_cast<std::int32_t>(std::floor((value - index.bounds.x) / index.cell_size));
         return std::clamp(raw, 0, index.columns - 1);
     };
     const auto clamp_row = [&index](const float value) {
-        const auto raw = static_cast<std::int32_t>(
-            std::floor((value - index.bounds.z) / index.cell_size));
+        const auto raw =
+            static_cast<std::int32_t>(std::floor((value - index.bounds.z) / index.cell_size));
         return std::clamp(raw, 0, index.rows - 1);
     };
     const std::int32_t first_column = clamp_column(minimum_x);
@@ -1527,20 +1501,19 @@ std::optional<RuntimeSceneSegmentHit> RuntimeScene::cast_segment(
 
     for (std::int32_t row = first_row; row <= last_row; ++row) {
         for (std::int32_t column = first_column; column <= last_column; ++column) {
-            const auto cell = static_cast<std::size_t>(row) *
-                                  static_cast<std::size_t>(index.columns) +
-                              static_cast<std::size_t>(column);
-            for (std::uint32_t slot = index.cell_start[cell];
-                 slot < index.cell_start[cell + 1U]; ++slot) {
+            const auto cell =
+                static_cast<std::size_t>(row) * static_cast<std::size_t>(index.columns) +
+                static_cast<std::size_t>(column);
+            for (std::uint32_t slot = index.cell_start[cell]; slot < index.cell_start[cell + 1U];
+                 ++slot) {
                 const std::size_t body_index = index.items[slot];
                 if (body_index == ignored_body_index) {
                     continue;
                 }
                 const Impl::BodyBinding& body = impl_->body_bindings[body_index];
-                const std::optional<SegmentBoxHit> box_hit = segment_box_hit(
-                    start, end,
-                    {body.current_position.x, body.current_position.z},
-                    body.definition.half_extents);
+                const std::optional<SegmentBoxHit> box_hit =
+                    segment_box_hit(start, end, {body.current_position.x, body.current_position.z},
+                                    body.definition.half_extents);
                 if (!box_hit || (nearest && box_hit->fraction > nearest->fraction)) {
                     continue;
                 }
@@ -1573,26 +1546,27 @@ bool RuntimeScene::is_entity_presented(const EntityUuid entity) const noexcept {
     return found && impl_->is_presented(*found);
 }
 
-std::vector<RenderItem2D> RuntimeScene::collect_render_items(
-    const float interpolation_alpha,
-    const std::optional<RectXZ> region
-) const {
+std::vector<RenderItem2D>
+RuntimeScene::collect_render_items(const float interpolation_alpha,
+                                   const std::optional<RectXZ> region) const {
     if (!std::isfinite(interpolation_alpha)) {
         throw std::invalid_argument{"Render interpolation alpha must be finite."};
     }
     const float alpha = std::clamp(interpolation_alpha, 0.0F, 1.0F);
     std::vector<RenderItem2D> items = impl_->world.collect_render_items(region);
-    std::erase_if(items, [this](const RenderItem2D& item) {
-        return !impl_->is_presented(item.entity);
-    });
+    std::erase_if(items,
+                  [this](const RenderItem2D& item) { return !impl_->is_presented(item.entity); });
     for (RenderItem2D& item : items) {
         const auto found = impl_->entity_bindings.find(item.entity.value);
         if (found != impl_->entity_bindings.end()) {
             const Impl::BodyBinding& body = impl_->body_bindings[found->second.body_index];
             const Vec3 interpolated{
-                body.previous_position.x + (body.current_position.x - body.previous_position.x) * alpha,
-                body.previous_position.y + (body.current_position.y - body.previous_position.y) * alpha,
-                body.previous_position.z + (body.current_position.z - body.previous_position.z) * alpha,
+                body.previous_position.x +
+                    (body.current_position.x - body.previous_position.x) * alpha,
+                body.previous_position.y +
+                    (body.current_position.y - body.previous_position.y) * alpha,
+                body.previous_position.z +
+                    (body.current_position.z - body.previous_position.z) * alpha,
             };
             item.transform.position = {
                 interpolated.x + found->second.offset.x,
@@ -1607,6 +1581,8 @@ std::vector<RenderItem2D> RuntimeScene::collect_render_items(
             item.sprite.texture = impl_->animation_clip_textures.at(std::string{sample.clip_id});
             item.sprite.source = sample.source;
             item.sprite.flip_x = sample.flip_x;
+            item.sprite.size.x *= sample.presentation_scale;
+            item.sprite.size.y *= sample.presentation_scale;
         }
     }
     return items;
@@ -1617,9 +1593,7 @@ std::vector<PhysicsFootprint> RuntimeScene::debug_footprints() const {
 }
 
 std::size_t RuntimeScene::entity_count() const noexcept { return impl_->world.entity_count(); }
-std::size_t RuntimeScene::physics_body_count() const noexcept {
-    return impl_->physics_body_count;
-}
+std::size_t RuntimeScene::physics_body_count() const noexcept { return impl_->physics_body_count; }
 std::size_t RuntimeScene::animation_binding_count() const noexcept {
     return impl_->animated_entities.size();
 }

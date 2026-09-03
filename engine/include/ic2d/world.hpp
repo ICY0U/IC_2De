@@ -91,9 +91,8 @@ public:
     // tens of thousands of them, and almost all of a large scene is offscreen.
     // The filter is a plain spatial bound rather than a camera: how a transform
     // is projected stays the presentation layer's business.
-    [[nodiscard]] std::vector<RenderItem2D> collect_render_items(
-        std::optional<RectXZ> region = std::nullopt
-    ) const;
+    [[nodiscard]] std::vector<RenderItem2D>
+    collect_render_items(std::optional<RectXZ> region = std::nullopt) const;
 
 private:
     struct Impl;

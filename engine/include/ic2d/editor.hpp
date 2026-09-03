@@ -2,18 +2,19 @@
 
 #include "ic2d/actor_debug.hpp"
 #include "ic2d/aiming.hpp"
-#include "ic2d/debug_visuals.hpp"
 #include "ic2d/combat.hpp"
+#include "ic2d/debug_visuals.hpp"
 #include "ic2d/enemy_intent.hpp"
 #include "ic2d/gameplay_state.hpp"
 #include "ic2d/health.hpp"
-#include "ic2d/interaction.hpp"
 #include "ic2d/identity.hpp"
 #include "ic2d/input.hpp"
-#include "ic2d/nav_grid.hpp"
+#include "ic2d/interaction.hpp"
 #include "ic2d/nav_agent.hpp"
+#include "ic2d/nav_grid.hpp"
 #include "ic2d/nav_pathfinding.hpp"
 #include "ic2d/projectiles.hpp"
+#include "ic2d/run_state.hpp"
 #include "ic2d/scene_editor.hpp"
 #include "ic2d/types.hpp"
 
@@ -29,29 +30,8 @@ namespace ic2d {
 
 // Backend-independent editor focus policy, kept public so the exact input
 // routing regression can be exercised without creating a GPU window.
-[[nodiscard]] bool editor_blocks_gameplay_input(
-    bool wants_text_input,
-    bool item_active,
-    bool gizmo_active
-) noexcept;
-
-// Whether the scene in front of an author is being edited or played.
-//
-// Editing is not a pause. A paused run is a run that has already happened and
-// is waiting to continue; editing is the authored scene, untouched, exactly as
-// the document describes it. An editor that opened onto a paused run would be
-// showing a state no document records, which is why the two are named apart
-// rather than sharing one flag.
-enum class EditorRunState : std::uint8_t {
-    editing,
-    running,
-    paused,
-};
-
-// True when fixed ticks are advancing.
-[[nodiscard]] constexpr bool simulating(const EditorRunState state) noexcept {
-    return state == EditorRunState::running;
-}
+[[nodiscard]] bool editor_blocks_gameplay_input(bool wants_text_input, bool item_active,
+                                                bool gizmo_active) noexcept;
 
 // What a pointer held on the editor's own window chrome is doing to it. The
 // shell hit-tests and names the gesture; the application owns the window and is
@@ -137,7 +117,7 @@ struct EditorStats {
     bool post_process_active{false};
     bool post_process_available{false};
     bool texture_hot_reload_enabled{false};
-    EditorRunState run_state{EditorRunState::editing};
+    RunState run_state{RunState::editing};
     // True when the application made an undecorated window and expects the
     // shell to supply the title bar it removed. False leaves every chrome
     // control and hit zone out, so a decorated window is untouched.
@@ -176,7 +156,7 @@ struct EditorActions {
     // Present means put the scene into this state. Play, Pause and the pause
     // key all name the state they want rather than asking for a toggle, so two
     // of them pressed in the same frame cannot cancel out.
-    std::optional<EditorRunState> set_run_state;
+    std::optional<RunState> set_run_state;
     // Present means rebuild the unsaved running scene with this many total
     // Runner actors. Zero restores only the authored actors.
     std::optional<std::size_t> enemy_stress_target_count;
@@ -270,12 +250,8 @@ public:
 
     // Call once per frame inside an active drawing pass. Does nothing and
     // returns no actions while the shell is hidden or unavailable.
-    [[nodiscard]] EditorActions draw(
-        SceneEditor& scene_editor,
-        DebugVisuals& debug_visuals,
-        const EditorStats& stats,
-        const EditorCanvas& canvas
-    );
+    [[nodiscard]] EditorActions draw(SceneEditor& scene_editor, DebugVisuals& debug_visuals,
+                                     const EditorStats& stats, const EditorCanvas& canvas);
 
 private:
     struct Impl;

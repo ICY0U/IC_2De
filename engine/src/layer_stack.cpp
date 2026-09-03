@@ -34,9 +34,8 @@ struct LayerStack::Impl {
     }
 
     [[nodiscard]] bool knows(const LayerId id) const noexcept {
-        const bool active = std::ranges::any_of(entries, [id](const Entry& entry) {
-            return entry.id == id;
-        });
+        const bool active =
+            std::ranges::any_of(entries, [id](const Entry& entry) { return entry.id == id; });
         const bool waiting = std::ranges::any_of(pending, [id](const Transition& transition) {
             return transition.kind == TransitionKind::push && transition.id == id;
         });
@@ -97,8 +96,7 @@ struct LayerStack::Impl {
         }
     }
 
-    template <typename Callback>
-    void traverse(Callback&& callback) {
+    template <typename Callback> void traverse(Callback&& callback) {
         if (traversing) {
             throw std::logic_error{"LayerStack traversal cannot be nested."};
         }

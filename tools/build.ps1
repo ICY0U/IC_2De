@@ -4,6 +4,11 @@ param(
     [string]$Configuration = "Debug",
 
     [switch]$RunTests,
+
+    # Skips the tests labelled "gpu", which drive a real executable and open a
+    # window. A headless machine, a continuous integration runner typically,
+    # can still run everything else.
+    [switch]$ExcludeGpuTests,
     [switch]$Launch,
     [switch]$EditorOnly,
     [switch]$Shipping,
@@ -33,10 +38,14 @@ $vsWhereDirectory = Split-Path -Parent $vsWhere
 $devCommand = Join-Path $visualStudioPath "Common7\Tools\VsDevCmd.bat"
 $cmakeDirectory = Join-Path $visualStudioPath "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin"
 $ninjaDirectory = Join-Path $visualStudioPath "Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja"
-$cmake = Join-Path $cmakeDirectory "cmake.exe"
-
-if (-not (Test-Path -LiteralPath $cmake)) {
-    throw "Visual Studio's bundled CMake was not found at: $cmake"
+# Visual Studio's bundled CMake and Ninja are preferred, so that an ordinary
+# local build uses the same toolchain the project is developed against. They
+# come from an optional workload component, though, and a machine without it can
+# still build perfectly well with whatever is already on PATH. Failing outright
+# there would make this script the reason the build does not run.
+$bundledToolchain = ""
+if (Test-Path -LiteralPath (Join-Path $cmakeDirectory "cmake.exe")) {
+    $bundledToolchain = "$cmakeDirectory;$ninjaDirectory;"
 }
 
 $env:Path = "$vsWhereDirectory;$env:Path"
@@ -47,7 +56,23 @@ foreach ($line in $developerEnvironment) {
     }
 }
 
-$env:Path = "$cmakeDirectory;$ninjaDirectory;$env:Path"
+$env:Path = "$bundledToolchain$env:Path"
+
+function Find-Tool {
+    param([string]$Name)
+
+    $command = Get-Command $Name -ErrorAction SilentlyContinue
+    if ($null -eq $command) {
+        throw "$Name was not found. Install Visual Studio's C++ CMake tools component, or put it on PATH."
+    }
+    return $command.Source
+}
+
+$cmake = Find-Tool "cmake"
+$ctest = Find-Tool "ctest"
+# Every preset selects the Ninja generator, so its absence would otherwise
+# surface later as a confusing configure error.
+$null = Find-Tool "ninja"
 if ($Shipping -and $Configuration -ne "Release") {
     throw "Shipping builds require -Configuration Release."
 }
@@ -79,7 +104,13 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Build failed." }
 
     if ($RunTests) {
-        & $cmake --build --preset $preset --target test
+        # Driven through ctest rather than the "test" build target, because
+        # only ctest takes the label filter.
+        $ctestArguments = @("--preset", $preset)
+        if ($ExcludeGpuTests) {
+            $ctestArguments += @("--label-exclude", "gpu")
+        }
+        & $ctest @ctestArguments
         if ($LASTEXITCODE -ne 0) { throw "Tests failed." }
     }
 

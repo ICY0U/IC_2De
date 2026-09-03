@@ -46,8 +46,7 @@ struct World::Impl {
     std::uint64_t next_entity_uuid{1};
 };
 
-World::World()
-    : impl_{std::make_unique<Impl>()} {}
+World::World() : impl_{std::make_unique<Impl>()} {}
 
 World::~World() = default;
 World::World(World&&) noexcept = default;
@@ -134,14 +133,11 @@ std::optional<EntityUuid> World::uuid(const EntityId entity) const noexcept {
 
 std::optional<EntityId> World::find(const EntityUuid persistent) const noexcept {
     const auto found = impl_->entities_by_uuid.find(persistent.value);
-    return found == impl_->entities_by_uuid.end()
-               ? std::nullopt
-               : std::optional<EntityId>{found->second};
+    return found == impl_->entities_by_uuid.end() ? std::nullopt
+                                                  : std::optional<EntityId>{found->second};
 }
 
-std::size_t World::entity_count() const noexcept {
-    return impl_->entities.size();
-}
+std::size_t World::entity_count() const noexcept { return impl_->entities.size(); }
 
 std::optional<WorldTransform> World::transform(const EntityId entity) const {
     const auto found = impl_->entities.find(entity.value);
@@ -194,9 +190,8 @@ WorldSnapshot World::snapshot() const {
             .sprite = sprite ? std::optional<Sprite2D>{*sprite} : std::nullopt,
         });
     }
-    std::ranges::sort(result.entities, {}, [](const EntityBlueprint& entity) {
-        return entity.uuid.value;
-    });
+    std::ranges::sort(result.entities, {},
+                      [](const EntityBlueprint& entity) { return entity.uuid.value; });
     return result;
 }
 
@@ -212,9 +207,7 @@ void World::restore(const WorldSnapshot& source) {
     *this = std::move(replacement);
 }
 
-std::vector<RenderItem2D> World::collect_render_items(
-    const std::optional<RectXZ> region
-) const {
+std::vector<RenderItem2D> World::collect_render_items(const std::optional<RectXZ> region) const {
     std::vector<RenderItem2D> items;
     items.reserve(impl_->entities.size());
 

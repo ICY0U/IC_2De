@@ -73,10 +73,8 @@ public:
     ProjectileSimulation(ProjectileSimulation&&) noexcept;
     ProjectileSimulation& operator=(ProjectileSimulation&&) noexcept;
 
-    [[nodiscard]] bool spawn(
-        const ProjectileSpawnedEvent& event,
-        const Vec3& world_origin
-    ) noexcept;
+    [[nodiscard]] bool spawn(const ProjectileSpawnedEvent& event,
+                             const Vec3& world_origin) noexcept;
     void fixed_update(std::uint64_t tick, float fixed_step_seconds);
     [[nodiscard]] bool resolve_impact(const ProjectileImpact& impact) noexcept;
 

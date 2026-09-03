@@ -36,8 +36,6 @@ struct GameplayStateDigest {
 // Canonicalizes order-independent snapshot vectors before hashing. Throws
 // std::invalid_argument for non-finite values, zero/duplicate identities, or
 // subsystem snapshots from different fixed ticks.
-[[nodiscard]] GameplayStateDigest gameplay_state_digest(
-    const GameplayStateSnapshot& state
-);
+[[nodiscard]] GameplayStateDigest gameplay_state_digest(const GameplayStateSnapshot& state);
 
 } // namespace ic2d

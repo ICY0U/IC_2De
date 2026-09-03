@@ -3,9 +3,9 @@
 #include "ic2d/assets.hpp"
 #include "ic2d/types.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
-#include <array>
 #include <span>
 #include <vector>
 

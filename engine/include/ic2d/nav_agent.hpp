@@ -87,11 +87,9 @@ public:
 
     // Requires exactly one unique request per registered actor at each
     // one-based sequential fixed tick. The grid is borrowed only for this call.
-    [[nodiscard]] std::vector<NavAgentMotion> fixed_update(
-        std::uint64_t tick,
-        const NavGrid& grid,
-        const std::vector<NavAgentRequest>& requests
-    );
+    [[nodiscard]] std::vector<NavAgentMotion>
+    fixed_update(std::uint64_t tick, const NavGrid& grid,
+                 const std::vector<NavAgentRequest>& requests);
 
     [[nodiscard]] NavAgentSnapshot snapshot() const;
     void reset() noexcept;

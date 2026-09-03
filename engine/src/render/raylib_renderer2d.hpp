@@ -10,11 +10,8 @@ class RaylibRenderer2D final {
 public:
     explicit RaylibRenderer2D(TextureAssets& textures) noexcept;
 
-    [[nodiscard]] RenderDiagnostics2D render(
-        const RenderFrame2D& frame,
-        int canvas_width,
-        int canvas_height
-    ) const;
+    [[nodiscard]] RenderDiagnostics2D render(const RenderFrame2D& frame, int canvas_width,
+                                             int canvas_height) const;
 
 private:
     TextureAssets& textures_;

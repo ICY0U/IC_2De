@@ -1,76 +1,55 @@
+#include <doctest/doctest.h>
+
 #include "ic2d/presentation.hpp"
 
 #include <cmath>
-#include <iostream>
 #include <string_view>
 
 namespace {
 
-int failures = 0;
-
-void expect(const bool condition, const std::string_view message) {
-    if (!condition) {
-        std::cerr << "FAIL: " << message << '\n';
-        ++failures;
-    }
-}
 [[nodiscard]] bool near(const float left, const float right, const float epsilon = 0.001F) {
     return std::abs(left - right) <= epsilon;
 }
 
-void test_exact_integer_scale() {
+TEST_CASE("exact integer scale") {
     const auto viewport = ic2d::compute_canvas_viewport(1280, 720, 640, 360);
-    expect(near(viewport.scale, 2.0F), "720p output must use a two-times scale.");
-    expect(near(viewport.x, 0.0F) && near(viewport.y, 0.0F),
-           "Matching aspect ratio must not add letterboxing.");
-    expect(near(viewport.width, 1280.0F) && near(viewport.height, 720.0F),
-           "Scaled canvas must fill a matching 720p output.");
+    CHECK_MESSAGE((near(viewport.scale, 2.0F)), "720p output must use a two-times scale.");
+    CHECK_MESSAGE((near(viewport.x, 0.0F) && near(viewport.y, 0.0F)),
+                  "Matching aspect ratio must not add letterboxing.");
+    CHECK_MESSAGE((near(viewport.width, 1280.0F) && near(viewport.height, 720.0F)),
+                  "Scaled canvas must fill a matching 720p output.");
 }
 
-void test_fractional_upscale_fills_a_resized_window() {
+TEST_CASE("fractional upscale fills a resized window") {
     const auto viewport = ic2d::compute_canvas_viewport(1600, 900, 640, 360);
-    expect(near(viewport.scale, 2.5F),
-           "A resized matching-aspect window must scale the game continuously.");
-    expect(near(viewport.x, 0.0F) && near(viewport.y, 0.0F) &&
-               near(viewport.width, 1600.0F) && near(viewport.height, 900.0F),
-           "The game canvas must fill a resized matching-aspect window.");
+    CHECK_MESSAGE((near(viewport.scale, 2.5F)),
+                  "A resized matching-aspect window must scale the game continuously.");
+    CHECK_MESSAGE((near(viewport.x, 0.0F) && near(viewport.y, 0.0F) &&
+                   near(viewport.width, 1600.0F) && near(viewport.height, 900.0F)),
+                  "The game canvas must fill a resized matching-aspect window.");
 }
 
-void test_aspect_ratio_letterbox() {
+TEST_CASE("aspect ratio letterbox") {
     const auto viewport = ic2d::compute_canvas_viewport(1366, 768, 640, 360);
-    expect(near(viewport.scale, 768.0F / 360.0F),
-           "A resized output must use all available space while preserving aspect ratio.");
-    expect(near(viewport.x, (1366.0F - 640.0F * viewport.scale) * 0.5F) &&
-               near(viewport.y, 0.0F),
-           "Continuous scaling must center the canvas in its letterbox.");
+    CHECK_MESSAGE((near(viewport.scale, 768.0F / 360.0F)),
+                  "A resized output must use all available space while preserving aspect ratio.");
+    CHECK_MESSAGE(
+        (near(viewport.x, (1366.0F - 640.0F * viewport.scale) * 0.5F) && near(viewport.y, 0.0F)),
+        "Continuous scaling must center the canvas in its letterbox.");
 }
 
-void test_fractional_downscale() {
+TEST_CASE("fractional downscale") {
     const auto viewport = ic2d::compute_canvas_viewport(320, 180, 640, 360);
-    expect(near(viewport.scale, 0.5F), "Outputs smaller than the canvas must downscale safely.");
-    expect(near(viewport.width, 320.0F) && near(viewport.height, 180.0F),
-           "Downscaled canvas must remain inside the output.");
+    CHECK_MESSAGE((near(viewport.scale, 0.5F)),
+                  "Outputs smaller than the canvas must downscale safely.");
+    CHECK_MESSAGE((near(viewport.width, 320.0F) && near(viewport.height, 180.0F)),
+                  "Downscaled canvas must remain inside the output.");
 }
 
-void test_invalid_dimensions() {
+TEST_CASE("invalid dimensions") {
     const auto viewport = ic2d::compute_canvas_viewport(0, 720, 640, 360);
-    expect(near(viewport.scale, 0.0F), "Invalid dimensions must produce an empty viewport.");
+    CHECK_MESSAGE((near(viewport.scale, 0.0F)),
+                  "Invalid dimensions must produce an empty viewport.");
 }
 
 } // namespace
-
-int main() {
-    test_exact_integer_scale();
-    test_fractional_upscale_fills_a_resized_window();
-    test_aspect_ratio_letterbox();
-    test_fractional_downscale();
-    test_invalid_dimensions();
-
-    if (failures == 0) {
-        std::cout << "All presentation tests passed.\n";
-        return 0;
-    }
-
-    std::cerr << failures << " test assertion(s) failed.\n";
-    return 1;
-}

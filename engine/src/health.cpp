@@ -37,13 +37,14 @@ bool Health::register_target(const HealthTargetDefinition& definition) noexcept 
         !(definition.maximum_health > 0.0F)) {
         return false;
     }
-    return impl_->targets.emplace(
-        definition.target.value,
-        Impl::TargetState{
-            .maximum_health = definition.maximum_health,
-            .current_health = definition.maximum_health,
-            .alive = true,
-        }).second;
+    return impl_->targets
+        .emplace(definition.target.value,
+                 Impl::TargetState{
+                     .maximum_health = definition.maximum_health,
+                     .current_health = definition.maximum_health,
+                     .alive = true,
+                 })
+        .second;
 }
 
 bool Health::submit(const DamageCommand& command) noexcept {

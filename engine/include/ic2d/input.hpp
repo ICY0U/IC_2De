@@ -24,12 +24,8 @@ enum class GameplayAction : std::uint8_t {
 };
 
 inline constexpr std::array gameplay_actions{
-    GameplayAction::fire,
-    GameplayAction::reload,
-    GameplayAction::dodge,
-    GameplayAction::interact,
-    GameplayAction::swap_weapon,
-    GameplayAction::choose_extraction,
+    GameplayAction::fire,     GameplayAction::reload,      GameplayAction::dodge,
+    GameplayAction::interact, GameplayAction::swap_weapon, GameplayAction::choose_extraction,
 };
 
 [[nodiscard]] std::string_view gameplay_action_name(GameplayAction action) noexcept;
