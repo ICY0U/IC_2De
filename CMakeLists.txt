@@ -628,6 +628,7 @@ if(IC2DE_BUILD_TESTS)
             tests/unit/automated_run_tests.cpp
             tests/unit/fixed_step_clock_tests.cpp
         DEPS IC2DE::Core
+        DOCTEST
     )
 
     ic2de_add_test(frame_telemetry
