@@ -9,6 +9,7 @@
 #include <limits>
 #include <stdexcept>
 #include <system_error>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -20,11 +21,12 @@
 namespace ic2d {
 namespace {
 
-constexpr std::uint32_t current_scene_schema = 10;
+constexpr std::uint32_t current_scene_schema = 12;
 constexpr std::size_t entity_field_count = 17;
 constexpr std::size_t prefab_field_count = 13;
 constexpr std::size_t prefab_instance_field_count = 8;
 constexpr std::size_t prefab_override_field_count = 3;
+constexpr std::size_t parent_field_count = 2;
 constexpr std::size_t animation_binding_field_count = 4;
 constexpr std::size_t animation_auto_field_count = 3;
 
@@ -355,9 +357,9 @@ SceneDocument SceneDocument::migrate_to_current(const std::filesystem::path& pat
         return open(absolute_path);
     }
     const std::string scene_id = scene_id_of(lines);
-    if ((schema < 5 || schema > 9) || scene_id.empty()) {
+    if ((schema < 5 || schema > 11) || scene_id.empty()) {
         throw std::runtime_error{
-            "Only scene schema 5, 6, 7, 8, or 9 can be migrated to schema 10."};
+            "Only scene schema 5 through 11 can be migrated to schema 12."};
     }
     if (schema == 5) {
         migrate_five_to_six(lines, scene_id);
@@ -374,12 +376,16 @@ const std::filesystem::path& SceneDocument::source_path() const noexcept { retur
 
 std::vector<SceneDocumentEntity> SceneDocument::entities() const {
     std::vector<SceneDocumentEntity> result;
+    // Parent records name entities by their textual id, which is what an author
+    // writes; readers want identity, so the ids are resolved here once.
+    std::unordered_map<std::string, std::size_t> by_id;
     for (const std::string& line : lines_) {
         TextRecord record;
         PlacementLayout layout;
         if (!parse_record(line, record) || !placement_layout(record, layout)) {
             continue;
         }
+        by_id.emplace(record.fields[0], result.size());
         result.push_back({
             .uuid = {parse_number<std::uint64_t>(record.fields[layout.uuid], "entity UUID")},
             .id = record.fields[0],
@@ -394,6 +400,20 @@ std::vector<SceneDocumentEntity> SceneDocument::entities() const {
             .has_own_sprite = layout.prefab == 0,
             .sprite = layout.prefab == 0 ? read_entity_sprite(record) : SceneDocumentSprite{},
         });
+    }
+    for (const std::string& line : lines_) {
+        TextRecord record;
+        if (!parse_record(line, record) || record.key != "parent" ||
+            record.fields.size() != parent_field_count) {
+            continue;
+        }
+        const auto child = by_id.find(record.fields[0]);
+        const auto parent = by_id.find(record.fields[1]);
+        // A document is edited text and may be mid-edit, so an unresolvable
+        // record is left alone here; SceneDefinition is what rejects it.
+        if (child != by_id.end() && parent != by_id.end()) {
+            result[child->second].parent = result[parent->second].uuid;
+        }
     }
     return result;
 }
@@ -720,6 +740,14 @@ bool SceneDocument::destroy_prefab_instance(const EntityUuid uuid) {
             throw std::invalid_argument{
                 "Automatic animations still reference this prefab instance: " + instance_id};
         }
+        // Removing something that still owns children would orphan them, so
+        // the children have to be re-parented or removed first.
+        if (parse_record(line, referencing) && referencing.key == "parent" &&
+            referencing.fields.size() == parent_field_count &&
+            referencing.fields[1] == instance_id) {
+            throw std::invalid_argument{
+                "Child placements are still parented to this prefab instance: " + instance_id};
+        }
     }
 
     std::vector<std::string> remaining;
@@ -731,6 +759,13 @@ bool SceneDocument::destroy_prefab_instance(const EntityUuid uuid) {
         TextRecord candidate;
         if (parse_record(lines_[line_index], candidate) && candidate.key == "prefab_override" &&
             candidate.fields.size() == prefab_override_field_count &&
+            candidate.fields[0] == instance_id) {
+            continue;
+        }
+        // The instance is leaving, so the record naming its parent goes with
+        // it exactly as its overrides do.
+        if (parse_record(lines_[line_index], candidate) && candidate.key == "parent" &&
+            candidate.fields.size() == parent_field_count &&
             candidate.fields[0] == instance_id) {
             continue;
         }

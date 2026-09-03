@@ -45,6 +45,11 @@ struct NavAgentSystem::Impl {
         std::optional<NavCell> goal_cell;
         std::vector<NavCell> path;
         std::size_t waypoint_index{0};
+        // The last waypoint the agent actually arrived at, as distinct from the
+        // one it is currently steering toward. Smoothing moves the target
+        // ahead of the agent, so route loss has to be judged from where it has
+        // really been or a smoothed agent looks like it has left its route.
+        std::size_t reached_index{0};
         std::uint64_t next_repath_tick{1};
         std::uint64_t search_count{0};
         std::uint64_t waypoint_advance_count{0};
@@ -134,6 +139,7 @@ std::vector<NavAgentMotion> NavAgentSystem::fixed_update(
             state.path_status = NavPathStatus::unreachable;
             state.path.clear();
             state.waypoint_index = 0;
+            state.reached_index = 0;
             state.path_distance = 0.0F;
             state.expanded_cell_count = 0;
             state.next_repath_tick = tick;
@@ -148,7 +154,7 @@ std::vector<NavAgentMotion> NavAgentSystem::fixed_update(
         bool route_lost = false;
         if (state.path_status == NavPathStatus::found && !state.path.empty() && current_cell) {
             const std::size_t first_remaining =
-                state.waypoint_index == 0 ? 0 : state.waypoint_index - 1;
+                state.reached_index == 0 ? 0 : state.reached_index - 1;
             route_lost = std::find(
                              state.path.begin() +
                                  static_cast<std::ptrdiff_t>(
@@ -170,6 +176,7 @@ std::vector<NavAgentMotion> NavAgentSystem::fixed_update(
                                            path.cells.size() > 1
                                        ? 1
                                        : path.cells.size();
+            state.reached_index = state.waypoint_index;
             state.path_distance = path.total_distance;
             state.expanded_cell_count = path.expanded_cell_count;
             state.next_repath_tick = next_repath_tick(
@@ -196,17 +203,52 @@ std::vector<NavAgentMotion> NavAgentSystem::fixed_update(
                 }
                 ++state.waypoint_index;
                 ++state.waypoint_advance_count;
+                state.reached_index = state.waypoint_index;
+            }
+
+            // Following cell centres one at a time makes an actor walk a
+            // staircase: it has to reach the middle of every cell it passes
+            // through before it may turn. Skipping ahead to the furthest
+            // waypoint it can actually see turns that into a direct walk, and
+            // rounds corners instead of squaring them.
+            if (impl_->settings.smoothing_lookahead_cells > 0 &&
+                state.waypoint_index < state.path.size()) {
+                const std::size_t window = std::min<std::size_t>(
+                    state.path.size(),
+                    state.waypoint_index + impl_->settings.smoothing_lookahead_cells);
+                for (std::size_t candidate = window; candidate > state.waypoint_index;
+                     --candidate) {
+                    const std::optional<NavGridCell> ahead =
+                        grid.cell(state.path[candidate - 1]);
+                    if (!ahead) {
+                        throw std::logic_error{
+                            "NavAgent path referenced a cell absent from its source grid."};
+                    }
+                    if (!nav_line_of_sight(grid, request.actor_position, ahead->center)) {
+                        continue;
+                    }
+                    state.waypoint_advance_count +=
+                        (candidate - 1) - state.waypoint_index;
+                    state.waypoint_index = candidate - 1;
+                    break;
+                }
             }
 
             Vec2 destination = request.target_position;
             if (state.waypoint_index < state.path.size()) {
-                const std::optional<NavGridCell> waypoint =
-                    grid.cell(state.path[state.waypoint_index]);
-                if (!waypoint) {
-                    throw std::logic_error{
-                        "NavAgent path referenced a cell absent from its source grid."};
+                // A visible target is walked at directly. The route exists to
+                // get around what cannot be seen; once the target itself is in
+                // sight, steering to a cell centre beside it only detours.
+                if (!nav_line_of_sight(grid, request.actor_position,
+                                       request.target_position)) {
+                    const std::optional<NavGridCell> waypoint =
+                        grid.cell(state.path[state.waypoint_index]);
+                    if (!waypoint) {
+                        throw std::logic_error{
+                            "NavAgent path referenced a cell absent from its source grid."};
+                    }
+                    destination = waypoint->center;
                 }
-                destination = waypoint->center;
             }
             state.movement_direction = direction_to(request.actor_position, destination);
         }

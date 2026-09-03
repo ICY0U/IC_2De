@@ -18,6 +18,11 @@ struct NavAgentSettings {
     // earlier search; unchanged failures use the same bounded interval.
     std::uint32_t repath_interval_ticks{30};
     float waypoint_tolerance{4.0F};
+    // How many waypoints ahead may be tested for a clear line before the agent
+    // gives up and follows the next cell centre. Zero restores plain centre by
+    // centre following. The window bounds the per-tick cost: a route is only
+    // ever smoothed locally, which is all that is visible anyway.
+    std::uint32_t smoothing_lookahead_cells{6};
 };
 
 struct NavAgentRequest {

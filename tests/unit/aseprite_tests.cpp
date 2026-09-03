@@ -91,6 +91,16 @@ void test_rejects_unsupported_packing(const std::filesystem::path& root) {
     expect(rejected, "Unsupported packed-frame transforms must fail at import.");
 }
 
+void test_imports_ic2de_once_loop_extension(const std::filesystem::path& root) {
+    const std::filesystem::path path = root / "once.json";
+    write_file(path,
+               R"({"frames":[{"frame":{"x":0,"y":0,"w":1,"h":1},"duration":100}],"meta":{"image":"hero.png","size":{"w":1,"h":1},"frameTags":[{"name":"death","from":0,"to":0,"direction":"forward","ic2d_loop_mode":"once"}]}})");
+    const ic2d::AsepriteImportResult imported = ic2d::import_aseprite_json(path, 60);
+    expect(imported.clips.size() == 1 &&
+               imported.clips.front().loop_mode == ic2d::AnimationLoopMode::once,
+           "The IC_2DE tag extension must import terminal animation clips as one-shots.");
+}
+
 } // namespace
 
 int main() {
@@ -100,6 +110,7 @@ int main() {
     std::filesystem::create_directories(root);
 
     test_imports_golden_json_array();
+    test_imports_ic2de_once_loop_extension(root);
     test_rejects_hash_format_and_unsafe_images(root);
     test_rejects_unsupported_packing(root);
 

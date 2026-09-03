@@ -1,5 +1,5 @@
 # IC_2DE performance test scene - regenerate with tools/generate-perf-scene.py
-schema=10
+schema=12
 id=perf_test
 world_space=x_y_z
 ground_plane=x_z
@@ -15,8 +15,29 @@ player_speed=130
 
 texture=soft-shadow|radial|16|16|4|8|12|145|4|8|12|0|smooth
 texture=test-crate|checker|8|8|2|48|92|145|255|74|145|205|255|pixel
-aseprite=player-atlas|player-atlas.json|pixel|60
-aseprite=player-diagonal-atlas|player-diagonal-atlas.json|pixel|60
+aseprite=player-v3-move-south|player-v3-move-south.json|pixel|60
+aseprite=player-v3-move-north|player-v3-move-north.json|pixel|60
+aseprite=player-v3-move-east|player-v3-move-east.json|pixel|60
+aseprite=player-v3-move-southeast|player-v3-move-southeast.json|pixel|60
+aseprite=player-v3-move-northeast|player-v3-move-northeast.json|pixel|60
+aseprite=player-v3-idle-south|player-v3-idle-south.json|pixel|60
+aseprite=player-v3-idle-southwest|player-v3-idle-southwest.json|pixel|60
+aseprite=player-v3-idle-west|player-v3-idle-west.json|pixel|60
+aseprite=player-v3-idle-northwest|player-v3-idle-northwest.json|pixel|60
+aseprite=player-v3-idle-north|player-v3-idle-north.json|pixel|60
+aseprite=player-v3-idle-northeast|player-v3-idle-northeast.json|pixel|60
+aseprite=player-v3-idle-east|player-v3-idle-east.json|pixel|60
+aseprite=player-v3-idle-southeast|player-v3-idle-southeast.json|pixel|60
+aseprite=player-v3-seated-south|player-v3-seated-south.json|pixel|60
+aseprite=player-v3-seated-north|player-v3-seated-north.json|pixel|60
+aseprite=player-v3-dodge-sidestep|player-v3-dodge-sidestep.json|pixel|60
+aseprite=player-v3-dodge-roll|player-v3-dodge-roll.json|pixel|60
+aseprite=player-v3-dodge-slide|player-v3-dodge-slide.json|pixel|60
+aseprite=player-v3-dodge-back-hop-south|player-v3-dodge-back-hop-south.json|pixel|60
+aseprite=player-v3-dodge-north|player-v3-dodge-north.json|pixel|60
+aseprite=player-v3-shoot-south|player-v3-shoot-south.json|pixel|60
+aseprite=player-v3-shoot-north|player-v3-shoot-north.json|pixel|60
+aseprite=player-v3-shoot-east|player-v3-shoot-east.json|pixel|60
 aseprite=npc-patchwork-atlas|npc-patchwork-atlas.json|pixel|60
 aseprite=npc-patchwork-diagonal-atlas|npc-patchwork-diagonal-atlas.json|pixel|60
 
@@ -71,7 +92,7 @@ physics_box=attacker|attacker|kinematic|600|0|10|6|16|15|31|false|true|0|0|2|0.9
 
 # entity=id|uuid|name|physics-binding|x|y|z|sprite-width|sprite-height|origin-x|origin-y|RGBA|layer|texture-id
 entity=player-shadow|1001|Player shadow|player|0|0|0|20|7|0.5|0.5|255|255|255|255|0|soft-shadow
-entity=player|1002|Player|player|0|0|0|24|34|0.5|1|255|255|255|255|0|player-atlas
+entity=player|1002|Player|player|0|0|0|48|48|0.5|0.833333|255|255|255|255|0|player-v3-idle-south
 entity=dynamic-crate-shadow|1003|Dynamic crate shadow|dynamic-crate|80|0|80|28|10|0.5|0.5|255|255|255|210|0|soft-shadow
 entity=dynamic-crate|1004|Dynamic crate|dynamic-crate|80|0|80|32|26|0.5|1|255|255|255|255|0|test-crate
 entity=attacker-shadow|1005|Runner shadow|attacker|600|0|0|22|8|0.5|0.5|255|255|255|210|0|soft-shadow
@@ -124,23 +145,43 @@ entity=pillar-31|2039|Pillar 31|-|1200|0|0|60|34|0.5|1|142|118|96|255|0|-
 entity=pillar-32|2040|Pillar 32|-|1200|0|400|60|34|0.5|1|142|118|96|255|0|-
 entity=pillar-33|2041|Pillar 33|-|1200|0|800|60|34|0.5|1|142|118|96|255|0|-
 
+# child-entity-id|parent-entity-id
+# A shadow belongs to the thing casting it, so it leaves play with it.
+parent=player-shadow|player
+parent=dynamic-crate-shadow|dynamic-crate
+parent=attacker-shadow|attacker
+
 # entity-id|locomotion-state|clip-id|initial
-animation_binding=player|idle_south|player-idle-south|true
-animation_binding=player|idle_southwest|player-idle-southwest|false
-animation_binding=player|idle_northwest|player-idle-northwest|false
-animation_binding=player|idle_north|player-idle-north|false
-animation_binding=player|idle_northeast|player-idle-northeast|false
-animation_binding=player|idle_west|player-idle-west|false
-animation_binding=player|idle_east|player-idle-east|false
-animation_binding=player|idle_southeast|player-idle-southeast|false
-animation_binding=player|move_south|player-move-south|false
-animation_binding=player|move_southwest|player-move-southwest|false
-animation_binding=player|move_northwest|player-move-northwest|false
-animation_binding=player|move_north|player-move-north|false
-animation_binding=player|move_northeast|player-move-northeast|false
-animation_binding=player|move_west|player-move-west|false
-animation_binding=player|move_east|player-move-east|false
-animation_binding=player|move_southeast|player-move-southeast|false
+animation_binding=player|idle_south|player-v3-idle-south|true
+animation_binding=player|idle_southwest|player-v3-idle-southwest|false
+animation_binding=player|idle_northwest|player-v3-idle-northwest|false
+animation_binding=player|idle_north|player-v3-idle-north|false
+animation_binding=player|idle_northeast|player-v3-idle-northeast|false
+animation_binding=player|idle_west|player-v3-idle-west|false
+animation_binding=player|idle_east|player-v3-idle-east|false
+animation_binding=player|idle_southeast|player-v3-idle-southeast|false
+animation_binding=player|move_south|player-v3-move-south|false
+animation_binding=player|move_southwest|player-v3-move-southwest|false
+animation_binding=player|move_northwest|player-v3-move-northwest|false
+animation_binding=player|move_north|player-v3-move-north|false
+animation_binding=player|move_northeast|player-v3-move-northeast|false
+animation_binding=player|move_west|player-v3-move-west|false
+animation_binding=player|move_east|player-v3-move-east|false
+animation_binding=player|move_southeast|player-v3-move-southeast|false
+animation_binding=player|dodge_south|player-v3-dodge-back-hop-south|false
+animation_binding=player|dodge_southwest|player-v3-dodge-slide-west|false
+animation_binding=player|dodge_northwest|player-v3-dodge-roll-west|false
+animation_binding=player|dodge_north|player-v3-dodge-north|false
+animation_binding=player|dodge_northeast|player-v3-dodge-roll-east|false
+animation_binding=player|dodge_west|player-v3-dodge-sidestep-west|false
+animation_binding=player|dodge_east|player-v3-dodge-sidestep-east|false
+animation_binding=player|dodge_southeast|player-v3-dodge-slide-east|false
+animation_binding=player|seated_south|player-v3-seated-south|false
+animation_binding=player|seated_north|player-v3-seated-north|false
+animation_binding=player|shoot_south|player-v3-shoot-south|false
+animation_binding=player|shoot_west|player-v3-shoot-west|false
+animation_binding=player|shoot_north|player-v3-shoot-north|false
+animation_binding=player|shoot_east|player-v3-shoot-east|false
 animation_binding=attacker|idle_south|npc-patchwork-idle-south|true
 animation_binding=attacker|idle_southwest|npc-patchwork-idle-southwest|false
 animation_binding=attacker|idle_northwest|npc-patchwork-idle-northwest|false

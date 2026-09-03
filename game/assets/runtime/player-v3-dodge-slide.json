@@ -1,0 +1,241 @@
+﻿{
+    "frames":  [
+                   {
+                       "filename":  "player-v3-dodge-slide-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_events":  [
+                                           "dodge_launch"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-2",
+                       "frame":  {
+                                     "x":  48,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-3",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-4",
+                       "frame":  {
+                                     "x":  144,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-5",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  50
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-6",
+                       "frame":  {
+                                     "x":  240,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-7",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_events":  [
+                                           "dodge_recover"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-8",
+                       "frame":  {
+                                     "x":  336,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-mirror-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "dodge_launch"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-mirror-2",
+                       "frame":  {
+                                     "x":  48,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-mirror-3",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-mirror-4",
+                       "frame":  {
+                                     "x":  144,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-mirror-5",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  50,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-mirror-6",
+                       "frame":  {
+                                     "x":  240,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-mirror-7",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "dodge_recover"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-dodge-slide-mirror-8",
+                       "frame":  {
+                                     "x":  336,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true
+                   }
+               ],
+    "meta":  {
+                 "app":  "IC_2DE player V3 native-grid importer",
+                 "version":  "1.0",
+                 "image":  "player-v3-dodge-slide.png",
+                 "format":  "RGBA8888",
+                 "size":  {
+                              "w":  384,
+                              "h":  48
+                          },
+                 "scale":  "1",
+                 "frameTags":  [
+                                   {
+                                       "name":  "player-v3-dodge-slide-east",
+                                       "from":  0,
+                                       "to":  7,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "player-v3-dodge-slide-west",
+                                       "from":  8,
+                                       "to":  15,
+                                       "direction":  "forward"
+                                   }
+                               ]
+             }
+}

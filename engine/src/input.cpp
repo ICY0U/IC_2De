@@ -1,5 +1,6 @@
 #include "ic2d/input.hpp"
 
+
 #include <cmath>
 
 namespace ic2d {

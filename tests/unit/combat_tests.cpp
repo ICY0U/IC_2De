@@ -269,6 +269,56 @@ void test_needle_pistol_fire_consumes_ammo_and_emits_spawn_event() {
            "The authoritative snapshot must count successful projectile spawns.");
 }
 
+// A full-weapon refill, which is also what an unlimited-ammo development run
+// is made of: the same call repeated every tick.
+void test_replenish_fills_the_weapon_and_abandons_a_reload() {
+    ic2d::Combat combat;
+    constexpr ic2d::EntityUuid actor{73};
+    const auto submit = [&combat](const ic2d::CombatIntent intent) {
+        ic2d::CombatCommand command;
+        command.actor = actor;
+        command.aim_direction = ic2d::Vec2{1.0F, 0.0F};
+        command.request(intent);
+        expect(combat.submit(command), "Setup command must be accepted.");
+    };
+
+    submit(ic2d::CombatIntent::fire);
+    combat.fixed_update(1);
+    submit(ic2d::CombatIntent::reload);
+    combat.fixed_update(2);
+    expect(combat.snapshot().weapon.reloading, "Setup must leave a reload running.");
+
+    expect(combat.replenish(actor), "Replenishing a valid actor must be accepted.");
+    const ic2d::CombatSnapshot filled = combat.snapshot();
+    expect(filled.weapon.magazine_ammo == ic2d::needle_pistol.magazine_capacity,
+           "Replenish must fill the magazine to capacity.");
+    expect(filled.weapon.reserve_ammo == ic2d::needle_pistol.maximum_reserve_ammo,
+           "Replenish must fill the reserve to its ceiling.");
+    expect(!filled.weapon.reloading && filled.weapon.reload_ticks_remaining == 0,
+           "Replenish must abandon a reload, because there is nothing left to reload into.");
+    expect(!filled.actors.empty() &&
+               filled.actors.front().weapon.magazine_ammo ==
+                   ic2d::needle_pistol.magazine_capacity,
+           "Replenish must republish the per-actor snapshot, not only the latest-actor view.");
+
+    // Applied outside a tick, so it must not disturb tick ordering. The shot
+    // below lands long before the abandoned reload would have completed, which
+    // is the whole point: the weapon is ready, not still reloading.
+    std::uint64_t tick = 3;
+    for (; tick <= ic2d::needle_pistol.fire_cooldown_ticks + 2; ++tick) {
+        combat.fixed_update(tick);
+    }
+    expect(tick < ic2d::needle_pistol.reload_duration_ticks,
+           "The shot must be taken while the abandoned reload would still be running.");
+    submit(ic2d::CombatIntent::fire);
+    combat.fixed_update(tick);
+    expect(combat.snapshot().weapon.magazine_ammo ==
+               ic2d::needle_pistol.magazine_capacity - 1,
+           "A replenished weapon must fire rather than finish the reload it abandoned.");
+
+    expect(!combat.replenish({}), "A zero identity must be refused.");
+}
+
 void test_needle_pistol_fire_cooldown_is_fixed_tick_authoritative() {
     ic2d::Combat combat;
     const auto submit_fire = [&combat]() {
@@ -626,6 +676,7 @@ int main() {
     test_empty_identity_and_zero_aim_commands_are_rejected();
     test_render_rate_aim_updates_coalesce_before_the_fixed_tick();
     test_needle_pistol_fire_consumes_ammo_and_emits_spawn_event();
+    test_replenish_fills_the_weapon_and_abandons_a_reload();
     test_needle_pistol_fire_cooldown_is_fixed_tick_authoritative();
     test_needle_pistol_reload_has_exact_duration_and_blocks_fire();
     test_held_fire_repeats_on_fixed_cooldown_until_release();

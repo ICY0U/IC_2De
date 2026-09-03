@@ -22,6 +22,9 @@ struct RuntimeScenePlayerMotion {
     Vec2 presentation_direction{};
     float speed_multiplier{1.0F};
     bool dodging{false};
+    // Monotonic successful-shot count. A changed value restarts the short
+    // firing presentation without making animation state authoritative.
+    std::uint64_t shot_sequence{0};
 };
 
 struct RuntimeSceneActorMotion {
@@ -111,6 +114,23 @@ public:
     // Removes a non-player actor from physics and presentation until reset().
     // Returns false for missing, already retired, or player identities.
     [[nodiscard]] bool retire_actor(EntityUuid actor) noexcept;
+    // Starts a non-authoritative reaction override on a bound actor. Hurt
+    // returns to locomotion; death chains into explosion and keeps the sprite
+    // presented after gameplay retirement until both one-shots finish.
+    [[nodiscard]] bool play_actor_hurt(EntityUuid actor);
+    [[nodiscard]] bool begin_actor_death(EntityUuid actor);
+    [[nodiscard]] std::uint64_t completed_actor_terminal_animation_count() const noexcept;
+    // Removes a non-player entity from presentation until reset(). Unlike
+    // retire_actor this needs no physics body, so a pickup or any other plain
+    // placement can be taken out of the scene once it has been used.
+    [[nodiscard]] bool retire_entity(EntityUuid entity) noexcept;
+
+    // True when the entity is currently drawn. A world snapshot still carries
+    // retired entities and the actors of retired bodies, because reset() has
+    // to bring them back; anything that follows what is on screen, such as
+    // viewport picking or a selection outline, has to ask this rather than
+    // trust the snapshot alone.
+    [[nodiscard]] bool is_entity_presented(EntityUuid entity) const noexcept;
     [[nodiscard]] std::optional<RuntimeSceneSegmentHit> cast_segment(
         const Vec2& start,
         const Vec2& end,

@@ -130,6 +130,42 @@ Vec2 world_ground_direction_to_camera(
     };
 }
 
+Vec3 canvas_ground_point(
+    const Vec2 canvas_point,
+    const float ground_elevation,
+    const int canvas_width,
+    const int canvas_height,
+    const Camera25DState& camera
+) noexcept {
+    if (!valid(camera) || canvas_width <= 0 || canvas_height <= 0 ||
+        !std::isfinite(canvas_point.x) || !std::isfinite(canvas_point.y) ||
+        !std::isfinite(ground_elevation)) {
+        return {};
+    }
+    const float scale = camera.pixels_per_world_unit * camera.zoom;
+    const float pitch_sine = std::sin(radians(camera.pitch_degrees));
+    if (!(scale > 0.0F) || !(pitch_sine > 0.0F)) {
+        return {};
+    }
+
+    // Undo the forward projection. Screen Y mixes depth and elevation, so the
+    // requested ground height has to be added back before depth is recovered.
+    const float screen_x = canvas_point.x - static_cast<float>(canvas_width) * 0.5F;
+    const float screen_y = canvas_point.y - static_cast<float>(canvas_height) * 0.5F;
+    const float elevation_term =
+        (ground_elevation - camera.focus.y) * std::cos(radians(camera.pitch_degrees));
+    const Vec2 camera_offset{
+        screen_x / scale,
+        (screen_y / scale + elevation_term) / pitch_sine,
+    };
+    const Vec3 world_offset = camera_ground_direction_to_world(camera_offset, camera);
+    return {
+        camera.focus.x + world_offset.x,
+        ground_elevation,
+        camera.focus.z + world_offset.z,
+    };
+}
+
 Vec2 canvas_ground_direction(
     const Vec3& world_origin,
     const Vec2& canvas_point,

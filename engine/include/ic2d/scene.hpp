@@ -3,6 +3,7 @@
 #include "ic2d/animation.hpp"
 #include "ic2d/ground_map.hpp"
 #include "ic2d/identity.hpp"
+#include "ic2d/interaction.hpp"
 #include "ic2d/locomotion.hpp"
 #include "ic2d/physics2d.hpp"
 #include "ic2d/projection25d.hpp"
@@ -83,8 +84,24 @@ struct SceneEntityDefinition {
     std::string name;
     std::string physics_binding;
     std::string prefab_id; // Empty for entities authored without a prefab.
+    // Who this placement belongs to, or zero when it stands on its own. A
+    // parent owns its children's lifetime: taking the parent out of play takes
+    // them with it, which is what stops a used pickup leaving its shadow
+    // behind. It is deliberately not a transform link; a child that has to
+    // follow a moving parent shares its physics binding, as it always did.
+    EntityUuid parent{};
     Vec3 position{};
     SceneSpriteDefinition sprite{};
+};
+
+// Behaviour attached to an existing entity. The entity supplies identity,
+// position, and appearance; this record adds only what using it does, so a
+// pickup is an ordinary placement that happens to be usable.
+struct SceneInteractableDefinition {
+    std::string entity_id;
+    InteractionKind kind{InteractionKind::pickup_ammo};
+    float amount{0.0F};
+    float radius{0.0F};
 };
 
 struct SceneAnimationClipDefinition {
@@ -136,6 +153,7 @@ public:
     [[nodiscard]] const std::vector<ScenePrefabDefinition>& prefabs() const noexcept;
     // Authored entities and expanded prefab instances in authored source order.
     [[nodiscard]] const std::vector<SceneEntityDefinition>& entities() const noexcept;
+    [[nodiscard]] const std::vector<SceneInteractableDefinition>& interactables() const noexcept;
     [[nodiscard]] const std::vector<SceneAnimationClipDefinition>& animation_clips() const noexcept;
     [[nodiscard]] const std::vector<SceneAnimationBindingDefinition>& animation_bindings() const noexcept;
     [[nodiscard]] const std::vector<SceneAutoAnimationDefinition>& auto_animations() const noexcept;
@@ -151,6 +169,7 @@ private:
     std::vector<ScenePhysicsBodyDefinition> physics_bodies_;
     std::vector<ScenePrefabDefinition> prefabs_;
     std::vector<SceneEntityDefinition> entities_;
+    std::vector<SceneInteractableDefinition> interactables_;
     std::vector<SceneAnimationClipDefinition> animation_clips_;
     std::vector<SceneAnimationBindingDefinition> animation_bindings_;
     std::vector<SceneAutoAnimationDefinition> auto_animations_;

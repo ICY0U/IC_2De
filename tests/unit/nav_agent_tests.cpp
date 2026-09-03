@@ -71,10 +71,17 @@ void test_follows_cell_centres_around_a_hard_block() {
 
     motion = navigation.fixed_update(
         2, grid, {request({10.0F, 10.0F}, {50.0F, 30.0F})});
+    // Arriving at the corner cell advances one waypoint, and smoothing then
+    // skips straight to the far side of the block, which is the last waypoint
+    // still in sight. Chasing the intermediate centre would be a detour the
+    // agent can see is unnecessary.
     expect(near(motion.front().movement_direction.x, 1.0F) &&
-               near(motion.front().movement_direction.y, 0.0F) &&
-               navigation.snapshot().actors.front().waypoint_advance_count == 1,
-           "Reaching a waypoint centre must advance exactly once to the next cell.");
+               near(motion.front().movement_direction.y, 0.0F),
+           "The agent must head along the clear row toward the furthest visible waypoint.");
+    expect(navigation.snapshot().actors.front().waypoint_index == 3,
+           "Smoothing must skip the intermediate cell centre it can see past.");
+    expect(navigation.snapshot().actors.front().waypoint_advance_count == 2,
+           "Both the arrival and the smoothing skip must be counted.");
     motion = navigation.fixed_update(
         3, grid, {request({30.0F, 10.0F}, {50.0F, 30.0F})});
     expect(near(motion.front().movement_direction.x, 1.0F),
@@ -169,8 +176,48 @@ void test_request_validation_is_atomic() {
 
 } // namespace
 
+// The point of smoothing: across open ground an agent must walk the straight
+// line to its goal rather than the chain of cell centres A-star returned.
+void test_open_ground_is_walked_straight_rather_than_centre_to_centre() {
+    const ic2d::NavGrid grid{
+        {.walkable_bounds = {0.0F, 0.0F, 200.0F, 200.0F}, .max_step_height = 0.0F},
+        {.cell_size = 20.0F, .agent_half_extents = {}},
+    };
+    ic2d::NavAgentSystem navigation{{.repath_interval_ticks = 30,
+                                     .waypoint_tolerance = 1.0F}};
+    expect(navigation.register_agent({200}), "The open-ground fixture must register.");
+
+    // A target that is not on a cell centre and not on a diagonal: centre
+    // chasing would visibly zig-zag toward it.
+    const ic2d::Vec2 start{10.0F, 10.0F};
+    const ic2d::Vec2 target{147.0F, 63.0F};
+    const auto motion = navigation.fixed_update(
+        1, grid, {request(start, target)});
+    expect(motion.front().path_status == ic2d::NavPathStatus::found,
+           "The open route must be found.");
+
+    const float dx = target.x - start.x;
+    const float dz = target.y - start.y;
+    const float length = std::sqrt(dx * dx + dz * dz);
+    expect(near(motion.front().movement_direction.x, dx / length) &&
+               near(motion.front().movement_direction.y, dz / length),
+           "With the target in plain sight the agent must steer straight at it.");
+
+    // And it must keep steering straight, not re-acquire a cell centre as it
+    // moves along that line.
+    const ic2d::Vec2 midway{78.5F, 36.5F};
+    const auto later = navigation.fixed_update(2, grid, {request(midway, target)});
+    const float mid_dx = target.x - midway.x;
+    const float mid_dz = target.y - midway.y;
+    const float mid_length = std::sqrt(mid_dx * mid_dx + mid_dz * mid_dz);
+    expect(near(later.front().movement_direction.x, mid_dx / mid_length) &&
+               near(later.front().movement_direction.y, mid_dz / mid_length),
+           "A visible target must stay the destination for the whole approach.");
+}
+
 int main() {
     test_follows_cell_centres_around_a_hard_block();
+    test_open_ground_is_walked_straight_rather_than_centre_to_centre();
     test_repaths_only_on_bounded_or_meaningful_triggers();
     test_route_loss_failure_inactive_and_reset_are_explicit();
     test_request_validation_is_atomic();

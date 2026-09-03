@@ -56,6 +56,11 @@ std::vector<CrowdSteer> resolve_crowd_separation(
 
     const float radius = settings.radius;
     const float radius_squared = radius * radius;
+    const float personal_space =
+        std::isfinite(settings.personal_space) && settings.personal_space > 0.0F &&
+                std::isfinite(settings.contact_strength) && settings.contact_strength > 0.0F
+            ? std::min(settings.personal_space, radius)
+            : 0.0F;
     const std::size_t agent_count = agents.size();
 
     // A hash map of per-cell vectors allocates once per occupied cell every
@@ -127,7 +132,16 @@ std::vector<CrowdSteer> resolve_crowd_separation(
                     const float distance = std::sqrt(distance_squared);
                     // Linear falloff: touching actors push hardest, actors at
                     // the radius contribute nothing and cannot cause a jump.
-                    const float weight = (radius - distance) / radius;
+                    float weight = (radius - distance) / radius;
+                    if (distance < personal_space) {
+                        // Squared so the term is negligible at the edge of the
+                        // padding and firm at contact. The steer is normalized
+                        // afterwards, so a large value only ever means "move
+                        // directly away" and cannot make the motion explode.
+                        const float closeness =
+                            (personal_space - distance) / personal_space;
+                        weight += closeness * closeness * settings.contact_strength;
+                    }
                     push.x += delta_x / distance * weight;
                     push.y += delta_y / distance * weight;
                 }

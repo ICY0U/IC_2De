@@ -50,6 +50,25 @@ void test_sector_threshold_and_state_conversion() {
            "Invalid or zero directions must fall back safely.");
 }
 
+void test_action_states_preserve_facing_and_reduce_to_authored_views() {
+    using enum ic2d::LocomotionState;
+    expect(ic2d::seated_locomotion(idle_south) == seated_south &&
+               ic2d::seated_locomotion(idle_north) == seated_north &&
+               ic2d::idle_locomotion(seated_north) == idle_north &&
+               ic2d::is_seated_locomotion(seated_south) &&
+               !ic2d::is_dodging_locomotion(seated_south),
+           "Seated states must retain north/south facing without entering dodge logic.");
+    expect(ic2d::shooting_locomotion(idle_south) == shoot_south &&
+               ic2d::shooting_locomotion(idle_southwest) == shoot_west &&
+               ic2d::shooting_locomotion(idle_northwest) == shoot_west &&
+               ic2d::shooting_locomotion(idle_north) == shoot_north &&
+               ic2d::shooting_locomotion(idle_northeast) == shoot_east &&
+               ic2d::shooting_locomotion(idle_southeast) == shoot_east &&
+               ic2d::idle_locomotion(shoot_east) == idle_east &&
+               ic2d::is_shooting_locomotion(shoot_north),
+           "Eight-way aim must reduce predictably to the four authored shooting views.");
+}
+
 void test_aim_facing_is_independent_from_translation() {
     using enum ic2d::LocomotionState;
     expect(ic2d::locomotion_state(idle_north, {1.0F, 0.0F}, false) == idle_east,
@@ -71,6 +90,7 @@ void test_aim_facing_does_not_flicker_at_a_sector_boundary() {
 int main() {
     test_cardinal_and_diagonal_sectors();
     test_sector_threshold_and_state_conversion();
+    test_action_states_preserve_facing_and_reduce_to_authored_views();
     test_aim_facing_is_independent_from_translation();
     test_aim_facing_does_not_flicker_at_a_sector_boundary();
     if (failures == 0) {

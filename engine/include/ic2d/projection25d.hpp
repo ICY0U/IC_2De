@@ -46,6 +46,18 @@ struct GroundMovement25D {
     const Camera25DState& camera
 ) noexcept;
 
+// Resolves a virtual-canvas point into the world position on the ground plane
+// at a given elevation. This is the full inverse of the ground projection, so a
+// pointer becomes a place rather than only a bearing: aiming needs the range as
+// well as the direction. An unusable camera or canvas returns the origin.
+[[nodiscard]] Vec3 canvas_ground_point(
+    Vec2 canvas_point,
+    float ground_elevation,
+    int canvas_width,
+    int canvas_height,
+    const Camera25DState& camera
+) noexcept;
+
 // Resolves a virtual-canvas pointer into a normalized X/Z direction from a
 // world origin. This is the inverse of the camera's ground projection at the
 // origin's elevation; invalid inputs or a pointer exactly on the origin return

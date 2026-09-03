@@ -16,7 +16,7 @@
 namespace ic2d {
 namespace {
 
-constexpr std::uint32_t supported_schema_version = 10;
+constexpr std::uint32_t supported_schema_version = 12;
 
 struct AuthoredValue {
     std::string value;
@@ -299,8 +299,35 @@ void require_field_count(
     if (value == "dodge_southeast") {
         return LocomotionState::dodge_southeast;
     }
+    if (value == "seated_south") {
+        return LocomotionState::seated_south;
+    }
+    if (value == "seated_north") {
+        return LocomotionState::seated_north;
+    }
+    if (value == "shoot_south") {
+        return LocomotionState::shoot_south;
+    }
+    if (value == "shoot_west") {
+        return LocomotionState::shoot_west;
+    }
+    if (value == "shoot_north") {
+        return LocomotionState::shoot_north;
+    }
+    if (value == "shoot_east") {
+        return LocomotionState::shoot_east;
+    }
+    if (value == "hurt_south") {
+        return LocomotionState::hurt_south;
+    }
+    if (value == "death_south") {
+        return LocomotionState::death_south;
+    }
+    if (value == "explode_south") {
+        return LocomotionState::explode_south;
+    }
     fail(path, line,
-         "Animation state must be idle/move/dodge plus one of eight compass directions.");
+         "Animation state must be an eight-way idle/move/dodge state, seated north/south, a cardinal shoot state, or hurt/death/explode south.");
 }
 
 [[nodiscard]] std::vector<std::string> animation_events(
@@ -494,6 +521,8 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
     std::vector<AuthoredValue> animation_frame_records;
     std::vector<AuthoredValue> animation_binding_records;
     std::vector<AuthoredValue> animation_auto_records;
+    std::vector<AuthoredValue> interactable_records;
+    std::vector<AuthoredValue> parent_records;
     const std::unordered_set<std::string> singleton_keys{
         "schema", "id", "world_space", "ground_plane", "elevation_axis",
         "walkable_bounds", "max_step_height", "camera", "physics",
@@ -541,6 +570,10 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
             animation_binding_records.push_back(std::move(authored));
         } else if (key == "animation_auto") {
             animation_auto_records.push_back(std::move(authored));
+        } else if (key == "interactable") {
+            interactable_records.push_back(std::move(authored));
+        } else if (key == "parent") {
+            parent_records.push_back(std::move(authored));
         } else if (!singleton_keys.contains(key)) {
             fail(absolute_path, line_number, "Unsupported setting: " + key);
         } else if (!settings.emplace(key, std::move(authored)).second) {
@@ -1114,7 +1147,7 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
         bool has_any_dodge = false;
         bool has_all_dodge = true;
         for (std::size_t index = locomotion_core_state_count;
-             index < locomotion_state_count; ++index) {
+             index < locomotion_action_state_begin; ++index) {
             has_any_dodge = has_any_dodge || !binding.state_clips[index].empty();
             has_all_dodge = has_all_dodge && !binding.state_clips[index].empty();
         }
@@ -1123,6 +1156,127 @@ SceneDefinition SceneDefinition::load(const std::filesystem::path& scene_path) {
                  "Dodge animation bindings require all eight compass states: " +
                      binding.entity_id);
         }
+
+        constexpr std::size_t seated_begin = locomotion_action_state_begin;
+        constexpr std::size_t seated_end = seated_begin + locomotion_seated_state_count;
+        bool has_any_seated = false;
+        bool has_all_seated = true;
+        for (std::size_t index = seated_begin; index < seated_end; ++index) {
+            has_any_seated = has_any_seated || !binding.state_clips[index].empty();
+            has_all_seated = has_all_seated && !binding.state_clips[index].empty();
+        }
+        if (has_any_seated && !has_all_seated) {
+            fail(absolute_path, 0,
+                 "Seated animation bindings require both north and south states: " +
+                     binding.entity_id);
+        }
+
+        bool has_any_shoot = false;
+        bool has_all_shoot = true;
+        const std::size_t shoot_end = seated_end + locomotion_shoot_state_count;
+        for (std::size_t index = seated_end; index < shoot_end; ++index) {
+            has_any_shoot = has_any_shoot || !binding.state_clips[index].empty();
+            has_all_shoot = has_all_shoot && !binding.state_clips[index].empty();
+        }
+        if (has_any_shoot && !has_all_shoot) {
+            fail(absolute_path, 0,
+                 "Shooting animation bindings require all four cardinal states: " +
+                     binding.entity_id);
+        }
+
+        bool has_any_reaction = false;
+        bool has_all_reactions = true;
+        for (std::size_t index = locomotion_reaction_state_begin;
+             index < locomotion_state_count; ++index) {
+            has_any_reaction = has_any_reaction || !binding.state_clips[index].empty();
+            has_all_reactions = has_all_reactions && !binding.state_clips[index].empty();
+        }
+        if (has_any_reaction && !has_all_reactions) {
+            fail(absolute_path, 0,
+                 "Enemy reaction animation bindings require hurt, death, and explode states: " +
+                     binding.entity_id);
+        }
+    }
+
+    // Parenting is validated after entities, because both ends must already
+    // exist. The record is what an author writes; what the rest of the engine
+    // reads is the resolved UUID on the child, so nothing downstream has to
+    // carry the textual id space around.
+    std::unordered_set<std::string> parented_entities;
+    for (const AuthoredValue& record : parent_records) {
+        const auto parsed_fields = fields(record.value);
+        require_field_count(parsed_fields, 2, absolute_path, record.line, "parent");
+        const std::string child_id{parsed_fields[0]};
+        const std::string parent_id{parsed_fields[1]};
+        const auto child = entity_indices.find(child_id);
+        if (child == entity_indices.end()) {
+            fail(absolute_path, record.line,
+                 "Parent record references an unknown child entity: " + child_id);
+        }
+        const auto parent = entity_indices.find(parent_id);
+        if (parent == entity_indices.end()) {
+            fail(absolute_path, record.line,
+                 "Parent record references an unknown parent entity: " + parent_id);
+        }
+        if (child_id == parent_id) {
+            fail(absolute_path, record.line, "An entity cannot parent itself: " + child_id);
+        }
+        // One parent per child keeps the hierarchy a forest, so retiring a
+        // parent has exactly one meaning and the outliner has one tree to draw.
+        if (!parented_entities.insert(child_id).second) {
+            fail(absolute_path, record.line,
+                 "An entity may name only one parent: " + child_id);
+        }
+        scene.entities_[child->second].parent = scene.entities_[parent->second].uuid;
+    }
+    // A cycle would make a parent its own descendant, so retirement would never
+    // terminate and the outliner would have no root to start from.
+    for (const SceneEntityDefinition& entity : scene.entities_) {
+        EntityUuid cursor = entity.parent;
+        for (std::size_t step = 0; cursor && step <= scene.entities_.size(); ++step) {
+            if (cursor == entity.uuid) {
+                fail(absolute_path, 0, "Entity parenting must not form a cycle: " + entity.id);
+            }
+            const auto next = std::ranges::find(scene.entities_, cursor,
+                                                &SceneEntityDefinition::uuid);
+            cursor = next == scene.entities_.end() ? EntityUuid{} : next->parent;
+        }
+    }
+
+    // Interactables are validated after entities, because each one attaches to
+    // an entity that must already exist and must not be claimed twice.
+    std::unordered_set<std::string> interactable_entities;
+    for (const AuthoredValue& record : interactable_records) {
+        const auto parsed_fields = fields(record.value);
+        require_field_count(parsed_fields, 4, absolute_path, record.line, "interactable");
+        const std::string entity_id{parsed_fields[0]};
+        if (!entity_indices.contains(entity_id)) {
+            fail(absolute_path, record.line,
+                 "Interactable references an unknown entity: " + entity_id);
+        }
+        if (!interactable_entities.insert(entity_id).second) {
+            fail(absolute_path, record.line,
+                 "An entity may carry only one interactable: " + entity_id);
+        }
+        const std::optional<InteractionKind> kind = parse_interaction_kind(parsed_fields[1]);
+        if (!kind) {
+            fail(absolute_path, record.line,
+                 "Unsupported interactable kind: " + std::string{parsed_fields[1]});
+        }
+        const float amount =
+            number<float>(parsed_fields[2], absolute_path, record.line, "interactable amount");
+        const float radius =
+            number<float>(parsed_fields[3], absolute_path, record.line, "interactable radius");
+        if (!(amount > 0.0F) || !(radius > 0.0F)) {
+            fail(absolute_path, record.line,
+                 "Interactable amount and radius must be positive: " + entity_id);
+        }
+        scene.interactables_.push_back({
+            .entity_id = entity_id,
+            .kind = *kind,
+            .amount = amount,
+            .radius = radius,
+        });
     }
 
     std::unordered_set<std::string> auto_animation_entities;
@@ -1201,6 +1355,10 @@ const std::vector<ScenePhysicsBodyDefinition>& SceneDefinition::physics_bodies()
 }
 const std::vector<ScenePrefabDefinition>& SceneDefinition::prefabs() const noexcept { return prefabs_; }
 const std::vector<SceneEntityDefinition>& SceneDefinition::entities() const noexcept { return entities_; }
+
+const std::vector<SceneInteractableDefinition>& SceneDefinition::interactables() const noexcept {
+    return interactables_;
+}
 const std::vector<SceneAnimationClipDefinition>& SceneDefinition::animation_clips() const noexcept {
     return animation_clips_;
 }

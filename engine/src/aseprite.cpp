@@ -285,7 +285,17 @@ AsepriteImportResult import_aseprite_json(
             direction = direction_field->get<std::string>();
         }
 
-        AnimationClip clip{.id = name, .loop_mode = loop_mode(direction, absolute_path)};
+        AnimationLoopMode clip_loop_mode = loop_mode(direction, absolute_path);
+        const auto loop_mode_field = tag.find("ic2d_loop_mode");
+        if (loop_mode_field != tag.end()) {
+            if (!loop_mode_field->is_string() ||
+                loop_mode_field->get<std::string>() != "once") {
+                fail(absolute_path, "Tag 'ic2d_loop_mode' must be 'once' when present.");
+            }
+            clip_loop_mode = AnimationLoopMode::once;
+        }
+
+        AnimationClip clip{.id = name, .loop_mode = clip_loop_mode};
         clip.frames.reserve(static_cast<std::size_t>(to - from) + 1U);
         if (direction == "reverse" || direction == "pingpong_reverse") {
             for (std::uint32_t index = to;; --index) {

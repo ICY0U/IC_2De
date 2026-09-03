@@ -1,5 +1,5 @@
 # Independent authored fixture used to prove that schema 10 is not tied to the test area.
-schema=10
+schema=12
 id=compact_encounter
 world_space=x_y_z
 ground_plane=x_z

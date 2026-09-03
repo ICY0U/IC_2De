@@ -15,6 +15,24 @@ constexpr float facing_retention_dot = 0.86602540378F; // cos(30 degrees)
     if (index < 0 || static_cast<std::size_t>(index) >= locomotion_state_count) {
         return 0;
     }
+    switch (state) {
+    case LocomotionState::seated_south:
+    case LocomotionState::shoot_south:
+        return 0;
+    case LocomotionState::shoot_west:
+        return 2;
+    case LocomotionState::seated_north:
+    case LocomotionState::shoot_north:
+        return 4;
+    case LocomotionState::shoot_east:
+        return 6;
+    case LocomotionState::hurt_south:
+    case LocomotionState::death_south:
+    case LocomotionState::explode_south:
+        return 0;
+    default:
+        break;
+    }
     return static_cast<std::size_t>(index) % locomotion_facing_count;
 }
 
@@ -75,7 +93,42 @@ bool is_dodging_locomotion(const LocomotionState state) noexcept {
     const auto index = static_cast<std::underlying_type_t<LocomotionState>>(state);
     return index >= static_cast<std::underlying_type_t<LocomotionState>>(
                         locomotion_core_state_count) &&
-           index < static_cast<std::underlying_type_t<LocomotionState>>(locomotion_state_count);
+           index < static_cast<std::underlying_type_t<LocomotionState>>(
+                       locomotion_action_state_begin);
+}
+
+LocomotionState seated_locomotion(const LocomotionState state) noexcept {
+    return facing_index(state) == 4 ? LocomotionState::seated_north
+                                    : LocomotionState::seated_south;
+}
+
+bool is_seated_locomotion(const LocomotionState state) noexcept {
+    return state == LocomotionState::seated_south ||
+           state == LocomotionState::seated_north;
+}
+
+LocomotionState shooting_locomotion(const LocomotionState state) noexcept {
+    switch (facing_index(state)) {
+    case 1:
+    case 2:
+    case 3:
+        return LocomotionState::shoot_west;
+    case 4:
+        return LocomotionState::shoot_north;
+    case 5:
+    case 6:
+    case 7:
+        return LocomotionState::shoot_east;
+    default:
+        return LocomotionState::shoot_south;
+    }
+}
+
+bool is_shooting_locomotion(const LocomotionState state) noexcept {
+    return state == LocomotionState::shoot_south ||
+           state == LocomotionState::shoot_west ||
+           state == LocomotionState::shoot_north ||
+           state == LocomotionState::shoot_east;
 }
 
 LocomotionState locomotion_state(

@@ -1,0 +1,241 @@
+﻿{
+    "frames":  [
+                   {
+                       "filename":  "player-v3-move-east-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  117,
+                       "ic2d_events":  [
+                                           "footstep"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-move-east-2",
+                       "frame":  {
+                                     "x":  48,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "player-v3-move-east-3",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "player-v3-move-east-4",
+                       "frame":  {
+                                     "x":  144,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "player-v3-move-east-5",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  117,
+                       "ic2d_events":  [
+                                           "footstep"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-move-east-6",
+                       "frame":  {
+                                     "x":  240,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "player-v3-move-east-7",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "player-v3-move-east-8",
+                       "frame":  {
+                                     "x":  336,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "player-v3-move-east-mirror-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  117,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "footstep"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-move-east-mirror-2",
+                       "frame":  {
+                                     "x":  48,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-move-east-mirror-3",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-move-east-mirror-4",
+                       "frame":  {
+                                     "x":  144,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-move-east-mirror-5",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  117,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "footstep"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-move-east-mirror-6",
+                       "frame":  {
+                                     "x":  240,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-move-east-mirror-7",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-move-east-mirror-8",
+                       "frame":  {
+                                     "x":  336,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100,
+                       "ic2d_flip_x":  true
+                   }
+               ],
+    "meta":  {
+                 "app":  "IC_2DE player V3 native-grid importer",
+                 "version":  "1.0",
+                 "image":  "player-v3-move-east.png",
+                 "format":  "RGBA8888",
+                 "size":  {
+                              "w":  384,
+                              "h":  48
+                          },
+                 "scale":  "1",
+                 "frameTags":  [
+                                   {
+                                       "name":  "player-v3-move-east",
+                                       "from":  0,
+                                       "to":  7,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "player-v3-move-west",
+                                       "from":  8,
+                                       "to":  15,
+                                       "direction":  "forward"
+                                   }
+                               ]
+             }
+}

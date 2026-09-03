@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <queue>
 #include <vector>
 
@@ -181,6 +182,238 @@ NavPathResult find_nav_path(
         }
     }
     return result;
+}
+
+Vec2 nav_avoid_obstacles(
+    const NavGrid& grid,
+    const Vec2 position,
+    const Vec2 desired,
+    const NavClearanceSettings settings
+) {
+    if (!std::isfinite(position.x) || !std::isfinite(position.y) ||
+        !std::isfinite(desired.x) || !std::isfinite(desired.y) ||
+        !std::isfinite(settings.radius) || !(settings.radius > 0.0F) ||
+        !std::isfinite(settings.strength) || settings.strength < 0.0F) {
+        return desired;
+    }
+    const NavGridSnapshot& topology = grid.topology();
+    if (!(topology.cell_size > 0.0F)) {
+        return desired;
+    }
+
+    const std::optional<NavCell> origin = grid.cell_at(position);
+    if (!origin) {
+        return desired;
+    }
+
+    // Only the cells the radius can reach are examined, so the cost is a small
+    // constant rather than a function of the map.
+    const auto span = static_cast<std::int32_t>(
+        std::ceil(settings.radius / topology.cell_size));
+    Vec2 push{};
+    // How firmly the nearest obstacle is felt, on the same zero-at-the-radius
+    // scale as the push itself. Every term below is faded by it, so an actor
+    // one step inside the radius is steered almost exactly as it was one step
+    // outside it.
+    float proximity = 0.0F;
+    for (std::int32_t row = origin->row - span; row <= origin->row + span; ++row) {
+        for (std::int32_t column = origin->column - span; column <= origin->column + span;
+             ++column) {
+            const NavCell cell{column, row};
+            const std::optional<NavGridCell> found = grid.cell(cell);
+            // Off the grid counts as solid: the edge of the world is a wall.
+            const bool solid = !found || !found->walkable;
+            if (!solid) {
+                continue;
+            }
+            const Vec2 centre =
+                found ? found->center
+                      : Vec2{topology.bounds.x +
+                                 (static_cast<float>(column) + 0.5F) * topology.cell_size,
+                             topology.bounds.z +
+                                 (static_cast<float>(row) + 0.5F) * topology.cell_size};
+            const Vec2 away{position.x - centre.x, position.y - centre.y};
+            const float distance = std::sqrt(away.x * away.x + away.y * away.y);
+            if (!(distance > 0.0001F) || distance >= settings.radius) {
+                continue;
+            }
+            // Linear falloff: firm when touching, nothing at the radius. A
+            // sharper curve makes actors jitter as they cross the boundary.
+            const float weight = (settings.radius - distance) / settings.radius;
+            proximity = std::max(proximity, weight);
+            push.x += away.x / distance * weight;
+            push.y += away.y / distance * weight;
+        }
+    }
+    const float push_length = std::sqrt(push.x * push.x + push.y * push.y);
+    if (!(push_length > 0.0001F)) {
+        return desired;
+    }
+    const Vec2 away{push.x / push_length, push.y / push_length};
+
+    // Adding a push that points straight back along the desired direction only
+    // shortens it, and the result is renormalized, so the actor would walk into
+    // the wall regardless. Removing the component that heads into the obstacle
+    // first is what makes an actor slide along a surface instead of pressing
+    // into it, which is also how a smoothed route rounds the corner it cut.
+    Vec2 base = desired;
+    const float into = base.x * away.x + base.y * away.y;
+    if (into < 0.0F) {
+        // Faded by proximity rather than removed outright. Removing the whole
+        // head-on component the moment an obstacle comes into range, and none
+        // of it a step further out, makes this function jump between two very
+        // different answers either side of the radius: an actor whose route
+        // points at a wall is turned away, leaves the radius, is aimed at the
+        // wall again, and spins on the spot instead of settling against it.
+        base.x -= away.x * into * proximity;
+        base.y -= away.y * into * proximity;
+    }
+
+    Vec2 steered{
+        base.x + push.x * settings.strength,
+        base.y + push.y * settings.strength,
+    };
+
+    // Clearance bends an intent; it never reverses one. A corner sums pushes
+    // from several cells and can outweigh the intent entirely, which would
+    // walk an actor backwards out of the very route it is following. Dropping
+    // the opposing component leaves the sideways part, so the actor rounds the
+    // corner, and leaves nothing at all when it is head-on into a flat wall,
+    // where pressing against it and stopping is the honest answer.
+    const float desired_length =
+        std::sqrt(desired.x * desired.x + desired.y * desired.y);
+    if (desired_length > 0.0001F) {
+        const Vec2 intent{desired.x / desired_length, desired.y / desired_length};
+        const float against = steered.x * intent.x + steered.y * intent.y;
+        if (against < 0.0F) {
+            steered.x -= intent.x * against;
+            steered.y -= intent.y * against;
+        }
+    }
+
+    const float length = std::sqrt(steered.x * steered.x + steered.y * steered.y);
+    if (!(length > 0.0001F)) {
+        return desired;
+    }
+    return {steered.x / length, steered.y / length};
+}
+
+bool nav_line_of_sight(
+    const NavGrid& grid,
+    const Vec2 from_world,
+    const Vec2 to_world
+) {
+    if (!std::isfinite(from_world.x) || !std::isfinite(from_world.y) ||
+        !std::isfinite(to_world.x) || !std::isfinite(to_world.y)) {
+        return false;
+    }
+    const std::optional<NavCell> start = grid.cell_at(from_world);
+    const std::optional<NavCell> goal = grid.cell_at(to_world);
+    if (!start || !goal) {
+        return false;
+    }
+    const std::optional<NavGridCell> start_cell = grid.cell(*start);
+    const std::optional<NavGridCell> goal_cell = grid.cell(*goal);
+    if (!start_cell || !goal_cell || !start_cell->walkable || !goal_cell->walkable) {
+        return false;
+    }
+    if (*start == *goal) {
+        return true;
+    }
+
+    const NavGridSnapshot& topology = grid.topology();
+    const float cell_size = topology.cell_size;
+    if (!(cell_size > 0.0F)) {
+        return false;
+    }
+
+    // A cell-boundary walk rather than point sampling: sampling can step over a
+    // one-cell gap between two blocks and report a route through solid ground.
+    const float delta_x = to_world.x - from_world.x;
+    const float delta_z = to_world.y - from_world.y;
+    const std::int32_t step_column = delta_x > 0.0F ? 1 : (delta_x < 0.0F ? -1 : 0);
+    const std::int32_t step_row = delta_z > 0.0F ? 1 : (delta_z < 0.0F ? -1 : 0);
+
+    // Distance along the segment, in units of the segment's own length, to the
+    // next boundary in each axis and between successive boundaries.
+    constexpr float never = std::numeric_limits<float>::infinity();
+    const auto axis_entry = [&](const float origin, const float direction,
+                                const float minimum, const std::int32_t index,
+                                const std::int32_t step, float& next, float& stride) {
+        if (step == 0) {
+            next = never;
+            stride = never;
+            return;
+        }
+        const float lower = minimum + static_cast<float>(index) * cell_size;
+        const float boundary = step > 0 ? lower + cell_size : lower;
+        next = (boundary - origin) / direction;
+        stride = cell_size / std::abs(direction);
+    };
+
+    float next_x = never;
+    float next_z = never;
+    float stride_x = never;
+    float stride_z = never;
+    axis_entry(from_world.x, delta_x, topology.bounds.x, start->column, step_column,
+               next_x, stride_x);
+    axis_entry(from_world.y, delta_z, topology.bounds.z, start->row, step_row,
+               next_z, stride_z);
+
+    NavCell current = *start;
+    float current_elevation = start_cell->elevation;
+    const auto walkable_at = [&](const NavCell cell,
+                                 float& elevation) -> bool {
+        const std::optional<NavGridCell> found = grid.cell(cell);
+        if (!found || !found->walkable) {
+            return false;
+        }
+        elevation = found->elevation;
+        return true;
+    };
+
+    // Bounded by the cells the segment can cross, so a malformed input cannot
+    // spin here.
+    const std::size_t maximum_steps =
+        static_cast<std::size_t>(topology.columns) + static_cast<std::size_t>(topology.rows) + 2U;
+    for (std::size_t visited = 0; visited < maximum_steps; ++visited) {
+        if (current == *goal) {
+            return true;
+        }
+        constexpr float corner_epsilon = 0.0001F;
+        const bool crosses_corner =
+            step_column != 0 && step_row != 0 && std::abs(next_x - next_z) <= corner_epsilon;
+        if (crosses_corner) {
+            // The segment passes exactly through a lattice corner. Both
+            // orthogonal cells must be usable, which is the same rule that
+            // stops the search cutting a corner between two blocks.
+            float ignored = 0.0F;
+            const NavCell beside_x{current.column + step_column, current.row};
+            const NavCell beside_z{current.column, current.row + step_row};
+            if (!walkable_at(beside_x, ignored) || !walkable_at(beside_z, ignored)) {
+                return false;
+            }
+            current = {current.column + step_column, current.row + step_row};
+            next_x += stride_x;
+            next_z += stride_z;
+        } else if (next_x < next_z) {
+            current = {current.column + step_column, current.row};
+            next_x += stride_x;
+        } else {
+            current = {current.column, current.row + step_row};
+            next_z += stride_z;
+        }
+
+        float elevation = 0.0F;
+        if (!walkable_at(current, elevation)) {
+            return false;
+        }
+        if (std::abs(elevation - current_elevation) > topology.max_step_height) {
+            return false;
+        }
+        current_elevation = elevation;
+    }
+    return false;
 }
 
 NavPathResult find_nav_path_world(

@@ -22,6 +22,7 @@
 #include <cstring>
 #include <exception>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace ic2d {
@@ -161,6 +162,12 @@ struct EditorShell::Impl {
 
     bool camera_panning{false};
     bool detached_view{false};
+
+    // The window gesture in progress and the strip that starts one. Both are
+    // inert unless the application asked the shell to supply window chrome.
+    EditorWindowDrag window_drag{EditorWindowDrag::none};
+    ImVec2 menu_bar_min{};
+    ImVec2 menu_bar_max{};
 
     // The gizmo reports its drag as a total offset from where it began, so a
     // dropped frame cannot accumulate error and the application can commit one
@@ -337,6 +344,201 @@ struct EditorShell::Impl {
         }
     }
 
+    // The window controls the undecorated window no longer has. Drawn rather
+    // than typed: the editor font carries no box-drawing or multiplication
+    // glyphs, and a caption button has to read the same at every DPI.
+    enum class CaptionGlyph { minimize, maximize, restore, close };
+
+    [[nodiscard]] static bool caption_button(
+        const char* id,
+        const CaptionGlyph glyph,
+        const ImU32 accent
+    ) {
+        const float height = ImGui::GetFrameHeight();
+        const ImVec2 size{46.0F, height};
+        const ImVec2 origin = ImGui::GetCursorScreenPos();
+        const bool pressed = ImGui::InvisibleButton(id, size);
+        const bool hovered = ImGui::IsItemHovered();
+        ImDrawList& draw = *ImGui::GetWindowDrawList();
+        if (hovered) {
+            // The close button lights up in its own colour because it is the
+            // one press in the bar that cannot be undone.
+            const ImU32 wash = glyph == CaptionGlyph::close
+                                   ? IM_COL32(196, 62, 62, 255)
+                                   : IM_COL32(58, 58, 63, 255);
+            draw.AddRectFilled(origin, add(origin, size), wash);
+        }
+        const ImU32 mark = hovered ? editor_ui::colors::text_bright : accent;
+        const ImVec2 centre{origin.x + size.x * 0.5F, origin.y + size.y * 0.5F};
+        constexpr float arm = 5.0F;
+        constexpr float thickness = 1.3F;
+        switch (glyph) {
+        case CaptionGlyph::minimize:
+            draw.AddLine({centre.x - arm, centre.y}, {centre.x + arm, centre.y}, mark,
+                         thickness);
+            break;
+        case CaptionGlyph::maximize:
+            draw.AddRect({centre.x - arm, centre.y - arm}, {centre.x + arm, centre.y + arm},
+                         mark, 0.0F, 0, thickness);
+            break;
+        case CaptionGlyph::restore:
+            // Two offset outlines, the way every desktop draws "put it back".
+            draw.AddRect({centre.x - arm, centre.y - arm + 2.0F},
+                         {centre.x + arm - 2.0F, centre.y + arm}, mark, 0.0F, 0, thickness);
+            draw.AddRect({centre.x - arm + 2.0F, centre.y - arm},
+                         {centre.x + arm, centre.y + arm - 2.0F}, mark, 0.0F, 0, thickness);
+            break;
+        case CaptionGlyph::close:
+            draw.AddLine({centre.x - arm, centre.y - arm}, {centre.x + arm, centre.y + arm},
+                         mark, thickness);
+            draw.AddLine({centre.x + arm, centre.y - arm}, {centre.x - arm, centre.y + arm},
+                         mark, thickness);
+            break;
+        }
+        return pressed;
+    }
+
+    void draw_caption_buttons(const EditorStats& stats, EditorActions& actions) {
+        constexpr float buttons_width = 46.0F * 3.0F;
+        // Menu bar items are laid out with spacing between them; the caption
+        // group has none, so it is positioned as one block at the far right.
+        ImGui::SameLine(ImGui::GetWindowWidth() - buttons_width);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0.0F, 0.0F});
+        if (caption_button("##minimize", CaptionGlyph::minimize,
+                           editor_ui::colors::highlight)) {
+            actions.window.minimize = true;
+        }
+        ImGui::SameLine();
+        if (caption_button("##maximize",
+                           stats.window_maximized ? CaptionGlyph::restore
+                                                  : CaptionGlyph::maximize,
+                           editor_ui::colors::positive)) {
+            actions.window.toggle_maximize = true;
+        }
+        ImGui::SameLine();
+        if (caption_button("##close", CaptionGlyph::close, editor_ui::colors::danger)) {
+            actions.window.close = true;
+        }
+        ImGui::PopStyleVar();
+    }
+
+    // Which edge band the pointer is in, or none. Corners win over edges, so a
+    // corner drag sizes both axes rather than whichever edge was tested first.
+    [[nodiscard]] static EditorWindowDrag resize_zone_at(const ImVec2 point) {
+        const ImVec2 display = ImGui::GetIO().DisplaySize;
+        constexpr float band = 6.0F;
+        const bool left = point.x <= band;
+        const bool right = point.x >= display.x - band;
+        const bool top = point.y <= band;
+        const bool bottom = point.y >= display.y - band;
+        if (top && left) {
+            return EditorWindowDrag::resize_top_left;
+        }
+        if (top && right) {
+            return EditorWindowDrag::resize_top_right;
+        }
+        if (bottom && left) {
+            return EditorWindowDrag::resize_bottom_left;
+        }
+        if (bottom && right) {
+            return EditorWindowDrag::resize_bottom_right;
+        }
+        if (left) {
+            return EditorWindowDrag::resize_left;
+        }
+        if (right) {
+            return EditorWindowDrag::resize_right;
+        }
+        if (top) {
+            return EditorWindowDrag::resize_top;
+        }
+        if (bottom) {
+            return EditorWindowDrag::resize_bottom;
+        }
+        return EditorWindowDrag::none;
+    }
+
+    static void apply_drag_cursor(const EditorWindowDrag zone) {
+        switch (zone) {
+        case EditorWindowDrag::move:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+            break;
+        case EditorWindowDrag::resize_left:
+        case EditorWindowDrag::resize_right:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+            break;
+        case EditorWindowDrag::resize_top:
+        case EditorWindowDrag::resize_bottom:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+            break;
+        case EditorWindowDrag::resize_top_left:
+        case EditorWindowDrag::resize_bottom_right:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+            break;
+        case EditorWindowDrag::resize_top_right:
+        case EditorWindowDrag::resize_bottom_left:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW);
+            break;
+        case EditorWindowDrag::none:
+            break;
+        }
+    }
+
+    // Moving and sizing a window the OS no longer decorates. A hold begun on
+    // the chrome is followed to its release wherever the pointer travels, or a
+    // fast drag would be dropped the moment it left a six-pixel band.
+    void update_window_chrome(const EditorStats& stats, EditorActions& actions) {
+        if (!stats.custom_window_chrome) {
+            window_drag = EditorWindowDrag::none;
+            return;
+        }
+        if (window_drag != EditorWindowDrag::none) {
+            if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                actions.window.drag = window_drag;
+                apply_drag_cursor(window_drag);
+            } else {
+                window_drag = EditorWindowDrag::none;
+            }
+            return;
+        }
+        // A maximized window has no edges to pull and nowhere to be moved to.
+        if (stats.window_maximized) {
+            return;
+        }
+        // Anything ImGui is already using the pointer for wins: a dock splitter
+        // dragged to the screen edge must not become a window resize.
+        if (ImGui::IsAnyItemActive() || ImGui::IsAnyItemHovered() ||
+            ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId |
+                                            ImGuiPopupFlags_AnyPopupLevel)) {
+            return;
+        }
+        const ImVec2 pointer = ImGui::GetIO().MousePos;
+        const EditorWindowDrag zone = resize_zone_at(pointer);
+        if (zone != EditorWindowDrag::none) {
+            apply_drag_cursor(zone);
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                window_drag = zone;
+                actions.window.drag = zone;
+                actions.window.drag_started = true;
+            }
+            return;
+        }
+        if (!ImGui::IsMouseHoveringRect(menu_bar_min, menu_bar_max, false)) {
+            return;
+        }
+        // Double-click on the bar is the gesture people try before they look
+        // for the button.
+        if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+            actions.window.toggle_maximize = true;
+            return;
+        }
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            window_drag = EditorWindowDrag::move;
+            actions.window.drag = EditorWindowDrag::move;
+            actions.window.drag_started = true;
+        }
+    }
+
     void draw_menu_bar(
         SceneEditor& editor,
         DebugVisuals& visuals,
@@ -347,8 +549,14 @@ struct EditorShell::Impl {
         const bool menu_open = ImGui::BeginMainMenuBar();
         ImGui::PopStyleVar();
         if (!menu_open) {
+            menu_bar_min = {};
+            menu_bar_max = {};
             return;
         }
+        // Recorded for the drag hit-test, which runs after the bar has closed
+        // and so can no longer ask ImGui where it was.
+        menu_bar_min = ImGui::GetWindowPos();
+        menu_bar_max = add(menu_bar_min, ImGui::GetWindowSize());
         ImGui::PushFont(editor_ui::bold_font());
         ImGui::PushStyleColor(ImGuiCol_Text, editor_ui::colors::accent);
         ImGui::TextUnformatted("IC_2DE");
@@ -460,6 +668,9 @@ struct EditorShell::Impl {
             }
             ImGui::EndMenu();
         }
+        if (stats.custom_window_chrome) {
+            draw_caption_buttons(stats, actions);
+        }
         ImGui::EndMainMenuBar();
     }
 
@@ -496,20 +707,45 @@ struct EditorShell::Impl {
             set_status("Applied the document to the running scene.");
         }
 
+        // Three named states rather than one toggle, so the transport reads as
+        // the state it is in: Play is the offer while the scene is still, and
+        // Restart is the way back to the authored scene from either of the
+        // other two.
+        const bool running = simulating(stats.run_state);
         constexpr float transport_button_width = 92.0F;
         const float transport_width =
-            transport_button_width * 2.0F + ImGui::GetStyle().ItemSpacing.x;
+            transport_button_width * 3.0F + ImGui::GetStyle().ItemSpacing.x * 2.0F;
         ImGui::SameLine();
         ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
                                       (ImGui::GetWindowWidth() - transport_width) * 0.5F));
-        if (editor_ui::tool_button(stats.paused ? "Resume" : "Pause", stats.paused,
-                                   transport_button_width)) {
-            actions.toggle_pause = true;
+        ImGui::BeginDisabled(running);
+        const bool play_pressed = running
+                                      ? editor_ui::tool_button("Play", false,
+                                                               transport_button_width)
+                                      : editor_ui::accent_button("Play", transport_button_width);
+        ImGui::EndDisabled();
+        if (play_pressed) {
+            actions.set_run_state = EditorRunState::running;
+            set_status(stats.run_state == EditorRunState::editing ? "Playing the scene."
+                                                                  : "Resumed.");
         }
         ImGui::SameLine();
-        if (editor_ui::tool_button("Restart", false, transport_button_width)) {
+        ImGui::BeginDisabled(!running);
+        const bool pause_pressed =
+            editor_ui::tool_button("Pause", false, transport_button_width);
+        ImGui::EndDisabled();
+        if (pause_pressed) {
+            actions.set_run_state = EditorRunState::paused;
+            set_status("Paused.");
+        }
+        ImGui::SameLine();
+        ImGui::BeginDisabled(stats.run_state == EditorRunState::editing);
+        const bool restart_pressed =
+            editor_ui::tool_button("Restart", false, transport_button_width);
+        ImGui::EndDisabled();
+        if (restart_pressed) {
             actions.reset_running_scene = true;
-            set_status("Reset the running scene.");
+            set_status("Restored the authored scene.");
         }
 
         if (stats.camera_detached) {
@@ -582,6 +818,109 @@ struct EditorShell::Impl {
         }
     }
 
+    // The placement tree, resolved once per draw. Roots keep authored order and
+    // so do children, so the panel reads in the order the scene file does
+    // however deeply it nests.
+    struct HierarchyTree {
+        std::vector<std::size_t> roots;
+        std::vector<std::vector<std::size_t>> children;
+        // Whether the row or anything under it matches the search box. A
+        // parent whose child matches has to survive the filter, or the match
+        // would have nothing to hang from.
+        std::vector<bool> matches;
+    };
+
+    [[nodiscard]] HierarchyTree build_hierarchy(
+        const std::vector<SceneDocumentEntity>& entities
+    ) const {
+        HierarchyTree tree;
+        tree.children.resize(entities.size());
+        tree.matches.assign(entities.size(), false);
+        std::unordered_map<std::uint64_t, std::size_t> by_uuid;
+        for (std::size_t index = 0; index < entities.size(); ++index) {
+            by_uuid.emplace(entities[index].uuid.value, index);
+        }
+        for (std::size_t index = 0; index < entities.size(); ++index) {
+            const auto parent = entities[index].parent
+                                    ? by_uuid.find(entities[index].parent.value)
+                                    : by_uuid.end();
+            // A parent the document cannot resolve reads as no parent, so a
+            // half-finished edit still lists every placement exactly once.
+            if (parent == by_uuid.end() || parent->second == index) {
+                tree.roots.push_back(index);
+            } else {
+                tree.children[parent->second].push_back(index);
+            }
+        }
+        // A child is authored after its parent, so one pass from the end marks
+        // every ancestor of a match.
+        for (std::size_t offset = entities.size(); offset > 0; --offset) {
+            const std::size_t index = offset - 1;
+            const std::string searchable = entity_search_text(entities[index]);
+            bool matched = hierarchy_filter.PassFilter(
+                searchable.c_str(), searchable.c_str() + searchable.size());
+            for (const std::size_t child : tree.children[index]) {
+                matched = matched || tree.matches[child];
+            }
+            tree.matches[index] = matched;
+        }
+        return tree;
+    }
+
+    void draw_hierarchy_node(
+        const std::vector<SceneDocumentEntity>& entities,
+        const HierarchyTree& tree,
+        const std::size_t index,
+        std::size_t& shown
+    ) {
+        if (!tree.matches[index]) {
+            return;
+        }
+        const SceneDocumentEntity& entity = entities[index];
+        ++shown;
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        push_entity_id(entity.uuid);
+        const bool selected = selection == entity.uuid;
+        const bool leaf = tree.children[index].empty();
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAllColumns |
+                                   ImGuiTreeNodeFlags_OpenOnArrow |
+                                   ImGuiTreeNodeFlags_OpenOnDoubleClick |
+                                   ImGuiTreeNodeFlags_DefaultOpen;
+        if (selected) {
+            flags |= ImGuiTreeNodeFlags_Selected;
+        }
+        if (leaf) {
+            flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+        }
+        const bool open = ImGui::TreeNodeEx(entity.name.c_str(), flags);
+        // The arrow owns its own click, so collapsing a parent must not also
+        // select it. Everything else on the row selects, and clicking the
+        // selected row again lets go of it: the same gesture the viewport
+        // answers to, so a selection is always undone the way it was made.
+        if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+            selection = selected ? EntityUuid{} : entity.uuid;
+        }
+        if (reveal_selection && selected) {
+            ImGui::SetScrollHereY(0.5F);
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("id %s\nuuid %llu", entity.id.c_str(),
+                              static_cast<unsigned long long>(entity.uuid.value));
+        }
+        ImGui::TableSetColumnIndex(1);
+        const char* tag = entity_tag(entity);
+        align_text_right(tag);
+        editor_ui::text_colored(entity_tag_color(entity), "%s", tag);
+        if (open && !leaf) {
+            for (const std::size_t child : tree.children[index]) {
+                draw_hierarchy_node(entities, tree, child, shown);
+            }
+            ImGui::TreePop();
+        }
+        ImGui::PopID();
+    }
+
     void draw_hierarchy(const std::vector<SceneDocumentEntity>& entities) {
         if (!ImGui::Begin("Hierarchy")) {
             ImGui::End();
@@ -594,6 +933,7 @@ struct EditorShell::Impl {
         }
 
         std::size_t shown = 0;
+        const HierarchyTree tree = build_hierarchy(entities);
         const float footer = ImGui::GetTextLineHeightWithSpacing();
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0.0F, 0.0F, 0.0F, 0.0F});
         if (ImGui::BeginChild("##placements", ImVec2{0.0F, -footer},
@@ -601,39 +941,19 @@ struct EditorShell::Impl {
             constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_RowBg |
                                                     ImGuiTableFlags_NoSavedSettings |
                                                     ImGuiTableFlags_PadOuterX;
+            // Nesting costs horizontal space in a panel that is already
+            // narrow, and a truncated name is worth less than the indent that
+            // ate it, so a step is only wide enough to read as one.
+            ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 12.0F);
             if (ImGui::BeginTable("##placement_rows", 2, table_flags)) {
                 ImGui::TableSetupColumn("name", ImGuiTableColumnFlags_WidthStretch);
-                ImGui::TableSetupColumn("tag", ImGuiTableColumnFlags_WidthFixed, 54.0F);
-                for (const SceneDocumentEntity& entity : entities) {
-                    const std::string searchable = entity_search_text(entity);
-                    if (!hierarchy_filter.PassFilter(
-                            searchable.c_str(), searchable.c_str() + searchable.size())) {
-                        continue;
-                    }
-                    ++shown;
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    push_entity_id(entity.uuid);
-                    const bool selected = selection == entity.uuid;
-                    if (ImGui::Selectable(entity.name.c_str(), selected,
-                                          ImGuiSelectableFlags_SpanAllColumns)) {
-                        selection = entity.uuid;
-                    }
-                    if (reveal_selection && selected) {
-                        ImGui::SetScrollHereY(0.5F);
-                    }
-                    if (ImGui::IsItemHovered()) {
-                        ImGui::SetTooltip("id %s\nuuid %llu", entity.id.c_str(),
-                                          static_cast<unsigned long long>(entity.uuid.value));
-                    }
-                    ImGui::TableSetColumnIndex(1);
-                    const char* tag = entity_tag(entity);
-                    align_text_right(tag);
-                    editor_ui::text_colored(entity_tag_color(entity), "%s", tag);
-                    ImGui::PopID();
+                ImGui::TableSetupColumn("tag", ImGuiTableColumnFlags_WidthFixed, 46.0F);
+                for (const std::size_t root : tree.roots) {
+                    draw_hierarchy_node(entities, tree, root, shown);
                 }
                 ImGui::EndTable();
             }
+            ImGui::PopStyleVar();
         }
         ImGui::EndChild();
         ImGui::PopStyleColor();
@@ -650,7 +970,9 @@ struct EditorShell::Impl {
 
     void draw_inspector(
         SceneEditor& editor,
-        const std::vector<SceneDocumentEntity>& entities
+        const std::vector<SceneDocumentEntity>& entities,
+        const EditorStats& stats,
+        EditorActions& actions
     ) {
         if (!ImGui::Begin("Inspector")) {
             ImGui::End();
@@ -688,6 +1010,15 @@ struct EditorShell::Impl {
             editor_ui::property_text("Id", "%s", found->id.c_str());
             editor_ui::property_text("UUID", "%llu",
                                      static_cast<unsigned long long>(found->uuid.value));
+            // Named rather than shown as an identity: the parent is a
+            // placement the reader can find in the Hierarchy, and a raw UUID
+            // would not help them find it.
+            const auto parent = std::ranges::find(entities, found->parent,
+                                                  &SceneDocumentEntity::uuid);
+            editor_ui::property_text("Parent", "%s",
+                                     found->parent && parent != entities.end()
+                                         ? parent->name.c_str()
+                                         : "None");
             if (found->prefab_id.empty()) {
                 editor_ui::property_text_colored(editor_ui::colors::text_muted, "Source",
                                                  "authored");
@@ -724,6 +1055,8 @@ struct EditorShell::Impl {
             editor_ui::text_dim("Drawn from prefab \"%s\".", found->prefab_id.c_str());
         }
 
+        draw_runtime_section(stats, actions, found->uuid);
+
         editor_ui::section_header(found->prefab_id.empty() ? "Placement" : "Instance");
         ImGui::PushStyleColor(ImGuiCol_Button, editor_ui::to_vec4(IM_COL32(96, 42, 42, 255)));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
@@ -741,6 +1074,134 @@ struct EditorShell::Impl {
         ImGui::Spacing();
         draw_prefab_creation(editor);
         ImGui::End();
+    }
+
+    // What the running scene makes of a placement. A .scene document records
+    // where things stand; only the run knows which of them is the player, which
+    // are attackers, and what is left of them. The section is drawn from the
+    // read-only snapshots the shell already receives, so inspecting an actor
+    // cannot disturb the simulation.
+    struct RuntimeActorView {
+        bool is_player{false};
+        bool is_enemy{false};
+        bool has_health{false};
+        bool alive{false};
+        float health{0.0F};
+        float maximum_health{0.0F};
+    };
+
+    [[nodiscard]] static RuntimeActorView runtime_actor_view(
+        const EditorStats& stats,
+        const EntityUuid uuid
+    ) {
+        RuntimeActorView view;
+        view.is_player = uuid && uuid == stats.player_uuid;
+        view.is_enemy = std::ranges::any_of(
+            stats.enemy_intent.actors,
+            [uuid](const EnemyActorIntentSnapshot& actor) { return actor.actor == uuid; });
+        const auto health = std::ranges::find(
+            stats.health.targets, uuid, &HealthTargetSnapshot::target);
+        if (health != stats.health.targets.end()) {
+            view.has_health = true;
+            view.alive = health->alive;
+            view.health = health->current_health;
+            view.maximum_health = health->maximum_health;
+        }
+        return view;
+    }
+
+    // One checkbox that reports the override it wants rather than writing it.
+    // The application owns every override, so the shell can neither disagree
+    // with the run nor keep a stale copy of it.
+    static void override_checkbox(
+        EditorActions& actions,
+        const EditorStats& stats,
+        const EntityUuid actor,
+        const ActorDebugFlag flag,
+        const char* label,
+        const char* tooltip
+    ) {
+        bool held = stats.actor_debug.enabled(actor, flag);
+        if (ImGui::Checkbox(label, &held)) {
+            actions.actor_debug_requests.push_back({
+                .actor = actor,
+                .flag = flag,
+                .enabled = held,
+            });
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", tooltip);
+        }
+    }
+
+    void draw_runtime_section(
+        const EditorStats& stats,
+        EditorActions& actions,
+        const EntityUuid uuid
+    ) {
+        const RuntimeActorView view = runtime_actor_view(stats, uuid);
+        // Scenery, walls and markers get nothing. An inspector that offers
+        // "Kill" on a crate is the clutter this section is trying to avoid.
+        if (!view.is_player && !view.is_enemy && !view.has_health) {
+            return;
+        }
+
+        editor_ui::section_header("Debug");
+        if (editor_ui::begin_property_grid("##runtime_properties")) {
+            editor_ui::property_label("Role");
+            editor_ui::text_colored(
+                view.is_player ? editor_ui::colors::highlight : editor_ui::colors::accent,
+                "%s", view.is_player ? "player" : view.is_enemy ? "attacker" : "actor");
+            if (view.has_health) {
+                editor_ui::property_label("Health");
+                if (view.alive) {
+                    editor_ui::text_colored(
+                        view.health <= view.maximum_health * 0.34F
+                            ? editor_ui::colors::danger
+                            : editor_ui::colors::positive,
+                        "%.0f / %.0f", static_cast<double>(view.health),
+                        static_cast<double>(view.maximum_health));
+                } else {
+                    editor_ui::text_colored(editor_ui::colors::text_muted, "dead");
+                }
+            }
+            editor_ui::end_property_grid();
+        }
+
+        if (view.is_enemy) {
+            override_checkbox(actions, stats, uuid, ActorDebugFlag::frozen,
+                              "Freeze in place",
+                              "Held where it stands: no pursuit, no attacks. "
+                              "Still solid, still shootable, still alive.");
+        }
+        if (view.has_health) {
+            override_checkbox(actions, stats, uuid, ActorDebugFlag::invulnerable,
+                              "Invulnerable",
+                              "Damage aimed at this actor is discarded before it "
+                              "reaches health, so the run carries on around it.");
+        }
+        if (view.is_player) {
+            override_checkbox(actions, stats, uuid, ActorDebugFlag::infinite_ammo,
+                              "Infinite ammo",
+                              "The magazine is refilled every tick, so firing "
+                              "costs nothing and no reload is ever needed.");
+        }
+
+        ImGui::BeginDisabled(!view.alive);
+        ImGui::PushStyleColor(ImGuiCol_Button, editor_ui::to_vec4(IM_COL32(96, 42, 42, 255)));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+                              editor_ui::to_vec4(IM_COL32(132, 56, 56, 255)));
+        if (ImGui::Button("Kill actor", ImVec2{-FLT_MIN, 0.0F})) {
+            actions.kill_actor = uuid;
+            set_status(simulating(stats.run_state)
+                           ? "Killed the selected actor."
+                           : "Kill queued for the next simulated tick.");
+        }
+        ImGui::PopStyleColor(2);
+        ImGui::EndDisabled();
+        if (!view.alive && view.has_health) {
+            editor_ui::text_dim("Restart the scene to bring it back.");
+        }
     }
 
     // Every widget reports whether it is still being held and whether it just
@@ -1271,6 +1732,35 @@ struct EditorShell::Impl {
         ImGui::TextDisabled("LMB/R/Space/E/Q or wheel/X | pad RT/X/A/B/Y/LB");
         ImGui::TextDisabled("Development reset moved from R to F5.");
         }
+        if (ImGui::CollapsingHeader("Aim", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (editor_ui::begin_property_grid("##aim_stats")) {
+                editor_ui::property_text_colored(
+                    stats.aim.aiming ? editor_ui::colors::positive
+                                     : editor_ui::colors::text_muted,
+                    "State", "%s%s",
+                    stats.aim.aiming ? "AIMING" : "idle",
+                    stats.aim.turning ? "  |  turning" : "");
+                editor_ui::property_text("Source",
+                                         stats.aim.pointer_source ? "pointer" : "stick");
+                editor_ui::property_text("Direction", "X %.3f  Z %.3f",
+                                         stats.aim.direction.x, stats.aim.direction.y);
+                editor_ui::property_text("Range", "%.1f", stats.aim.distance);
+                editor_ui::property_text("Muzzle", "X %.1f  Y %.1f  Z %.1f",
+                                         stats.aim.origin.x, stats.aim.origin.y,
+                                         stats.aim.origin.z);
+                editor_ui::property_text("Aim point", "X %.1f  Z %.1f",
+                                         stats.aim.aim_point.x, stats.aim.aim_point.z);
+                if (stats.aim.assisted_target) {
+                    editor_ui::property_text_colored(
+                        editor_ui::colors::accent, "Assist", "target %llu",
+                        static_cast<unsigned long long>(stats.aim.assisted_target->value));
+                } else {
+                    editor_ui::property_text_colored(editor_ui::colors::text_muted, "Assist",
+                                                     "no candidate in the cone");
+                }
+                editor_ui::end_property_grid();
+            }
+        }
         if (ImGui::CollapsingHeader("Combat & dodge", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::Text("fixed tick %llu | queued %zu",
                     static_cast<unsigned long long>(stats.combat.tick),
@@ -1320,6 +1810,35 @@ struct EditorShell::Impl {
                                 stats.last_dodge->direction.x,
                                  stats.last_dodge->direction.y);
         }
+        }
+        if (ImGui::CollapsingHeader("Interaction", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (editor_ui::begin_property_grid("##interaction_stats")) {
+                editor_ui::property_text("Fixed tick", "%llu",
+                                         static_cast<unsigned long long>(
+                                             stats.interaction.tick));
+                if (stats.interaction.candidate) {
+                    editor_ui::property_text_colored(
+                        editor_ui::colors::positive, "In range", "%s  |  %.0f  |  %.1f away",
+                        std::string{interaction_kind_name(stats.interaction.candidate->kind)}
+                            .c_str(),
+                        stats.interaction.candidate->amount,
+                        stats.interaction.candidate->distance);
+                    editor_ui::property_text("Item", "%llu",
+                                             static_cast<unsigned long long>(
+                                                 stats.interaction.candidate->entity.value));
+                } else {
+                    editor_ui::property_text_colored(editor_ui::colors::text_muted, "In range",
+                                                     "nothing usable");
+                }
+                editor_ui::property_text("Reachable", "%zu",
+                                         stats.interaction.available_count);
+                editor_ui::property_text("Remaining", "%zu", stats.interaction.remaining_count);
+                editor_ui::property_text("Used", "%llu",
+                                         static_cast<unsigned long long>(
+                                             stats.interaction.performed_count));
+                editor_ui::end_property_grid();
+            }
+            editor_ui::text_dim("Press E while a prompt is shown.");
         }
         if (ImGui::CollapsingHeader("Projectiles")) {
         ImGui::Text("Projectiles: %llu spawned | %llu observed",
@@ -1504,8 +2023,9 @@ struct EditorShell::Impl {
             actions.apply_document_to_running_scene = true;
         }
         ImGui::SameLine();
-        if (ImGui::Button(stats.paused ? "Resume" : "Pause")) {
-            actions.toggle_pause = true;
+        if (ImGui::Button(simulating(stats.run_state) ? "Pause" : "Play")) {
+            actions.set_run_state = simulating(stats.run_state) ? EditorRunState::paused
+                                                                : EditorRunState::running;
         }
         ImGui::SameLine();
         if (ImGui::Button("Reset")) {
@@ -1576,7 +2096,7 @@ struct EditorShell::Impl {
     void draw_viewport_overlay(
         const EditorCanvas& canvas,
         const float scale,
-        const bool paused,
+        const EditorRunState run_state,
         const bool detached
     ) {
         // The game's own debug overlay owns the top corners and the bottom
@@ -1599,7 +2119,12 @@ struct EditorShell::Impl {
         };
         float next_top =
             place_right(readout.data(), editor_ui::colors::text_dim, canvas_max.y - 10.0F);
-        if (paused) {
+        // Editing is the ordinary state of an open editor, so it is stated
+        // quietly rather than warned about: a still scene is what an author
+        // asked for, where a paused run is a run waiting to be let go.
+        if (run_state == EditorRunState::editing) {
+            next_top = place_right("EDITING", editor_ui::colors::text_dim, next_top - 6.0F);
+        } else if (run_state == EditorRunState::paused) {
             next_top = place_right("PAUSED", editor_ui::colors::warning, next_top - 6.0F);
         }
         if (detached) {
@@ -1716,7 +2241,6 @@ struct EditorShell::Impl {
 
     void draw_viewport(
         const EditorCanvas& canvas,
-        const bool paused,
         const EditorStats& stats,
         EditorActions& actions
     ) {
@@ -1780,7 +2304,7 @@ struct EditorShell::Impl {
                 actions.camera_frame_selection = true;
             }
             draw_translate_gizmo(stats, scale, actions);
-            draw_viewport_overlay(canvas, scale, paused, detached_view);
+            draw_viewport_overlay(canvas, scale, stats.run_state, detached_view);
         }
         ImGui::End();
     }
@@ -1847,6 +2371,9 @@ EditorActions EditorShell::draw(
     // The menu bar and the status bar claim their strips of the viewport work
     // area before the dockspace measures what is left for the panels.
     impl_->draw_menu_bar(scene_editor, debug_visuals, stats, actions);
+    // After the bar, so a press that landed on a menu or a caption button has
+    // already claimed the pointer and cannot also start a window drag.
+    impl_->update_window_chrome(stats, actions);
     impl_->draw_status_bar(stats);
 
     const ImGuiID dockspace = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
@@ -1863,13 +2390,13 @@ EditorActions EditorShell::draw(
 
     impl_->draw_toolbar(scene_editor, stats, actions);
     impl_->draw_hierarchy(entities);
-    impl_->draw_inspector(scene_editor, entities);
+    impl_->draw_inspector(scene_editor, entities, stats, actions);
     impl_->draw_history(scene_editor);
     impl_->draw_statistics(scene_editor, stats, actions);
     impl_->draw_debug_channels(debug_visuals);
     impl_->draw_create_entity_dialog(scene_editor);
     impl_->detached_view = stats.camera_detached;
-    impl_->draw_viewport(canvas, stats.paused, stats, actions);
+    impl_->draw_viewport(canvas, stats, actions);
     impl_->reveal_selection = false;
 
     actions.viewport_picked = impl_->pending_pick;

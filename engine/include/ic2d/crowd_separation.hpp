@@ -32,6 +32,21 @@ struct CrowdSeparationSettings {
     float radius{26.0F};
     // Weight of the separation push relative to the unit desired direction.
     float strength{1.35F};
+
+    // Padding an actor holds even while pursuing. Inside it the push rises
+    // sharply toward contact instead of continuing the gentle linear falloff.
+    //
+    // Linear falloff alone cannot hold a gap: the pursuit term is unit length,
+    // so actors settle wherever the push happens to match it, which is well
+    // inside a body width. Kinematic attackers make that worse because
+    // collision response never pushes them apart either, so separation is the
+    // only thing holding any gap at all. A firm close-range term sets where
+    // that equilibrium lands; the gentle term still governs the approach, so a
+    // crowd does not jitter at the edge of the radius. Zero restores the plain
+    // linear falloff.
+    float personal_space{0.0F};
+    // How much harder the push presses at contact than at personal space.
+    float contact_strength{8.0F};
 };
 
 struct CrowdAgent {

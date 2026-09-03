@@ -1,0 +1,1546 @@
+﻿{
+    "frames":  [
+                   {
+                       "filename":  "fuse-stalker-idle-southeast-1",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  0,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  1000
+                   },
+                   {
+                       "filename":  "fuse-stalker-idle-east-1",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  0,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  1000
+                   },
+                   {
+                       "filename":  "fuse-stalker-idle-northeast-1",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  0,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  1000
+                   },
+                   {
+                       "filename":  "fuse-stalker-idle-north-1",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  0,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  1000
+                   },
+                   {
+                       "filename":  "fuse-stalker-idle-northwest-1",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  0,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  1000
+                   },
+                   {
+                       "filename":  "fuse-stalker-idle-west-1",
+                       "frame":  {
+                                     "x":  576,
+                                     "y":  0,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  1000
+                   },
+                   {
+                       "filename":  "fuse-stalker-idle-southwest-1",
+                       "frame":  {
+                                     "x":  672,
+                                     "y":  0,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  1000
+                   },
+                   {
+                       "filename":  "fuse-stalker-idle-south-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  96,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  267
+                   },
+                   {
+                       "filename":  "fuse-stalker-idle-south-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  96,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  133
+                   },
+                   {
+                       "filename":  "fuse-stalker-idle-south-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  96,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  133
+                   },
+                   {
+                       "filename":  "fuse-stalker-idle-south-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  96,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  133
+                   },
+                   {
+                       "filename":  "fuse-stalker-idle-south-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  96,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  133
+                   },
+                   {
+                       "filename":  "fuse-stalker-idle-south-6",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  96,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  267
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-south-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-south-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-south-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-south-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-south-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-south-6",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-south-7",
+                       "frame":  {
+                                     "x":  576,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-south-8",
+                       "frame":  {
+                                     "x":  672,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-north-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-north-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-north-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-north-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-north-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-north-6",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-north-7",
+                       "frame":  {
+                                     "x":  576,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-north-8",
+                       "frame":  {
+                                     "x":  672,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-east-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-east-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-east-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-east-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-east-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-east-6",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-east-7",
+                       "frame":  {
+                                     "x":  576,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-east-8",
+                       "frame":  {
+                                     "x":  672,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northeast-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northeast-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northeast-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northeast-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northeast-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northeast-6",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northeast-7",
+                       "frame":  {
+                                     "x":  576,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northeast-8",
+                       "frame":  {
+                                     "x":  672,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southeast-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southeast-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southeast-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southeast-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southeast-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southeast-6",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southeast-7",
+                       "frame":  {
+                                     "x":  576,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southeast-8",
+                       "frame":  {
+                                     "x":  672,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-west-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-west-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-west-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-west-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-west-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-west-6",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-west-7",
+                       "frame":  {
+                                     "x":  576,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-west-8",
+                       "frame":  {
+                                     "x":  672,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northwest-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northwest-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northwest-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northwest-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northwest-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northwest-6",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northwest-7",
+                       "frame":  {
+                                     "x":  576,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-northwest-8",
+                       "frame":  {
+                                     "x":  672,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southwest-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southwest-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southwest-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southwest-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southwest-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southwest-6",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southwest-7",
+                       "frame":  {
+                                     "x":  576,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-move-southwest-8",
+                       "frame":  {
+                                     "x":  672,
+                                     "y":  288,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "fuse-stalker-walk-east-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  192,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-walk-east-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  192,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "fuse-stalker-walk-east-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  192,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "fuse-stalker-walk-east-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  192,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "fuse-stalker-walk-east-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  192,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100,
+                       "ic2d_events":  [
+                                           "npc_step"
+                                       ]
+                   },
+                   {
+                       "filename":  "fuse-stalker-walk-east-6",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  192,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "fuse-stalker-walk-east-7",
+                       "frame":  {
+                                     "x":  576,
+                                     "y":  192,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "fuse-stalker-walk-east-8",
+                       "frame":  {
+                                     "x":  672,
+                                     "y":  192,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "fuse-stalker-hurt-south-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  384,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  67
+                   },
+                   {
+                       "filename":  "fuse-stalker-hurt-south-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  384,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  67
+                   },
+                   {
+                       "filename":  "fuse-stalker-hurt-south-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  384,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  67
+                   },
+                   {
+                       "filename":  "fuse-stalker-hurt-south-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  384,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  67
+                   },
+                   {
+                       "filename":  "fuse-stalker-hurt-south-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  384,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "fuse-stalker-death-south-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  480,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-death-south-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  480,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-death-south-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  480,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-death-south-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  480,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-death-south-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  480,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-death-south-6",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  480,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-death-south-7",
+                       "frame":  {
+                                     "x":  576,
+                                     "y":  480,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "fuse-stalker-death-south-8",
+                       "frame":  {
+                                     "x":  672,
+                                     "y":  480,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "fuse-stalker-death-south-9",
+                       "frame":  {
+                                     "x":  768,
+                                     "y":  480,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  133
+                   },
+                   {
+                       "filename":  "fuse-stalker-death-south-10",
+                       "frame":  {
+                                     "x":  864,
+                                     "y":  480,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  300
+                   },
+                   {
+                       "filename":  "fuse-stalker-explode-south-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  576,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-explode-south-2",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  576,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-explode-south-3",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  576,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-explode-south-4",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  576,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-explode-south-5",
+                       "frame":  {
+                                     "x":  384,
+                                     "y":  576,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  50
+                   },
+                   {
+                       "filename":  "fuse-stalker-explode-south-6",
+                       "frame":  {
+                                     "x":  480,
+                                     "y":  576,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  50
+                   },
+                   {
+                       "filename":  "fuse-stalker-explode-south-7",
+                       "frame":  {
+                                     "x":  576,
+                                     "y":  576,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  67
+                   },
+                   {
+                       "filename":  "fuse-stalker-explode-south-8",
+                       "frame":  {
+                                     "x":  672,
+                                     "y":  576,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  83
+                   },
+                   {
+                       "filename":  "fuse-stalker-explode-south-9",
+                       "frame":  {
+                                     "x":  768,
+                                     "y":  576,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  100
+                   },
+                   {
+                       "filename":  "fuse-stalker-explode-south-10",
+                       "frame":  {
+                                     "x":  864,
+                                     "y":  576,
+                                     "w":  96,
+                                     "h":  96
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  200
+                   }
+               ],
+    "meta":  {
+                 "app":  "IC_2DE Fuse enemy native-grid importer",
+                 "version":  "1.0",
+                 "image":  "fuse-stalker-atlas.png",
+                 "format":  "RGBA8888",
+                 "size":  {
+                              "w":  960,
+                              "h":  672
+                          },
+                 "scale":  "1",
+                 "frameTags":  [
+                                   {
+                                       "name":  "fuse-stalker-idle-southeast",
+                                       "from":  0,
+                                       "to":  0,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-idle-east",
+                                       "from":  1,
+                                       "to":  1,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-idle-northeast",
+                                       "from":  2,
+                                       "to":  2,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-idle-north",
+                                       "from":  3,
+                                       "to":  3,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-idle-northwest",
+                                       "from":  4,
+                                       "to":  4,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-idle-west",
+                                       "from":  5,
+                                       "to":  5,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-idle-southwest",
+                                       "from":  6,
+                                       "to":  6,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-idle-south",
+                                       "from":  7,
+                                       "to":  12,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-move-south",
+                                       "from":  13,
+                                       "to":  20,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-move-north",
+                                       "from":  21,
+                                       "to":  28,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-move-east",
+                                       "from":  29,
+                                       "to":  36,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-move-northeast",
+                                       "from":  37,
+                                       "to":  44,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-move-southeast",
+                                       "from":  45,
+                                       "to":  52,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-move-west",
+                                       "from":  53,
+                                       "to":  60,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-move-northwest",
+                                       "from":  61,
+                                       "to":  68,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-move-southwest",
+                                       "from":  69,
+                                       "to":  76,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-walk-east",
+                                       "from":  77,
+                                       "to":  84,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-hurt-south",
+                                       "from":  85,
+                                       "to":  89,
+                                       "direction":  "forward",
+                                       "ic2d_loop_mode":  "once"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-death-south",
+                                       "from":  90,
+                                       "to":  99,
+                                       "direction":  "forward",
+                                       "ic2d_loop_mode":  "once"
+                                   },
+                                   {
+                                       "name":  "fuse-stalker-explode-south",
+                                       "from":  100,
+                                       "to":  109,
+                                       "direction":  "forward",
+                                       "ic2d_loop_mode":  "once"
+                                   }
+                               ]
+             }
+}

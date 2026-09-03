@@ -31,11 +31,29 @@ enum class LocomotionState {
     dodge_northeast,
     dodge_east,
     dodge_southeast,
+    seated_south,
+    seated_north,
+    shoot_south,
+    shoot_west,
+    shoot_north,
+    shoot_east,
+    hurt_south,
+    death_south,
+    explode_south,
 };
 
 inline constexpr std::size_t locomotion_facing_count = 8;
 inline constexpr std::size_t locomotion_core_state_count = 16;
-inline constexpr std::size_t locomotion_state_count = 24;
+inline constexpr std::size_t locomotion_dodge_state_count = 8;
+inline constexpr std::size_t locomotion_action_state_begin = 24;
+inline constexpr std::size_t locomotion_seated_state_count = 2;
+inline constexpr std::size_t locomotion_shoot_state_count = 4;
+inline constexpr std::size_t locomotion_reaction_state_begin =
+    locomotion_action_state_begin + locomotion_seated_state_count +
+    locomotion_shoot_state_count;
+inline constexpr std::size_t locomotion_reaction_state_count = 3;
+inline constexpr std::size_t locomotion_state_count =
+    locomotion_reaction_state_begin + locomotion_reaction_state_count;
 
 // Quantizes an X/Z movement vector into eight equal 45-degree sectors. Zero or
 // non-finite input safely returns south. Returned states are always idle-facing.
@@ -44,6 +62,10 @@ inline constexpr std::size_t locomotion_state_count = 24;
 [[nodiscard]] LocomotionState moving_locomotion(LocomotionState state) noexcept;
 [[nodiscard]] LocomotionState dodging_locomotion(LocomotionState state) noexcept;
 [[nodiscard]] bool is_dodging_locomotion(LocomotionState state) noexcept;
+[[nodiscard]] LocomotionState seated_locomotion(LocomotionState state) noexcept;
+[[nodiscard]] bool is_seated_locomotion(LocomotionState state) noexcept;
+[[nodiscard]] LocomotionState shooting_locomotion(LocomotionState state) noexcept;
+[[nodiscard]] bool is_shooting_locomotion(LocomotionState state) noexcept;
 
 // Selects idle or moving presentation from an independent facing direction.
 // A zero/invalid direction preserves the previous facing.

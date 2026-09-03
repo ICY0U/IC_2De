@@ -1,0 +1,45 @@
+# Fuse Stalker — tall enemy review set v1
+
+Status: **approved source art with a runtime derivative in use**. The high-resolution sheets in this folder remain review/source material; the generated native-grid atlas is now assigned to the moving enemy in `test_area.scene`.
+
+## Direction
+
+Fuse Stalker preserves the existing round Fuse Maw while exploring the taller silhouette requested from the [Kamikaze Bomber reference](https://segnah.itch.io/kamikaze-bomber-asset-pack): a bomb-shaped head carried on a tiny torso, very long jointed limbs, low-hanging hands, and heavy flat boots. The teal riveted shell, asymmetrical furnace eyes, brass joints, plum accents, mouth, and mechanical construction are an original design rather than a pixel copy of the reference asset.
+
+## Review sheets
+
+- `00-fuse-stalker-turntable-8-direction.png` — eight-direction identity and silhouette study.
+- `idle-south-6f.png` — six-pose south-facing eye/fuse idle study.
+- `walk-east-8f.png` — eight-pose east-facing pendulum walk.
+- `chase-east-8f.png` — eight-pose east-facing long-stride chase; currently arranged as a 2x4 presentation grid.
+- `hurt-south-5f.png` — five-pose recoil and recovery.
+- `death-south-10f.png` — ten-pose mechanical collapse with no explosion.
+- `explode-south-10f.png` — ten-pose heat-up, blast, debris, and smoke study.
+
+## Transparency
+
+The top-level PNGs are preserved ImageGen source sheets and contain a baked pale checkerboard. The `clean/` folder contains only derivatives confirmed as 32-bit RGBA with transparent corner pixels:
+
+- turntable
+- walk
+- chase
+- hurt
+- death
+- explode
+
+The idle sheet is deliberately absent from `clean/`: three extraction attempts still returned opaque checker pixels, so it needs a manual pixel-editor mask before production use.
+
+## Production gate
+
+These are high-resolution animation concepts, not native-resolution game sprites. The runtime importer therefore produces a separate transparent, native-grid derivative rather than loading these presentation sheets directly.
+
+## Runtime integration
+
+- Runtime atlas: `../../../game/assets/runtime/fuse-stalker-atlas.png`
+- Clip metadata: `../../../game/assets/runtime/fuse-stalker-atlas.json`
+- Deterministic importer: `../../../tools/import-fuse-enemies.ps1`
+- Scene role: the existing moving attacker/stress enemy, with its original AI, collision, health, and UUID preserved.
+- Driven now: eight-way idle and movement clips.
+- Imported for future state-machine work: walk, hurt, death, and explosion clips.
+
+The approved source set only contains a true east-facing chase strip. North, south, and diagonal movement currently use that animated cycle or its mirrored variant so no direction slides on a static pose. Dedicated directional chase redraws remain an art upgrade.

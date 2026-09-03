@@ -185,5 +185,40 @@ int run_projection25d_tests() {
                           "An unusable camera must return a zero offset, not a guess.");
     }
 
+    // A pointer must resolve to a place, not only a bearing, because aiming
+    // needs the range. Checked against the forward projection at two
+    // elevations, since screen Y mixes depth and height.
+    {
+        const ic2d::Camera25DState ground{
+            .focus = {40.0F, 6.0F, -12.0F},
+            .yaw_degrees = -18.0F,
+            .pitch_degrees = 50.0F,
+            .pixels_per_world_unit = 1.0F,
+            .zoom = 1.25F,
+        };
+        constexpr int width = 640;
+        constexpr int height = 360;
+        for (const float elevation : {0.0F, 24.0F}) {
+            const ic2d::Vec3 world{123.0F, elevation, -64.0F};
+            const auto projected = ic2d::project_world_point(world, ground);
+            const ic2d::Vec2 canvas{
+                projected.position.x + static_cast<float>(width) * 0.5F,
+                projected.position.y + static_cast<float>(height) * 0.5F,
+            };
+            const ic2d::Vec3 recovered =
+                ic2d::canvas_ground_point(canvas, elevation, width, height, ground);
+            projection_expect(near(recovered.x, world.x, 0.01F) &&
+                                  near(recovered.z, world.z, 0.01F),
+                              "A canvas point must resolve back to the world position "
+                              "that projected to it.");
+            projection_expect(near(recovered.y, elevation),
+                              "A resolved ground point must sit at the requested elevation.");
+        }
+
+        const ic2d::Vec3 rejected = ic2d::canvas_ground_point({10.0F, 10.0F}, 0.0F, 0, 360, ground);
+        projection_expect(near(rejected.x, 0.0F) && near(rejected.z, 0.0F),
+                          "An unusable canvas must return the origin, not a guess.");
+    }
+
     return projection_failures;
 }

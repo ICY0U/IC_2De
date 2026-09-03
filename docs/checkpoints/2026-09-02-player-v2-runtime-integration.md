@@ -25,3 +25,19 @@ Aim facing cannot rotate the body during an active dodge. Application converts C
 - run Debug and Release CTest;
 - run the deterministic replay verifier and the real `--smoke-dodge` route;
 - manually inspect idle, walk, turn, dodge, and recovery at 1x for every direction.
+
+## Measured verification
+
+- Debug CTest: 32/32 passed.
+- Release CTest: 32/32 passed.
+- All ten V2 atlases passed alpha, frame-boundary, grounding, timing, event,
+  and mirror-order validation.
+- The real GPU dodge smoke loaded all ten V2 textures and passed movement,
+  duration, recovery, and invulnerability checks on an NVIDIA RTX 2080 Ti.
+- Replay digest `v3 4088902111557540230` matched at 30, 60, and 120 Hz,
+  monitor-synchronised, and uncapped presentation modes.
+- The packaged editor passed content, dodge, and gameplay-replay probes and
+  contains all 20 V2 PNG/JSON runtime files.
+
+The remaining acceptance item is hands-on inspection of all eight directions
+at 1x speed.

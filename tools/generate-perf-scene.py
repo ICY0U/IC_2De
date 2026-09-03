@@ -87,6 +87,51 @@ LOCOMOTION_STATES = [
     "move_northeast", "move_west", "move_east", "move_southeast",
 ]
 
+PLAYER_ASSETS = [
+    "player-v3-move-south", "player-v3-move-north", "player-v3-move-east",
+    "player-v3-move-southeast", "player-v3-move-northeast",
+    "player-v3-idle-south", "player-v3-idle-southwest", "player-v3-idle-west",
+    "player-v3-idle-northwest", "player-v3-idle-north", "player-v3-idle-northeast",
+    "player-v3-idle-east", "player-v3-idle-southeast",
+    "player-v3-seated-south", "player-v3-seated-north",
+    "player-v3-dodge-sidestep", "player-v3-dodge-roll", "player-v3-dodge-slide",
+    "player-v3-dodge-back-hop-south", "player-v3-dodge-north",
+    "player-v3-shoot-south", "player-v3-shoot-north", "player-v3-shoot-east",
+]
+
+PLAYER_BINDINGS = [
+    ("idle_south", "player-v3-idle-south"),
+    ("idle_southwest", "player-v3-idle-southwest"),
+    ("idle_northwest", "player-v3-idle-northwest"),
+    ("idle_north", "player-v3-idle-north"),
+    ("idle_northeast", "player-v3-idle-northeast"),
+    ("idle_west", "player-v3-idle-west"),
+    ("idle_east", "player-v3-idle-east"),
+    ("idle_southeast", "player-v3-idle-southeast"),
+    ("move_south", "player-v3-move-south"),
+    ("move_southwest", "player-v3-move-southwest"),
+    ("move_northwest", "player-v3-move-northwest"),
+    ("move_north", "player-v3-move-north"),
+    ("move_northeast", "player-v3-move-northeast"),
+    ("move_west", "player-v3-move-west"),
+    ("move_east", "player-v3-move-east"),
+    ("move_southeast", "player-v3-move-southeast"),
+    ("dodge_south", "player-v3-dodge-back-hop-south"),
+    ("dodge_southwest", "player-v3-dodge-slide-west"),
+    ("dodge_northwest", "player-v3-dodge-roll-west"),
+    ("dodge_north", "player-v3-dodge-north"),
+    ("dodge_northeast", "player-v3-dodge-roll-east"),
+    ("dodge_west", "player-v3-dodge-sidestep-west"),
+    ("dodge_east", "player-v3-dodge-sidestep-east"),
+    ("dodge_southeast", "player-v3-dodge-slide-east"),
+    ("seated_south", "player-v3-seated-south"),
+    ("seated_north", "player-v3-seated-north"),
+    ("shoot_south", "player-v3-shoot-south"),
+    ("shoot_west", "player-v3-shoot-west"),
+    ("shoot_north", "player-v3-shoot-north"),
+    ("shoot_east", "player-v3-shoot-east"),
+]
+
 
 def bindings(entity_id, clip_prefix):
     lines = []
@@ -100,7 +145,7 @@ def bindings(entity_id, clip_prefix):
 out = []
 w = out.append
 w("# IC_2DE performance test scene - regenerate with tools/generate-perf-scene.py")
-w("schema=10")
+w("schema=12")
 w("id=perf_test")
 w("world_space=x_y_z")
 w("ground_plane=x_z")
@@ -122,8 +167,8 @@ w("player_speed=130")
 w("")
 w("texture=soft-shadow|radial|16|16|4|8|12|145|4|8|12|0|smooth")
 w("texture=test-crate|checker|8|8|2|48|92|145|255|74|145|205|255|pixel")
-w("aseprite=player-atlas|player-atlas.json|pixel|60")
-w("aseprite=player-diagonal-atlas|player-diagonal-atlas.json|pixel|60")
+for player_asset in PLAYER_ASSETS:
+    w("aseprite=%s|%s.json|pixel|60" % (player_asset, player_asset))
 w("aseprite=npc-patchwork-atlas|npc-patchwork-atlas.json|pixel|60")
 w("aseprite=npc-patchwork-diagonal-atlas|npc-patchwork-diagonal-atlas.json|pixel|60")
 w("")
@@ -141,7 +186,7 @@ w("")
 w("# entity=id|uuid|name|physics-binding|x|y|z|sprite-width|sprite-height|"
   "origin-x|origin-y|RGBA|layer|texture-id")
 w("entity=player-shadow|1001|Player shadow|player|0|0|0|20|7|0.5|0.5|255|255|255|255|0|soft-shadow")
-w("entity=player|1002|Player|player|0|0|0|24|34|0.5|1|255|255|255|255|0|player-atlas")
+w("entity=player|1002|Player|player|0|0|0|48|48|0.5|0.833333|255|255|255|255|0|player-v3-idle-south")
 # Shadows use the radial soft-shadow texture. An untextured sprite is drawn as
 # a hard rectangle, which reads as a black box sitting under the actor.
 w("entity=dynamic-crate-shadow|1003|Dynamic crate shadow|dynamic-crate|80|0|80|28|10|0.5|0.5|255|255|255|210|0|soft-shadow")
@@ -166,9 +211,16 @@ for name, x, z, width, depth, height, tint in solids:
     w(record)
     uuid += 1
 w("")
+w("# child-entity-id|parent-entity-id")
+w("# A shadow belongs to the thing casting it, so it leaves play with it.")
+w("parent=player-shadow|player")
+w("parent=dynamic-crate-shadow|dynamic-crate")
+w("parent=attacker-shadow|attacker")
+w("")
 w("# entity-id|locomotion-state|clip-id|initial")
-for line in bindings("player", "player"):
-    w(line)
+for index, (state, clip) in enumerate(PLAYER_BINDINGS):
+    w("animation_binding=player|%s|%s|%s" % (
+        state, clip, "true" if index == 0 else "false"))
 for line in bindings("attacker", "npc-patchwork"):
     w(line)
 w("")

@@ -19,6 +19,28 @@ $atlasChecks = @(
     @{ Metadata = 'player-v2-dodge-northeast.json'; MinimumBottomGap = 2; MaximumBottomSpread = 40; TransparentCorners = $true },
     @{ Metadata = 'tree-atlas.json'; MinimumBottomGap = 1; MaximumBottomSpread = 0 }
 )
+$atlasChecks += @(Get-ChildItem -LiteralPath $assetRoot -Filter 'player-v3-*.json' |
+    Sort-Object Name |
+    ForEach-Object {
+        @{
+            Metadata = $_.Name
+            MinimumBottomGap = 2
+            MaximumBottomSpread = 16
+            TransparentCorners = $true
+        }
+    })
+$atlasChecks += @(Get-ChildItem -LiteralPath $assetRoot -Filter 'fuse-*-atlas.json' |
+    Sort-Object Name |
+    ForEach-Object {
+        @{
+            Metadata = $_.Name
+            MinimumBottomGap = 1
+            # Death and explosion clips intentionally finish as elevated smoke
+            # or debris; locomotion rows still share the importer-owned root.
+            MaximumBottomSpread = 48
+            TransparentCorners = $true
+        }
+    })
 
 $failed = $false
 $treeBottomGap = $null
@@ -53,6 +75,7 @@ foreach ($atlasCheck in $atlasChecks) {
 
         $bottomGaps = @()
         $boundaryFailures = 0
+        $framingFailures = 0
 
         for ($frameIndex = 0; $frameIndex -lt $metadata.frames.Count; $frameIndex++) {
             $frame = $metadata.frames[$frameIndex].frame
@@ -71,6 +94,7 @@ foreach ($atlasCheck in $atlasChecks) {
 
             $edgePixelCount = 0
             $significantBottom = -1
+            $visibleByColumn = [int[]]::new($frameWidth)
 
             for ($localY = 0; $localY -lt $frameHeight; $localY++) {
                 $rowPixelCount = 0
@@ -81,6 +105,7 @@ foreach ($atlasCheck in $atlasChecks) {
                     }
 
                     $rowPixelCount++
+                    $visibleByColumn[$localX]++
                     if ($localX -eq 0 -or $localX -eq ($frameWidth - 1) -or
                         $localY -eq 0 -or $localY -eq ($frameHeight - 1)) {
                         $edgePixelCount++
@@ -104,15 +129,33 @@ foreach ($atlasCheck in $atlasChecks) {
                 $boundaryFailures++
             }
 
+            if ($atlasCheck.Metadata -like 'fuse-*-atlas.json' -and
+                ($metadata.frames[$frameIndex].filename -like '*-idle-*' -or
+                 $metadata.frames[$frameIndex].filename -like '*-move-*')) {
+                $significantColumns = @(0..($frameWidth - 1) | Where-Object {
+                    $visibleByColumn[$_] -ge 2
+                })
+                $maximumInternalGap = 0
+                for ($column = 1; $column -lt $significantColumns.Count; $column++) {
+                    $maximumInternalGap = [Math]::Max(
+                        $maximumInternalGap,
+                        $significantColumns[$column] - $significantColumns[$column - 1] - 1)
+                }
+                if ($maximumInternalGap -gt 16) {
+                    Write-Output "$($atlasCheck.Metadata): frame $frameIndex has a disconnected framing fragment (column gap $maximumInternalGap)."
+                    $framingFailures++
+                }
+            }
+
             $bottomGaps += ($frameHeight - 1) - $significantBottom
         }
 
         $minimumGap = ($bottomGaps | Measure-Object -Minimum).Minimum
         $maximumGap = ($bottomGaps | Measure-Object -Maximum).Maximum
         $bottomSpread = $maximumGap - $minimumGap
-        Write-Output "$($atlasCheck.Metadata): frames=$($metadata.frames.Count) boundary-failures=$boundaryFailures bottom-gap=$minimumGap..$maximumGap"
+        Write-Output "$($atlasCheck.Metadata): frames=$($metadata.frames.Count) boundary-failures=$boundaryFailures framing-failures=$framingFailures bottom-gap=$minimumGap..$maximumGap"
 
-        if ($boundaryFailures -ne 0 -or
+        if ($boundaryFailures -ne 0 -or $framingFailures -ne 0 -or
             $minimumGap -lt $atlasCheck.MinimumBottomGap -or
             $bottomSpread -gt $atlasCheck.MaximumBottomSpread) {
             $failed = $true
@@ -181,12 +224,59 @@ foreach ($atlasCheck in $atlasChecks) {
                 $failed = $true
             }
         }
+        elseif ($atlasCheck.Metadata -like 'player-v3-*.json') {
+            $tags = @($metadata.meta.frameTags)
+            $frameCellsValid = @($metadata.frames | Where-Object {
+                [int]$_.frame.w -ne 48 -or [int]$_.frame.h -ne 48
+            }).Count -eq 0
+            $timingsValid = $true
+            foreach ($tag in $tags) {
+                $duration = ($metadata.frames[[int]$tag.from..[int]$tag.to].duration |
+                    ForEach-Object { [int][Math]::Round($_ * 60.0 / 1000.0) } |
+                    Measure-Object -Sum).Sum
+                $expected = if ($tag.name -like '*seated*') { 96 }
+                    elseif ($tag.name -like '*dodge*') { 12 }
+                    elseif ($tag.name -like '*shoot*') { 9 }
+                    elseif ($tag.name -like '*move*') { 48 }
+                    else { 72 }
+                $timingsValid = $timingsValid -and $duration -eq $expected
+            }
+            $westTags = @($tags | Where-Object { $_.name -like '*-west' })
+            $westFramesFlipped = $true
+            $containsMirror = @($metadata.frames | Where-Object {
+                $_.PSObject.Properties.Name -contains 'ic2d_flip_x'
+            }).Count -gt 0
+            if ($containsMirror) {
+                foreach ($tag in $westTags) {
+                    $westFramesFlipped = $westFramesFlipped -and
+                        @($metadata.frames[[int]$tag.from..[int]$tag.to] | Where-Object {
+                            $_.ic2d_flip_x -ne $true
+                        }).Count -eq 0
+                }
+            }
+            Write-Output "player V3: tags=$($tags.Count) cells=$frameCellsValid timings=$timingsValid west-flip=$westFramesFlipped"
+            if (-not $frameCellsValid -or -not $timingsValid -or -not $westFramesFlipped) {
+                $failed = $true
+            }
+        }
         elseif ($atlasCheck.Metadata -eq 'tree-atlas.json') {
             $minimumTreeDuration = ($metadata.frames.duration | Measure-Object -Minimum).Minimum
             $treeBottomGap = $minimumGap
             $treeFrameHeight = [int]$metadata.frames[0].frame.h
             Write-Output "tree presentation: minimum-sway-duration-ms=$minimumTreeDuration"
             if ($minimumTreeDuration -lt 200) {
+                $failed = $true
+            }
+        }
+        elseif ($atlasCheck.Metadata -like 'fuse-*-atlas.json') {
+            $terminalTags = @($metadata.meta.frameTags | Where-Object {
+                $_.name -like '*-hurt-*' -or $_.name -like '*-death-*' -or
+                $_.name -like '*-explode-*'
+            })
+            $terminalTagsAreOnce = $terminalTags.Count -eq 3 -and
+                @($terminalTags | Where-Object { $_.ic2d_loop_mode -ne 'once' }).Count -eq 0
+            Write-Output "$($atlasCheck.Metadata): terminal-tags=$($terminalTags.Count) once=$terminalTagsAreOnce"
+            if (-not $terminalTagsAreOnce) {
                 $failed = $true
             }
         }
@@ -197,6 +287,22 @@ foreach ($atlasCheck in $atlasChecks) {
 }
 
 $scenePath = Join-Path $assetRoot 'test_area.scene'
+$sceneLines = Get-Content -LiteralPath $scenePath
+$requiredFuseReactionBindings = @(
+    'animation_binding=enemy|hurt_south|fuse-tyrant-hurt-south|false',
+    'animation_binding=enemy|death_south|fuse-tyrant-death-south|false',
+    'animation_binding=enemy|explode_south|fuse-tyrant-explode-south|false',
+    'animation_binding=attacker|hurt_south|fuse-stalker-hurt-south|false',
+    'animation_binding=attacker|death_south|fuse-stalker-death-south|false',
+    'animation_binding=attacker|explode_south|fuse-stalker-explode-south|false'
+)
+$missingFuseReactionBindings = @($requiredFuseReactionBindings | Where-Object {
+    $sceneLines -notcontains $_
+})
+Write-Output "Fuse reaction bindings: missing=$($missingFuseReactionBindings.Count)"
+if ($missingFuseReactionBindings.Count -ne 0) {
+    $failed = $true
+}
 $treePrefabLine = Get-Content -LiteralPath $scenePath |
     Where-Object { $_ -like 'prefab=tree|*' } |
     Select-Object -First 1

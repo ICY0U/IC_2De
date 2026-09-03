@@ -57,6 +57,7 @@ int main(const int argc, const char* const argv[]) {
     ic2d::ApplicationConfig config;
     config.start_with_editor = IC2DE_DEFAULT_START_WITH_EDITOR != 0;
     config.enable_editor_texture_hot_reload = config.start_with_editor;
+    config.interactive_editor_session = config.start_with_editor;
     if (config.start_with_editor) {
         config.title = "IC_2DE Editor";
     }
@@ -156,11 +157,13 @@ int main(const int argc, const char* const argv[]) {
             config.minimum_automated_projectile_spawns = 3;
             config.minimum_automated_projectile_impacts = 3;
             config.minimum_automated_target_deaths = 1;
+            config.minimum_automated_terminal_animation_completions = 1;
             config.validate_automated_route = false;
-            config.max_fixed_ticks = 66;
-            // Capture after the first two hits while the target and reduced
-            // health bar are visible; the run continues through lethal hit 3.
-            config.capture_tick = 57;
+            // The target dies around tick 66. Leave enough deterministic time
+            // for the collapse and explosion one-shots to finish before the
+            // presentation retires.
+            config.max_fixed_ticks = 240;
+            config.capture_tick = 175;
             config.capture_path = "build/runtime-target-death-smoke.png";
         } else if (argument == "--smoke-dodge") {
             config.start_with_editor = true;
@@ -171,6 +174,20 @@ int main(const int argc, const char* const argv[]) {
             config.max_fixed_ticks = 18;
             config.capture_tick = 6;
             config.capture_path = "build/runtime-dodge-smoke.png";
+        } else if (argument == "--smoke-restart-recovery") {
+            // The same combat setup as the replay smoke, restarted once a
+            // target has died. Reviving an actor has to restore everything it
+            // needs to be shot again, not only its presentation.
+            config.start_with_editor = true;
+            config.enable_editor_texture_hot_reload = false;
+            config.automated_aim = true;
+            config.automated_aim_direction = {0.98359346F, 0.18039931F};
+            config.automated_fire_hold_ticks = 18;
+            config.validate_restart_recovery = true;
+            config.validate_automated_route = false;
+            config.max_fixed_ticks = 240;
+            config.capture_tick = 230;
+            config.capture_path = "build/runtime-restart-recovery-smoke.png";
         } else if (argument == "--smoke-gameplay-replay") {
             config.start_with_editor = true;
             config.enable_editor_texture_hot_reload = false;
@@ -267,6 +284,7 @@ int main(const int argc, const char* const argv[]) {
         } else if (argument == "--editor") {
             config.start_with_editor = true;
             config.enable_editor_texture_hot_reload = true;
+            config.interactive_editor_session = true;
         } else if (argument.starts_with("--scene=")) {
             // An explicit scene overrides the adjacent-manifest fallback so a
             // launcher button can open the performance scene directly.
@@ -362,6 +380,7 @@ int main(const int argc, const char* const argv[]) {
                          "  --smoke-target-death  Fire three deterministic hits into the NPC target.\n"
                          "  --smoke-dodge  Verify one exact-distance directional dodge and its active window.\n"
                          "  --smoke-gameplay-replay  Replay combat, dodge, and attacker state with a digest.\n"
+                         "  --smoke-restart-recovery  Restart after a kill and require another kill.\n"
                          "  --smoke-moving-attacker  Require deterministic acquire, pursuit, and player damage.\n"
                           "  --smoke-nav-grid  Display the read-only 2.5D hard-blocked navigation grid.\n"
                           "  --smoke-nav-path  Display the copied deterministic A-star reference path.\n"
@@ -371,6 +390,15 @@ int main(const int argc, const char* const argv[]) {
                          "  --smoke-editor-hot-swap  Capture and close after a live editor texture replacement.\n";
             return 0;
         }
+    }
+
+    // Every automated mode names a capture, caps its run, or exits before it
+    // opens a window. None of them is a person sitting in front of the editor,
+    // so none of them opens paused or takes the window chrome over, however it
+    // reached this point.
+    if (!config.capture_path.empty() || config.max_fixed_ticks != 0 ||
+        config.max_frames != 0 || config.validate_content_only) {
+        config.interactive_editor_session = false;
     }
 
     if (config.start_with_editor && !config.capture_path.empty() &&

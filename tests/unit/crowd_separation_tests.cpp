@@ -95,12 +95,55 @@ void repeated_resolution_is_deterministic() {
 
 } // namespace
 
+// Personal space is what decides where a pursuing crowd settles. Linear
+// falloff alone lets an actor press to within a fraction of a body width,
+// because the pursuit term is unit length and nothing else pushes back.
+void personal_space_overrides_pursuit_at_close_range() {
+    // Two actors walking straight at each other, one body width apart.
+    const std::vector<ic2d::CrowdAgent> closing{
+        {.actor = {1}, .position = {0.0F, 0.0F}, .desired_direction = {1.0F, 0.0F}},
+        {.actor = {2}, .position = {20.0F, 0.0F}, .desired_direction = {-1.0F, 0.0F}},
+    };
+
+    const std::vector<ic2d::CrowdSteer> gentle = ic2d::resolve_crowd_separation(
+        closing, {.radius = 34.0F, .strength = 1.5F, .personal_space = 0.0F});
+    expect(gentle.front().direction.x > 0.0F,
+           "With linear falloff alone a pursuing actor still closes the gap.");
+
+    const std::vector<ic2d::CrowdSteer> padded = ic2d::resolve_crowd_separation(
+        closing,
+        {.radius = 34.0F, .strength = 1.5F, .personal_space = 26.0F,
+         .contact_strength = 8.0F});
+    expect(padded.front().direction.x < 0.0F,
+           "Inside personal space the push must beat pursuit and open the gap.");
+    expect(padded.back().direction.x > 0.0F,
+           "Both actors must be pushed away from each other, not one into the other.");
+    expect(unit_length(padded.front().direction) && unit_length(padded.back().direction),
+           "A firm push must still resolve to a unit direction.");
+    expect(padded.front().separated && padded.back().separated,
+           "Both actors must report that separation contributed.");
+
+    // Outside personal space the gentle term still governs, so a crowd does
+    // not snap apart at the edge of the radius.
+    const std::vector<ic2d::CrowdAgent> approaching{
+        {.actor = {1}, .position = {0.0F, 0.0F}, .desired_direction = {1.0F, 0.0F}},
+        {.actor = {2}, .position = {30.0F, 0.0F}, .desired_direction = {-1.0F, 0.0F}},
+    };
+    const std::vector<ic2d::CrowdSteer> approach = ic2d::resolve_crowd_separation(
+        approaching,
+        {.radius = 34.0F, .strength = 1.5F, .personal_space = 26.0F,
+         .contact_strength = 8.0F});
+    expect(approach.front().direction.x > 0.0F,
+           "Beyond personal space actors must still be free to close in.");
+}
+
 int main() {
     distant_actors_keep_their_desired_direction();
     overlapping_actors_push_apart_along_their_offset();
     coincident_actors_still_receive_a_direction();
     holding_actors_separate_without_a_desired_direction();
     repeated_resolution_is_deterministic();
+    personal_space_overrides_pursuit_at_close_range();
     if (failures > 0) {
         std::cerr << failures << " crowd separation check(s) failed.\n";
         return 1;

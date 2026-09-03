@@ -39,6 +39,9 @@ struct WeaponDefinition {
     WeaponKind kind{WeaponKind::needle_pistol};
     std::uint32_t magazine_capacity{12};
     std::uint32_t initial_reserve_ammo{48};
+    // A reserve ceiling makes a pickup refusable and keeps the counter from
+    // growing without bound over a long run.
+    std::uint32_t maximum_reserve_ammo{240};
     std::uint32_t fire_cooldown_ticks{8};
     std::uint32_t reload_duration_ticks{54};
     float projectile_speed{520.0F};
@@ -177,6 +180,22 @@ public:
     // Returns false without mutating state when identity, aim, or content is
     // invalid. Valid commands remain buffered until fixed_update().
     [[nodiscard]] bool submit(const CombatCommand& command) noexcept;
+
+    // Adds rounds to an actor's reserve and returns how many were actually
+    // taken. A pickup reports that number, so a full reserve can decline the
+    // item instead of silently consuming it. Applies immediately: resupply
+    // carries no aim or timing and needs no fixed-tick ordering.
+    [[nodiscard]] std::uint32_t resupply(EntityUuid actor, std::uint32_t rounds) noexcept;
+
+    // Fills the actor's magazine to capacity and its reserve to the ceiling,
+    // and abandons any reload in progress because there is nothing left to
+    // reload into. Returns false for an invalid identity. Like resupply this
+    // carries no aim or timing and applies immediately.
+    //
+    // Distinct from resupply, which tops up the reserve an actor still has to
+    // reload from. This is the whole-weapon refill a full pickup grants, and
+    // repeating it every tick is what an unlimited-ammo run amounts to.
+    [[nodiscard]] bool replenish(EntityUuid actor) noexcept;
 
     // Ticks are non-zero and strictly sequential. Violations throw
     // std::invalid_argument before any buffered command is consumed.

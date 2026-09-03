@@ -1,0 +1,101 @@
+﻿{
+    "frames":  [
+                   {
+                       "filename":  "player-v3-shoot-north-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_events":  [
+                                           "shot_fired"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-shoot-north-2",
+                       "frame":  {
+                                     "x":  48,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v3-shoot-north-3",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v3-shoot-north-4",
+                       "frame":  {
+                                     "x":  144,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_events":  [
+                                           "shot_recover"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-shoot-north-5",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v3-shoot-north-6",
+                       "frame":  {
+                                     "x":  240,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   }
+               ],
+    "meta":  {
+                 "app":  "IC_2DE player V3 native-grid importer",
+                 "version":  "1.0",
+                 "image":  "player-v3-shoot-north.png",
+                 "format":  "RGBA8888",
+                 "size":  {
+                              "w":  288,
+                              "h":  48
+                          },
+                 "scale":  "1",
+                 "frameTags":  [
+                                   {
+                                       "name":  "player-v3-shoot-north",
+                                       "from":  0,
+                                       "to":  5,
+                                       "direction":  "forward"
+                                   }
+                               ]
+             }
+}

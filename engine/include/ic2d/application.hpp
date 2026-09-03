@@ -49,6 +49,12 @@ struct ApplicationConfig {
     std::uint64_t minimum_automated_projectile_spawns{0};
     std::uint64_t minimum_automated_projectile_impacts{0};
     std::uint64_t minimum_automated_target_deaths{0};
+    std::uint64_t minimum_automated_terminal_animation_completions{0};
+    // Restarts the running scene once a death has been observed, then requires
+    // another death afterwards. Reviving an actor has to restore everything it
+    // needs to be shot again, not merely put its sprite back, and that is not
+    // observable from any single-run assertion.
+    bool validate_restart_recovery{false};
     std::uint64_t minimum_automated_dodge_starts{0};
     float expected_automated_dodge_distance{0.0F};
     std::uint64_t minimum_automated_enemy_acquisitions{0};
@@ -63,6 +69,11 @@ struct ApplicationConfig {
     bool validate_automated_route{true};
     bool validate_content_only{false};
     bool start_with_editor{false};
+    // True when the editor is being opened for a person rather than driven by
+    // an automated run. Such a session opens on a still scene and supplies its
+    // own window chrome; the smoke modes open the editor too, and exist to
+    // simulate ticks under ordinary window decorations.
+    bool interactive_editor_session{false};
     bool enable_editor_texture_hot_reload{false};
     bool close_after_editor_texture_hot_reload{false};
     bool start_with_debug_visuals{true};

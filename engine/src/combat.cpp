@@ -198,6 +198,49 @@ bool Combat::submit(const CombatCommand& command) noexcept {
     return true;
 }
 
+std::uint32_t Combat::resupply(const EntityUuid actor, const std::uint32_t rounds) noexcept {
+    if (!actor || rounds == 0) {
+        return 0;
+    }
+    WeaponSnapshot& weapon = impl_->weapon_for(actor);
+    const std::uint32_t ceiling = needle_pistol.maximum_reserve_ammo;
+    if (weapon.reserve_ammo >= ceiling) {
+        return 0;
+    }
+    const std::uint32_t taken = std::min(rounds, ceiling - weapon.reserve_ammo);
+    weapon.reserve_ammo += taken;
+
+    // The cached snapshot is otherwise only rebuilt on a tick. Resupply applies
+    // immediately, so it republishes what it changed rather than leaving a
+    // reader to see a stale reserve until the next fixed update.
+    if (impl_->snapshot.latest_actor == actor || !impl_->snapshot.latest_actor) {
+        impl_->snapshot.latest_actor = actor;
+        impl_->snapshot.weapon = weapon;
+    }
+    impl_->refresh_actor_snapshots();
+    return taken;
+}
+
+bool Combat::replenish(const EntityUuid actor) noexcept {
+    if (!actor) {
+        return false;
+    }
+    WeaponSnapshot& weapon = impl_->weapon_for(actor);
+    weapon.magazine_ammo = needle_pistol.magazine_capacity;
+    weapon.reserve_ammo = needle_pistol.maximum_reserve_ammo;
+    weapon.reloading = false;
+    weapon.reload_ticks_remaining = 0;
+
+    // Applied immediately, so like resupply it republishes what it changed
+    // rather than leaving a reader on a stale magazine until the next tick.
+    if (impl_->snapshot.latest_actor == actor || !impl_->snapshot.latest_actor) {
+        impl_->snapshot.latest_actor = actor;
+        impl_->snapshot.weapon = weapon;
+    }
+    impl_->refresh_actor_snapshots();
+    return true;
+}
+
 void Combat::fixed_update(const std::uint64_t tick) {
     const std::uint64_t expected_tick = impl_->snapshot.tick + 1;
     if (tick != expected_tick) {

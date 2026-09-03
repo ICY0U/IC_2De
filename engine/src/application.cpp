@@ -1,5 +1,8 @@
 #include "ic2d/application.hpp"
 
+#include "ic2d/aiming.hpp"
+#include "ic2d/interaction.hpp"
+
 #include "ic2d/assets.hpp"
 #include "ic2d/combat.hpp"
 #include "ic2d/core/automated_run.hpp"
@@ -14,6 +17,7 @@
 #include "ic2d/jobs.hpp"
 #include "ic2d/layer_stack.hpp"
 #include "ic2d/nav_grid.hpp"
+#include "ic2d/actor_debug.hpp"
 #include "ic2d/nav_agent.hpp"
 #include "ic2d/nav_pathfinding.hpp"
 #include "ic2d/presentation.hpp"
@@ -415,6 +419,29 @@ void register_scene_navigation_agents(
     }
 }
 
+// Resolves authored interactables against the entities they attach to. Pickups
+// do not move, so their authored position is their world position for the whole
+// run and nothing has to be re-resolved per tick.
+[[nodiscard]] std::vector<Interactable> build_interactables(const SceneDefinition& definition) {
+    std::vector<Interactable> resolved;
+    resolved.reserve(definition.interactables().size());
+    for (const SceneInteractableDefinition& authored : definition.interactables()) {
+        const auto entity = std::ranges::find(definition.entities(), authored.entity_id,
+                                              &SceneEntityDefinition::id);
+        if (entity == definition.entities().end()) {
+            continue;
+        }
+        resolved.push_back({
+            .entity = entity->uuid,
+            .position = entity->position,
+            .kind = authored.kind,
+            .amount = authored.amount,
+            .radius = authored.radius,
+        });
+    }
+    return resolved;
+}
+
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
 struct EnemyStressSpawnSummary {
     std::size_t requested_total{0};
@@ -578,6 +605,9 @@ struct EditorRuntimeSceneCandidate {
     NavAgentSystem navigation_agents;
     CrowdSteeringPlan crowd_plan;
     EnemyStressSpawnSummary stress;
+    // Resolved before the definition is consumed by the scene, because the
+    // replacement's items are part of what is being swapped in.
+    std::vector<Interactable> interactables;
     bool enemy_attack_damage_enabled{true};
 };
 
@@ -591,6 +621,7 @@ struct EditorRuntimeSceneCandidate {
     NavGridSnapshot grid_snapshot = grid->snapshot();
     NavPathResult reference_path =
         navigation_reference_path(definition.ground(), *grid);
+    std::vector<Interactable> candidate_interactables = build_interactables(definition);
     auto runtime_scene = std::make_unique<RuntimeScene>(
         std::move(definition), textures);
     EnemyStressSpawnSummary stress = spawn_editor_stress_runners(
@@ -616,6 +647,7 @@ struct EditorRuntimeSceneCandidate {
         .navigation_agents = std::move(candidate_navigation_agents),
         .crowd_plan = std::move(candidate_crowd_plan),
         .stress = stress,
+        .interactables = std::move(candidate_interactables),
         .enemy_attack_damage_enabled = stress_target_count == 0,
     };
 }
@@ -687,6 +719,103 @@ FixedStepPhaseTotals fixed_step_phases;
     const double seconds = std::chrono::duration<double>{now - marker}.count();
     marker = now;
     return seconds;
+}
+
+// Moving and sizing a window the platform no longer decorates.
+//
+// The anchor is what makes this stable. Resolving a drag against the previous
+// frame would feed the window's own movement back into the next delta, so a
+// window under a still pointer would drift; anchoring the pointer and the rect
+// once, at the press, means a still pointer always resolves to the rect it
+// started from.
+struct WindowChromeDrag {
+    EditorWindowDrag gesture{EditorWindowDrag::none};
+    Vector2 pointer{};
+    Vector2 position{};
+    Vector2 size{};
+};
+
+// Small enough to tuck a window away, large enough that the docked layout
+// still has somewhere to put every panel.
+constexpr float minimum_window_width = 720.0F;
+constexpr float minimum_window_height = 480.0F;
+
+[[nodiscard]] Vector2 desktop_pointer() noexcept {
+    const Vector2 window = GetWindowPosition();
+    const Vector2 pointer = GetMousePosition();
+    return {window.x + pointer.x, window.y + pointer.y};
+}
+
+void apply_window_chrome(const EditorWindowActions& request, WindowChromeDrag& drag) {
+    if (request.minimize) {
+        MinimizeWindow();
+    }
+    if (request.toggle_maximize) {
+        if (IsWindowMaximized()) {
+            RestoreWindow();
+        } else {
+            MaximizeWindow();
+        }
+    }
+    if (request.drag == EditorWindowDrag::none) {
+        drag.gesture = EditorWindowDrag::none;
+        return;
+    }
+    if (request.drag_started || drag.gesture != request.drag) {
+        drag = {
+            .gesture = request.drag,
+            .pointer = desktop_pointer(),
+            .position = GetWindowPosition(),
+            .size = {static_cast<float>(GetScreenWidth()),
+                     static_cast<float>(GetScreenHeight())},
+        };
+        return;
+    }
+
+    const Vector2 pointer = desktop_pointer();
+    const float moved_x = pointer.x - drag.pointer.x;
+    const float moved_y = pointer.y - drag.pointer.y;
+    if (request.drag == EditorWindowDrag::move) {
+        SetWindowPosition(static_cast<int>(std::lround(drag.position.x + moved_x)),
+                          static_cast<int>(std::lround(drag.position.y + moved_y)));
+        return;
+    }
+
+    const bool west = request.drag == EditorWindowDrag::resize_left ||
+                      request.drag == EditorWindowDrag::resize_top_left ||
+                      request.drag == EditorWindowDrag::resize_bottom_left;
+    const bool east = request.drag == EditorWindowDrag::resize_right ||
+                      request.drag == EditorWindowDrag::resize_top_right ||
+                      request.drag == EditorWindowDrag::resize_bottom_right;
+    const bool north = request.drag == EditorWindowDrag::resize_top ||
+                       request.drag == EditorWindowDrag::resize_top_left ||
+                       request.drag == EditorWindowDrag::resize_top_right;
+    const bool south = request.drag == EditorWindowDrag::resize_bottom ||
+                       request.drag == EditorWindowDrag::resize_bottom_left ||
+                       request.drag == EditorWindowDrag::resize_bottom_right;
+
+    float x = drag.position.x;
+    float y = drag.position.y;
+    float width = drag.size.x;
+    float height = drag.size.y;
+    if (east) {
+        width = std::max(minimum_window_width, drag.size.x + moved_x);
+    } else if (west) {
+        // Clamped on the width, then the origin is derived from it, so a
+        // window pulled past its minimum stops growing instead of walking its
+        // left edge across the desktop.
+        width = std::max(minimum_window_width, drag.size.x - moved_x);
+        x = drag.position.x + (drag.size.x - width);
+    }
+    if (south) {
+        height = std::max(minimum_window_height, drag.size.y + moved_y);
+    } else if (north) {
+        height = std::max(minimum_window_height, drag.size.y - moved_y);
+        y = drag.position.y + (drag.size.y - height);
+    }
+    SetWindowSize(static_cast<int>(std::lround(width)),
+                  static_cast<int>(std::lround(height)));
+    SetWindowPosition(static_cast<int>(std::lround(x)), static_cast<int>(std::lround(y)));
 }
 #endif
 
@@ -824,39 +953,84 @@ struct CombatCommandAdapter {
     };
 }
 
-[[nodiscard]] std::optional<Vec2> resolve_combat_aim(
+// Rotates the raw stick from camera space into world X/Z while preserving its
+// deflection, which the aim module needs: the length is what scales the turn
+// rate, so normalizing here would throw away fine control.
+[[nodiscard]] Vec2 stick_aim_world(
     const AimInput& aim,
-    const std::optional<Vec2> canvas_pointer,
-    const Vec3& player_position,
+    const Camera25DState& camera
+) noexcept {
+    const float length = std::sqrt(aim.horizontal * aim.horizontal + aim.depth * aim.depth);
+    if (!(length > 0.0001F)) {
+        return {};
+    }
+    const Vec3 world = camera_ground_direction_to_world(
+        {aim.horizontal / length, aim.depth / length}, camera);
+    return {world.x * length, world.z * length};
+}
+
+// Projects a world position into canvas space, returning nothing when it falls
+// outside the canvas. Used for the crosshair and the assist marker, which are
+// both world positions that must not be drawn off-screen.
+[[nodiscard]] std::optional<Vec2> canvas_position_of(
+    const Vec3& world_position,
     const int canvas_width,
     const int canvas_height,
     const Camera25DState& camera
 ) noexcept {
-    if (aim.pointer_active) {
-        if (!canvas_pointer) {
-            return std::nullopt;
-        }
-        const Vec2 direction = canvas_ground_direction(
-            player_position, *canvas_pointer, canvas_width, canvas_height, camera);
-        const float length_squared =
-            direction.x * direction.x + direction.y * direction.y;
-        return length_squared > 0.000001F ? std::optional<Vec2>{direction} : std::nullopt;
-    }
-
-    const float length = std::sqrt(aim.horizontal * aim.horizontal + aim.depth * aim.depth);
-    if (!(length > 0.0001F)) {
+    const ProjectedPoint25D projected = project_world_point(world_position, camera);
+    const Vec2 canvas{
+        projected.position.x + static_cast<float>(canvas_width) * 0.5F,
+        projected.position.y + static_cast<float>(canvas_height) * 0.5F,
+    };
+    if (canvas.x < 0.0F || canvas.y < 0.0F ||
+        canvas.x >= static_cast<float>(canvas_width) ||
+        canvas.y >= static_cast<float>(canvas_height)) {
         return std::nullopt;
     }
-    const Vec3 world = camera_ground_direction_to_world(
-        {aim.horizontal / length, aim.depth / length}, camera);
-    return Vec2{world.x, world.z};
+    return canvas;
+}
+
+// A ring on the actor the aim is being helped toward. Assist moves the shot,
+// not the cursor, so the crosshair stays under the player's hand and this is
+// what tells them the help is happening.
+// The target the aim is being helped toward. Four corner brackets rather than a
+// ring: brackets read as a deliberate lock at this pixel scale, where a thin
+// circle turns into a jagged blob, and they leave the actor's silhouette
+// unobscured. Drawn in canvas coordinates like the crosshair, because this is
+// inside the scene render target.
+void draw_assist_marker(const Vec2 canvas_position, const bool firing) {
+    const int x = static_cast<int>(std::round(canvas_position.x));
+    const int y = static_cast<int>(std::round(canvas_position.y));
+
+    // Tightens on the target while firing, which is the whole readout: the
+    // player sees the lock close rather than a static decoration.
+    const int reach = firing ? 9 : 11;
+    constexpr int arm = 4;
+    constexpr int thickness = 1;
+    constexpr Color shadow{13, 30, 29, 190};
+    const Color bracket = firing ? Color{248, 194, 89, 255} : Color{117, 238, 211, 225};
+
+    // Each corner is two strokes over a one-pixel shadow, so the mark stays
+    // legible against both the bright and the dark parts of a sprite.
+    for (int corner = 0; corner < 4; ++corner) {
+        const int sx = (corner & 1) == 0 ? -1 : 1;
+        const int sy = (corner & 2) == 0 ? -1 : 1;
+        const int cx = x + sx * reach;
+        const int cy = y + sy * reach;
+        const int left = sx < 0 ? cx : cx - arm + 1;
+        const int top = sy < 0 ? cy : cy - arm + 1;
+        DrawRectangle(left, cy - (sy < 0 ? 0 : thickness - 1) + 1, arm, thickness, shadow);
+        DrawRectangle(cx - (sx < 0 ? 0 : thickness - 1) + 1, top, thickness, arm, shadow);
+        DrawRectangle(left, cy - (sy < 0 ? 0 : thickness - 1), arm, thickness, bracket);
+        DrawRectangle(cx - (sx < 0 ? 0 : thickness - 1), top, thickness, arm, bracket);
+    }
 }
 
 [[nodiscard]] std::optional<Vec2> crosshair_canvas_position(
     const AimInput& input,
     const std::optional<Vec2> pointer_canvas,
-    const std::optional<Vec2> world_aim,
-    const Vec3& player_position,
+    const std::optional<Vec3> aim_point,
     const int canvas_width,
     const int canvas_height,
     const Camera25DState& camera
@@ -864,17 +1038,11 @@ struct CombatCommandAdapter {
     if (input.pointer_active) {
         return pointer_canvas;
     }
-    if (!world_aim) {
+    if (!aim_point) {
         return std::nullopt;
     }
 
-    constexpr float controller_crosshair_distance = 54.0F;
-    const Vec3 target{
-        player_position.x + world_aim->x * controller_crosshair_distance,
-        player_position.y,
-        player_position.z + world_aim->y * controller_crosshair_distance,
-    };
-    const ProjectedPoint25D projected = project_world_point(target, camera);
+    const ProjectedPoint25D projected = project_world_point(*aim_point, camera);
     const Vec2 canvas{
         projected.position.x + static_cast<float>(canvas_width) * 0.5F,
         projected.position.y + static_cast<float>(canvas_height) * 0.5F,
@@ -916,7 +1084,24 @@ void draw_pixel_crosshair(
 
 // One authoritative simulation tick: move the character, let layers observe the
 // results, then ease the camera toward the player.
-void advance_fixed_step(
+// A prompt over the item the player can use. It is drawn in canvas space like
+// the crosshair, so it scales with the presentation rather than the window.
+void draw_interaction_prompt(const Vec2 canvas_position) {
+    // Canvas coordinates, not screen: this is drawn inside the scene render
+    // target, exactly like the crosshair.
+    const int x = static_cast<int>(std::round(canvas_position.x));
+    const int y = static_cast<int>(std::round(canvas_position.y));
+    constexpr Color shell{8, 14, 18, 215};
+    constexpr Color rim{117, 238, 211, 235};
+    DrawCircle(x, y, 8.0F, shell);
+    DrawCircleLines(x, y, 8.0F, rim);
+    constexpr int font_size = 10;
+    DrawText("E", x - MeasureText("E", font_size) / 2, y - font_size / 2, font_size, rim);
+}
+
+// Returns whether the tick spent the pending interact request, so the caller
+// knows whether to keep offering it.
+[[nodiscard]] bool advance_fixed_step(
     RuntimeScene& scene,
     const NavGrid& navigation_grid,
     NavAgentSystem& navigation_agents,
@@ -936,11 +1121,23 @@ void advance_fixed_step(
     const float fixed_step_seconds,
     const std::uint64_t completed_ticks,
     const bool enemy_attack_damage_enabled,
+    const MuzzleGeometry muzzle,
+    Interaction& interaction,
+    const bool interact_requested,
     FlowField& crowd_field,
     const CrowdSteeringPlan& crowd_plan,
+    const ActorDebugOverrides& actor_overrides,
     JobSystem* const jobs
 ) {
     const std::uint64_t tick = completed_ticks + 1;
+    // Applied before the tick consumes anything, so a shot taken this tick is
+    // the shot the refilled magazine pays for.
+    for (const ActorDebugStateSnapshot& override_state :
+         actor_overrides.snapshot().actors) {
+        if (override_state.enabled(ActorDebugFlag::infinite_ammo)) {
+            static_cast<void>(combat.replenish(override_state.actor));
+        }
+    }
     combat.fixed_update(tick);
     const DodgeSnapshot dodge = combat.snapshot().dodge;
     const std::vector<CombatEvent> combat_events = combat.drain_events();
@@ -953,16 +1150,34 @@ void advance_fixed_step(
         if (spawn == nullptr || spawn->actor != scene.player_uuid()) {
             continue;
         }
-        Vec3 origin = scene.player_position();
-        constexpr float player_weapon_height = 14.0F;
-        constexpr float player_muzzle_forward_offset = 7.0F;
-        const float aim_length = std::sqrt(spawn->aim_direction.x * spawn->aim_direction.x +
-                                           spawn->aim_direction.y * spawn->aim_direction.y);
-        origin.x += spawn->aim_direction.x / aim_length * player_muzzle_forward_offset;
-        origin.y += player_weapon_height;
-        origin.z += spawn->aim_direction.y / aim_length * player_muzzle_forward_offset;
-        static_cast<void>(projectiles.spawn(*spawn, origin));
+        // The same geometry the aim resolved its origin from, so the shot
+        // leaves exactly where the crosshair said it would.
+        static_cast<void>(projectiles.spawn(
+            *spawn, muzzle_origin(scene.player_position(), spawn->aim_direction, muzzle)));
     }
+    // Interaction runs on the tick so a press is resolved against simulated
+    // positions, not against whatever the last rendered frame happened to show.
+    const bool interact_spent = interaction.fixed_update(
+        tick, scene.player_uuid(), scene.player_position(), interact_requested);
+    for (const InteractionPerformedEvent& used : interaction.drain_events()) {
+        bool accepted = false;
+        switch (used.kind) {
+        case InteractionKind::pickup_ammo:
+            // Combat owns ammo, so it decides how much of the offer it can
+            // take. Nothing here knows what a magazine is.
+            accepted = combat.resupply(used.actor,
+                                       static_cast<std::uint32_t>(used.amount)) > 0;
+            break;
+        }
+        if (!accepted) {
+            // The item could not be used, so it stays in the world rather than
+            // vanishing for nothing.
+            static_cast<void>(interaction.decline(used.entity));
+            continue;
+        }
+        static_cast<void>(scene.retire_entity(used.entity));
+    }
+
     projectiles.fixed_update(tick, fixed_step_seconds);
 
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
@@ -998,7 +1213,12 @@ void advance_fixed_step(
             .target = actor.target,
             .actor_position = {actor_position->x, actor_position->z},
             .target_position = {cached_target_position.x, cached_target_position.z},
-            .actor_alive = health_target_alive(health_before, actor.actor),
+            // A frozen actor is presented to intent as one that cannot act,
+            // which is exactly what intent already does with a dead one: no
+            // pursuit, no attack, no crowd shuffle. Its health is untouched,
+            // so it stays solid and shootable and resumes when released.
+            .actor_alive = health_target_alive(health_before, actor.actor) &&
+                           !actor_overrides.enabled(actor.actor, ActorDebugFlag::frozen),
             .target_alive = cached_target_alive,
         });
     }
@@ -1112,14 +1332,33 @@ void advance_fixed_step(
                 desired = {to_target.x / length, to_target.y / length};
             }
         }
+        // Routes and fields decide which cells to cross; neither says how
+        // close to a wall to pass, and a smoothed route cuts corners on
+        // purpose. Bending the direction away from solid ground here is what
+        // turns that into rounding the corner instead of scraping it.
         crowd_agents.push_back({
             .actor = actor.actor,
             .position = perception->actor_position,
-            .desired_direction = desired,
+            .desired_direction = nav_avoid_obstacles(
+                navigation_grid, perception->actor_position, desired),
         });
     }
+    // Padding, not merely anti-overlap. The authored attacker body is twenty
+    // units across, so a radius of a little under two body widths keeps a
+    // converging group readable as individuals rather than one stack of
+    // sprites, and still collapses to nothing when actors are far apart.
+    // The authored attacker body is twenty units across and kinematic, so
+    // nothing else keeps two of them apart. Padding a little wider than a body
+    // is what makes a converging group read as individuals rather than one
+    // overlapping mass.
+    constexpr CrowdSeparationSettings enemy_separation{
+        .radius = 34.0F,
+        .strength = 1.5F,
+        .personal_space = 26.0F,
+        .contact_strength = 8.0F,
+    };
     const std::vector<CrowdSteer> crowd_steers =
-        resolve_crowd_separation(crowd_agents, {}, jobs);
+        resolve_crowd_separation(crowd_agents, enemy_separation, jobs);
     std::vector<RuntimeSceneActorMotion> actor_motions;
     actor_motions.reserve(crowd_steers.size());
     std::size_t crowd_index = 0;
@@ -1158,6 +1397,7 @@ void advance_fixed_step(
                                                ? player_dodge.movement_speed_multiplier
                                                : 1.0F,
                        .dodging = dodge.active,
+                       .shot_sequence = combat.snapshot().spawned_projectile_count,
                    },
                    actor_motions,
                    fixed_step_seconds,
@@ -1203,6 +1443,11 @@ void advance_fixed_step(
         if (!impact.target) {
             continue;
         }
+        // Discarded here rather than absorbed by health, so an invulnerable
+        // actor leaves no damage event behind for a reader to puzzle over.
+        if (actor_overrides.enabled(impact.target, ActorDebugFlag::invulnerable)) {
+            continue;
+        }
         static_cast<void>(health.submit({
             .tick = tick,
             .hit = {.source = impact.actor, .value = impact.projectile_id},
@@ -1225,6 +1470,9 @@ void advance_fixed_step(
             ++enemy_observations.invulnerable_attacks_rejected;
             continue;
         }
+        if (actor_overrides.enabled(attack->target, ActorDebugFlag::invulnerable)) {
+            continue;
+        }
         static_cast<void>(health.submit({
             .tick = tick,
             .hit = {.source = attack->actor, .value = attack->sequence},
@@ -1237,13 +1485,20 @@ void advance_fixed_step(
     health_observations.observe(health_events);
     enemy_observations.observe_player_damage(health_events, scene.player_uuid());
     for (const HealthEvent& event : health_events) {
-        if (const auto* death = std::get_if<ActorDiedEvent>(&event)) {
+        if (const auto* damage = std::get_if<DamageAppliedEvent>(&event)) {
+            if (damage->target != scene.player_uuid() && damage->health_after > 0.0F) {
+                static_cast<void>(scene.play_actor_hurt(damage->target));
+            }
+        } else if (const auto* death = std::get_if<ActorDiedEvent>(&event)) {
             // Crowd actors carry runtime identities allocated above the
             // authored space. Counting their retirements separately is what
             // proves a body-less actor can still be hit, killed and removed.
             if (scene.is_crowd_actor(death->target)) {
                 ++health_observations.retired_crowd_actor_count;
             }
+            // Gameplay retirement remains immediate, but the presentation is
+            // allowed to finish its collapse and explosion one-shots first.
+            static_cast<void>(scene.begin_actor_death(death->target));
             if (scene.retire_actor(death->target)) {
                 ++health_observations.retired_actor_count;
             }
@@ -1259,6 +1514,7 @@ void advance_fixed_step(
     const float follow_weight = std::min(1.0F, camera_follow_rate * fixed_step_seconds);
     camera.focus.x += (player_position.x - camera.focus.x) * follow_weight;
     camera.focus.z += (player_position.z - camera.focus.z) * follow_weight;
+    return interact_spent;
 }
 
 [[nodiscard]] bool valid(const ApplicationConfig& config) noexcept {
@@ -1432,6 +1688,7 @@ struct CanvasRect {
 // Resolves a viewport click to the placement the renderer drew on top, using
 // the same layer-then-depth order the frame was sorted with.
 [[nodiscard]] std::optional<EntityUuid> pick_entity(
+    const RuntimeScene& scene,
     const WorldSnapshot& snapshot,
     const Camera25DState& camera,
     const ApplicationConfig& config,
@@ -1441,7 +1698,10 @@ struct CanvasRect {
     std::int32_t picked_layer = 0;
     float picked_depth = 0.0F;
     for (const EntityBlueprint& entity : snapshot.entities) {
-        if (!entity.sprite) {
+        // A dead actor and a used pickup are still in the snapshot so a reset
+        // can bring them back, but nothing is drawn where they stood. Clicking
+        // the empty ground they left has to reach whatever really is there.
+        if (!entity.sprite || !scene.is_entity_presented(entity.uuid)) {
             continue;
         }
         const CanvasRect rect = sprite_canvas_rect(entity, camera, config);
@@ -1726,6 +1986,9 @@ void submit_projectile_sprites(
     }
 }
 
+[[nodiscard]] std::vector<Interactable> build_interactables(
+    const SceneDefinition& definition);
+
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
 // Development channels draw over authored ground using their own id range, so
 // gameplay submission never has to thread an id counter through debug code.
@@ -1857,7 +2120,7 @@ void submit_debug_ground(
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
 void draw_compact_hud(
     const ApplicationConfig& config,
-    const bool paused,
+    const EditorRunState run_state,
     const bool dropped_time,
     const std::string_view pacing_description
 ) {
@@ -1867,7 +2130,10 @@ void draw_compact_hud(
     DrawText("F2 TOOLS  |  F1 WORLD DEBUG", 18, config.canvas_height - 24,
              9, Color{166, 178, 198, 225});
 
-    if (paused) {
+    // Only a paused run is dimmed and labelled. An editor sitting in edit mode
+    // is showing the authored scene, which is the thing an author opened it to
+    // look at; covering it with a banner would hide exactly that.
+    if (run_state == EditorRunState::paused) {
         DrawRectangle(0, 0, config.canvas_width, config.canvas_height, Fade(BLACK, 0.42F));
         DrawText("PAUSED", config.canvas_width / 2 - 43, config.canvas_height / 2 - 18, 22, RAYWHITE);
         DrawText("Press O to advance one simulation tick", config.canvas_width / 2 - 124,
@@ -1925,6 +2191,18 @@ int run_application(const ApplicationConfig& requested_config) {
     }
 
     unsigned int window_flags = FLAG_MSAA_4X_HINT | FLAG_WINDOW_HIGHDPI | FLAG_WINDOW_RESIZABLE;
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
+    // The editor supplies its own title bar, so the platform one is dropped
+    // rather than left sitting above a dark tool window in the desktop's
+    // colours. A run without the editor keeps ordinary window decorations:
+    // nothing would be drawing the replacement.
+    const bool custom_window_chrome = config.interactive_editor_session;
+    if (custom_window_chrome) {
+        window_flags |= FLAG_WINDOW_UNDECORATED;
+    }
+#else
+    constexpr bool custom_window_chrome = false;
+#endif
     if (config.render_pacing.mode == RenderPacingMode::monitor_synced) {
         window_flags |= FLAG_VSYNC_HINT;
     }
@@ -2020,12 +2298,16 @@ int run_application(const ApplicationConfig& requested_config) {
             std::string{"Authored scene discovery failed: "} + error.what());
     }
 #endif
+    // Resolved before the definition is moved into the scene, because that move
+    // leaves nothing behind to read the authored items from.
+    std::vector<Interactable> interactable_places;
     try {
         navigation_grid = std::make_unique<NavGrid>(
             scene_definition->ground(), navigation_grid_settings(*scene_definition));
         navigation_grid_snapshot = navigation_grid->snapshot();
         navigation_path =
             navigation_reference_path(scene_definition->ground(), *navigation_grid);
+        interactable_places = build_interactables(*scene_definition);
         scene = std::make_unique<RuntimeScene>(std::move(*scene_definition), textures);
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         if (config.initial_editor_enemy_stress_count > 0) {
@@ -2084,6 +2366,26 @@ int run_application(const ApplicationConfig& requested_config) {
     RaylibRenderer2D renderer{textures};
     GpuBackdrop gpu_backdrop;
     RenderQueue2D render_queue;
+    // Aim is a gameplay system, present in every build. The candidate buffer is
+    // reused because a stress scene can hold thousands of actors and a fresh
+    // allocation every frame would be pure waste.
+    bool restart_recovery_performed = false;
+    // A tick-named automated dodge is requested exactly once per run.
+    bool automated_dodge_requested = false;
+    Aiming aiming;
+    std::vector<AimTarget> aim_targets;
+    // The resolved set is kept beside the module because presentation needs an
+    // item's world position to place its prompt, and Interaction deliberately
+    // reports identity rather than geometry.
+    Interaction interaction;
+    static_cast<void>(interaction.load(interactable_places));
+    // A press lands on a frame but is resolved on a fixed tick, and a frame
+    // often runs no tick at all: above the fixed rate most frames do not. A
+    // frame-local flag therefore threw most presses away, which is what made
+    // the interact key feel like it needed spamming. The latch holds the press
+    // until a tick actually consumes it.
+    bool interact_requested = false;
+    bool interact_offered = false;
     Camera25DState world_camera = scene->initial_camera();
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
     // Presentation and pointer work go through the editor view, which is the
@@ -2101,8 +2403,21 @@ int run_application(const ApplicationConfig& requested_config) {
         .rotation_degrees = 0.0F,
         .zoom = 1.0F,
     };
-    bool paused = false;
+    // An editor session opens in edit mode: the first frame an author sees is
+    // the authored scene itself, and the run only begins when they ask for it.
+    // Every other run is simulating from its first tick, as it always was.
+    EditorRunState run_state = config.interactive_editor_session
+                                   ? EditorRunState::editing
+                                   : EditorRunState::running;
     bool gpu_background_enabled = true;
+    // Empty in any run nobody has opened the editor on, and free while it is.
+    ActorDebugOverrides actor_overrides;
+    WindowChromeDrag window_chrome_drag;
+    bool close_requested = false;
+    // Kills are damage, and damage is deduplicated by hit identity, so each
+    // one needs an identity of its own or a second kill would be discarded as
+    // a repeat of the first.
+    std::uint64_t editor_kill_sequence = 0;
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
     // The editor and its document are created on first request so an ordinary
     // development or smoke run pays nothing for tools it never opens.
@@ -2170,7 +2485,7 @@ int run_application(const ApplicationConfig& requested_config) {
     }
 #endif
 
-    while (!WindowShouldClose() &&
+    while (!WindowShouldClose() && !close_requested &&
            (config.max_frames == 0 || rendered_frames < config.max_frames) &&
            (config.max_fixed_ticks == 0 || simulated_ticks < config.max_fixed_ticks)) {
         const double frame_seconds = static_cast<double>(GetFrameTime());
@@ -2215,20 +2530,30 @@ int run_application(const ApplicationConfig& requested_config) {
             };
         }
         if (config.automated_fire_hold_ticks > 0) {
+            // Held fire is a range and Combat latches it, so evaluating it once
+            // per frame is exact: the command is submitted before the frame's
+            // ticks run, and the release lands on the first tick at or past the
+            // boundary whatever the frame rate.
             input_sample.gameplay.set(
                 GameplayAction::fire,
                 simulated_ticks < config.automated_fire_hold_ticks);
         }
-        if (config.automated_dodge_tick > 0) {
-            input_sample.gameplay.set(
-                GameplayAction::dodge,
-                simulated_ticks + 1 == config.automated_dodge_tick);
+        // A dodge names one exact tick, and a frame runs zero, one, or several
+        // ticks: at 30 Hz simulated_ticks skips values, so the frame whose
+        // count matched exactly could never occur and the dodge was silently
+        // dropped. Triggering on the first frame at or past the tick, once,
+        // makes the same run reproduce at any frame rate.
+        if (config.automated_dodge_tick > 0 && !automated_dodge_requested &&
+            simulated_ticks + 1 >= config.automated_dodge_tick) {
+            input_sample.gameplay.set(GameplayAction::dodge, true);
+            automated_dodge_requested = true;
         }
         const InputFrame input = input_tracker.update(input_sample);
 
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         if (input.pause.pressed) {
-            paused = !paused;
+            run_state = simulating(run_state) ? EditorRunState::paused
+                                              : EditorRunState::running;
             clock.reset();
         }
         const auto forget_observations = [&]() {
@@ -2237,6 +2562,7 @@ int run_application(const ApplicationConfig& requested_config) {
             combat.reset();
             combat_observations.reset();
             combat_command_adapter.reset();
+            automated_dodge_requested = false;
             enemy_intent.reset();
             navigation_agents.reset();
             enemy_observations.reset();
@@ -2249,6 +2575,9 @@ int run_application(const ApplicationConfig& requested_config) {
         };
         if (input.reset.pressed) {
             scene->reset();
+            interaction.reset();
+            interact_requested = false;
+            interact_offered = false;
             world_camera = scene->initial_camera();
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
             editor_camera.attach();
@@ -2299,9 +2628,37 @@ int run_application(const ApplicationConfig& requested_config) {
         const std::optional<Vec2> combat_canvas_pointer = pointer_canvas_point(
             input.gameplay.aim, combat_editor_visible, editor_canvas_pointer,
             config.canvas_width, config.canvas_height);
-        const std::optional<Vec2> combat_aim = resolve_combat_aim(
-            input.gameplay.aim, combat_canvas_pointer, scene->player_position(),
-            config.canvas_width, config.canvas_height, view_camera);
+        // Everything shootable and alive, other than the player. Aim assist
+        // reads copied facts; it never reaches into the scene.
+        aim_targets.clear();
+        if (!config.automated_aim) {
+            for (const HealthTargetSnapshot& target : health.snapshot().targets) {
+                if (!target.alive || target.target == scene->player_uuid()) {
+                    continue;
+                }
+                if (const std::optional<Vec3> position = scene->actor_position(target.target)) {
+                    aim_targets.push_back({.actor = target.target, .position = *position});
+                }
+            }
+        }
+        const Vec3 aim_actor_position = scene->player_position();
+        const AimingSnapshot& aim_snapshot = aiming.resolve(
+            AimingInputs{
+                .actor_position = aim_actor_position,
+                .pointer_active = input.gameplay.aim.pointer_active,
+                .pointer_world_point =
+                    combat_canvas_pointer
+                        ? std::optional<Vec3>{canvas_ground_point(
+                              *combat_canvas_pointer, aim_actor_position.y, config.canvas_width,
+                              config.canvas_height, view_camera)}
+                        : std::nullopt,
+                .stick_world = stick_aim_world(input.gameplay.aim, view_camera),
+                .delta_seconds = static_cast<float>(frame_seconds),
+                .direct = config.automated_aim,
+            },
+            aim_targets);
+        const std::optional<Vec2> combat_aim =
+            aim_snapshot.aiming ? std::optional<Vec2>{aim_snapshot.direction} : std::nullopt;
         const Vec2 camera_movement{
             config.automated_movement ? config.automated_movement_direction.x
                                       : input.move_horizontal,
@@ -2326,15 +2683,36 @@ int run_application(const ApplicationConfig& requested_config) {
         }
 
         TickPlan tick_plan{};
-        if (paused) {
+        if (!simulating(run_state)) {
             clock.reset();
-            if (input.step_simulation.pressed) {
+            // Single-stepping advances a run that is under way. Edit mode has
+            // no run to advance, and stepping one out of it would leave the
+            // scene in a state the document does not describe.
+            if (run_state == EditorRunState::paused && input.step_simulation.pressed) {
                 tick_plan.fixed_steps = 1;
             }
         } else {
             tick_plan = clock.advance(frame_seconds);
         }
 
+        // A press is an edge, but the tick that resolves it can land before the
+        // actor is in range: the key is pressed on the approach, or simply
+        // held. Throwing the press away on the next tick regardless left the
+        // prompt showing over an item that could not be used until the key was
+        // released and pressed again. The press is instead held until a tick
+        // actually spends it, and dropped on release once some tick has had
+        // the chance to. `offered` is what makes the release safe: at a high
+        // refresh rate a quick tap can begin and end between two fixed ticks,
+        // and that press must still reach one.
+        const ButtonState interact = input.gameplay.action(GameplayAction::interact);
+        if (interact.pressed) {
+            interact_requested = true;
+            interact_offered = false;
+        }
+        if (!interact.down && interact_offered) {
+            interact_requested = false;
+            interact_offered = false;
+        }
         Vec2 player_facing_direction = camera_movement;
         if (const std::optional<Vec2> aim = combat_command_adapter.aim_direction()) {
             player_facing_direction = world_ground_direction_to_camera(*aim, world_camera);
@@ -2348,7 +2726,8 @@ int run_application(const ApplicationConfig& requested_config) {
              step < tick_plan.fixed_steps &&
              (config.max_fixed_ticks == 0 || simulated_ticks < config.max_fixed_ticks);
              ++step) {
-            advance_fixed_step(*scene, *navigation_grid, navigation_agents,
+            const bool interact_spent =
+                advance_fixed_step(*scene, *navigation_grid, navigation_agents,
                                combat, enemy_intent, projectiles, health, runtime_layers,
                                scene_observations, combat_observations,
                                enemy_observations,
@@ -2356,8 +2735,18 @@ int run_application(const ApplicationConfig& requested_config) {
                                world_camera, camera_movement,
                                player_facing_direction,
                                static_cast<float>(fixed_step_seconds), simulated_ticks,
-                               enemy_attack_damage_enabled, crowd_flow_field,
-                               crowd_plan, &jobs);
+                               enemy_attack_damage_enabled, aiming.config().muzzle,
+                               interaction, interact_requested,
+                               crowd_flow_field, crowd_plan, actor_overrides, &jobs);
+            // Exactly one tick may spend a press, so holding the key must not
+            // empty a room. An unspent press stays pending; the tick having
+            // seen it is what lets the release drop it.
+            if (interact_spent) {
+                interact_requested = false;
+                interact_offered = false;
+            } else if (interact_requested) {
+                interact_offered = true;
+            }
             ++simulated_ticks;
         }
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
@@ -2406,8 +2795,9 @@ int run_application(const ApplicationConfig& requested_config) {
         const float interpolation_alpha = static_cast<float>(tick_plan.interpolation_alpha);
         const Vec3 current_player_position = scene->player_position();
         const std::optional<Vec2> crosshair_position = crosshair_canvas_position(
-            input.gameplay.aim, combat_canvas_pointer, combat_command_adapter.aim_direction(),
-            current_player_position, config.canvas_width, config.canvas_height, view_camera);
+            input.gameplay.aim, combat_canvas_pointer,
+            aim_snapshot.aiming ? std::optional<Vec3>{aim_snapshot.aim_point} : std::nullopt,
+            config.canvas_width, config.canvas_height, view_camera);
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         const std::string pacing_description = render_pacing_description(config.render_pacing);
 #endif
@@ -2488,9 +2878,14 @@ int run_application(const ApplicationConfig& requested_config) {
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         if (debug_visuals.draws(DebugChannel::stats_overlay)) {
             draw_compact_hud(
-                config, paused, tick_plan.dropped_time, pacing_description);
+                config, run_state, tick_plan.dropped_time, pacing_description);
         }
-        if (editor && editor->visible() && editor->selection()) {
+        // An outline around a dead actor is an outline around nothing: the
+        // sprite it was drawn to frame stopped being rendered when the actor
+        // was retired. The selection itself is kept, so the Inspector can still
+        // report that the actor is dead and offer the way to bring it back.
+        if (editor && editor->visible() && editor->selection() &&
+            scene->is_entity_presented(editor->selection())) {
             draw_selection_outline(scene->world_snapshot(), view_camera, config,
                                    editor->selection());
             if (gizmo_preview_offset) {
@@ -2502,6 +2897,34 @@ int run_application(const ApplicationConfig& requested_config) {
         static_cast<void>(gpu_backdrop_active);
         static_cast<void>(render_diagnostics);
 #endif
+        if (aim_snapshot.assisted_target) {
+            if (const std::optional<Vec3> assisted =
+                    scene->actor_position(*aim_snapshot.assisted_target)) {
+                // Framed on the body rather than the feet, which is where an
+                // actor's ground position sits.
+                constexpr float assist_marker_height = 17.0F;
+                const Vec3 framed{assisted->x, assisted->y + assist_marker_height, assisted->z};
+                if (const std::optional<Vec2> marker = canvas_position_of(
+                        framed, config.canvas_width, config.canvas_height, view_camera)) {
+                    draw_assist_marker(
+                        *marker, input.gameplay.action(GameplayAction::fire).down);
+                }
+            }
+        }
+        if (const std::optional<InteractionCandidate>& usable =
+                interaction.snapshot().candidate) {
+            const auto place = std::ranges::find(interactable_places, usable->entity,
+                                                 &Interactable::entity);
+            if (place != interactable_places.end()) {
+                constexpr float prompt_height = 26.0F;
+                const Vec3 prompt{place->position.x, place->position.y + prompt_height,
+                                  place->position.z};
+                if (const std::optional<Vec2> marker = canvas_position_of(
+                        prompt, config.canvas_width, config.canvas_height, view_camera)) {
+                    draw_interaction_prompt(*marker);
+                }
+            }
+        }
         if (crosshair_position) {
             draw_pixel_crosshair(
                 *crosshair_position, config.canvas_width, config.canvas_height,
@@ -2540,7 +2963,8 @@ int run_application(const ApplicationConfig& requested_config) {
             Vec2 axis_z_canvas{0.0F, 1.0F};
             bool movable{false};
         } gizmo_anchor;
-        if (editor_visible && editor->selection()) {
+        if (editor_visible && editor->selection() &&
+            scene->is_entity_presented(editor->selection())) {
             const WorldSnapshot selection_snapshot = scene->world_snapshot();
             const auto found = std::ranges::find(
                 selection_snapshot.entities, editor->selection(), &EntityBlueprint::uuid);
@@ -2595,6 +3019,8 @@ int run_application(const ApplicationConfig& requested_config) {
                     .navigation_path = visible_navigation_path,
                     .navigation_agents = navigation_agent_snapshot,
                     .input = input,
+                    .aim = aim_snapshot,
+                    .interaction = interaction.snapshot(),
                     .combat = combat.snapshot(),
                     .observed_combat_intents = combat_observations.intent_count,
                     .last_combat_intent = combat_observations.last_intent,
@@ -2621,7 +3047,11 @@ int run_application(const ApplicationConfig& requested_config) {
                     .post_process_active = frame_pipeline.diagnostics().post_process_active,
                     .post_process_available = frame_pipeline.diagnostics().post_process_available,
                     .texture_hot_reload_enabled = config.enable_editor_texture_hot_reload,
-                    .paused = paused,
+                    .run_state = run_state,
+                    .custom_window_chrome = custom_window_chrome,
+                    .window_maximized = IsWindowMaximized(),
+                    .player_uuid = scene->player_uuid(),
+                    .actor_debug = actor_overrides.snapshot(),
                     .camera_detached = editor_camera.detached(),
                     .selection_canvas_point = gizmo_anchor.canvas_point,
                     .selection_axis_x_canvas = gizmo_anchor.axis_x_canvas,
@@ -2650,6 +3080,11 @@ int run_application(const ApplicationConfig& requested_config) {
 
 #if IC2DE_ENABLE_DEVELOPMENT_TOOLS
         const auto commit_editor_runtime = [&](EditorRuntimeSceneCandidate candidate) {
+            // The replacement allocates its own runtime identities, so every
+            // override held over the outgoing scene names an actor that no
+            // longer exists. Keeping them would leave the panel reporting
+            // overrides nothing is subject to.
+            actor_overrides.clear_all();
             enemy_attack_damage_enabled = candidate.enemy_attack_damage_enabled;
             scene = std::move(candidate.scene);
             navigation_grid = std::move(candidate.navigation_grid);
@@ -2662,27 +3097,93 @@ int run_application(const ApplicationConfig& requested_config) {
             // The replacement carries its own grid, so a field built against
             // the old topology is meaningless and must not be consulted.
             crowd_flow_field = FlowField{};
+            // The replacement scene carries its own items, so the used set from
+            // the previous one is meaningless.
+            interactable_places = std::move(candidate.interactables);
+            static_cast<void>(interaction.load(interactable_places));
             world_camera = scene->initial_camera();
             editor_camera.attach();
             forget_observations();
         };
-        if (editor_actions.toggle_pause) {
-            paused = !paused;
+        apply_window_chrome(editor_actions.window, window_chrome_drag);
+        if (editor_actions.window.close) {
+            close_requested = true;
+        }
+        if (editor_actions.set_run_state && *editor_actions.set_run_state != run_state) {
+            run_state = *editor_actions.set_run_state;
             clock.reset();
+        }
+        for (const EditorActions::ActorDebugRequest& request :
+             editor_actions.actor_debug_requests) {
+            if (!actor_overrides.set(request.actor, request.flag, request.enabled)) {
+                log(LogLevel::warning, "Editor requested an override for an unusable actor.");
+            }
+        }
+        if (editor_actions.kill_actor) {
+            // Damage rather than retirement, so the actor dies through exactly
+            // the path a bullet uses: the same death event, the same retirement,
+            // the same observations. Full maximum health guarantees it lands
+            // however hurt the actor already was.
+            const HealthSnapshot health_now = health.snapshot();
+            const auto target = std::ranges::find(
+                health_now.targets, *editor_actions.kill_actor,
+                &HealthTargetSnapshot::target);
+            if (target == health_now.targets.end() || !target->alive) {
+                log(LogLevel::warning, "Editor asked to kill an actor with no live health.");
+            } else if (!health.submit({
+                           .tick = health_now.tick + 1,
+                           .hit = {.source = *editor_actions.kill_actor,
+                                   .value = ++editor_kill_sequence},
+                           .target = *editor_actions.kill_actor,
+                           .damage = target->maximum_health,
+                       })) {
+                log(LogLevel::warning, "Editor kill request was refused by health.");
+            }
+        }
+        // Restart once, as soon as something has died, and keep running so the
+        // shutdown check can require a second death from the revived actor.
+        if (config.validate_restart_recovery && !restart_recovery_performed &&
+            health.snapshot().death_count > 0) {
+            restart_recovery_performed = true;
+            scene->reset();
+            interaction.reset();
+            interact_requested = false;
+            interact_offered = false;
+            world_camera = scene->initial_camera();
+#if IC2DE_ENABLE_DEVELOPMENT_TOOLS
+            editor_camera.attach();
+#endif
+            forget_observations();
+            log(LogLevel::info, "Restart-recovery validation restarted the running scene.");
         }
         if (editor_actions.reset_running_scene) {
             scene->reset();
+            interaction.reset();
+            interact_requested = false;
+            interact_offered = false;
             world_camera = scene->initial_camera();
             editor_camera.attach();
             forget_observations();
+            // Restart puts the authored scene back, which is edit mode by
+            // definition. Without this an editor could reach edit mode only by
+            // being relaunched, and the state it opens in would be one an
+            // author could never get back to.
+            if (config.interactive_editor_session) {
+                run_state = EditorRunState::editing;
+                clock.reset();
+            }
         }
         if (editor_actions.viewport_picked && editor) {
             // Clicking empty ground clears the selection rather than keeping a
             // stale one the pointer is no longer over.
             const std::optional<EntityUuid> picked =
-                pick_entity(scene->world_snapshot(), view_camera, config,
+                pick_entity(*scene, scene->world_snapshot(), view_camera, config,
                             editor_actions.viewport_pick_canvas_point);
-            editor->select_entity(picked.value_or(EntityUuid{}));
+            // Clicking what is already selected lets go of it, so the pointer
+            // that made a selection is also the one that undoes it, without
+            // having to hunt for empty ground.
+            const EntityUuid resolved = picked.value_or(EntityUuid{});
+            editor->select_entity(resolved == editor->selection() ? EntityUuid{} : resolved);
         }
         if (editor_actions.apply_document_to_running_scene && scene_editor) {
             try {
@@ -2978,6 +3479,8 @@ int run_application(const ApplicationConfig& requested_config) {
     }
     scene_editor.reset();
 #endif
+    const std::uint64_t completed_terminal_animations =
+        scene->completed_actor_terminal_animation_count();
     gpu_backdrop.release();
     scene.reset();
     const bool texture_lifetime_valid = textures.loaded_texture_count() == 0;
@@ -3051,6 +3554,22 @@ int run_application(const ApplicationConfig& requested_config) {
                 std::to_string(config.minimum_automated_target_deaths) + ".");
         return 14;
     }
+    if (config.validate_restart_recovery) {
+        if (!restart_recovery_performed) {
+            log(LogLevel::error,
+                "Restart-recovery validation never observed a death to restart from.");
+            return 26;
+        }
+        if (target_death_count == 0) {
+            log(LogLevel::error,
+                "Restart-recovery validation observed no death after the restart: a revived "
+                "actor was not shootable again.");
+            return 26;
+        }
+        log(LogLevel::info,
+            "Restart-recovery validation passed with " + std::to_string(target_death_count) +
+                " death(s) after restarting the running scene.");
+    }
     if (config.minimum_automated_target_deaths > 0) {
         if (health_observations.retired_actor_count < target_death_count) {
             log(LogLevel::error,
@@ -3061,6 +3580,20 @@ int run_application(const ApplicationConfig& requested_config) {
             "Automated target-health validation passed with " +
                 std::to_string(target_death_count) +
                 " deterministic death(s) and matching scene retirement(s).");
+    }
+    if (completed_terminal_animations <
+        config.minimum_automated_terminal_animation_completions) {
+        throw std::runtime_error{
+            "Automated target-health validation completed only " +
+            std::to_string(completed_terminal_animations) +
+            " terminal animation sequence(s); expected at least " +
+            std::to_string(config.minimum_automated_terminal_animation_completions) + "."};
+    }
+    if (config.minimum_automated_terminal_animation_completions > 0) {
+        log(LogLevel::info,
+            "Automated terminal-presentation validation passed with " +
+                std::to_string(completed_terminal_animations) +
+                " completed death-to-explosion sequence(s).");
     }
     if (health_observations.retired_crowd_actor_count <
         config.minimum_automated_crowd_actor_retirements) {

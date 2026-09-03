@@ -30,6 +30,8 @@ struct SceneDocumentEntity {
     std::string name;
     std::string prefab_id; // Empty unless the record instantiates a prefab.
     bool physics_bound{false};
+    // The placement this one belongs to, or zero when it stands on its own.
+    EntityUuid parent{};
     Vec3 position{};
     // A prefab instance draws its template's sprite, so only a plain entity
     // record carries editable sprite fields of its own.

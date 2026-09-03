@@ -198,6 +198,14 @@ target_link_libraries(ic2de_projectiles PUBLIC IC2DE::Combat)
 target_compile_features(ic2de_projectiles PUBLIC cxx_std_20)
 ic2de_set_project_warnings(ic2de_projectiles)
 
+add_library(ic2de_actor_debug STATIC
+    engine/src/actor_debug.cpp
+)
+add_library(IC2DE::ActorDebug ALIAS ic2de_actor_debug)
+target_include_directories(ic2de_actor_debug PUBLIC engine/include)
+target_compile_features(ic2de_actor_debug PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_actor_debug)
+
 add_library(ic2de_health STATIC
     engine/src/health.cpp
 )
@@ -271,6 +279,22 @@ target_include_directories(ic2de_debug PUBLIC engine/include)
 target_compile_features(ic2de_debug PUBLIC cxx_std_20)
 ic2de_set_project_warnings(ic2de_debug)
 
+add_library(ic2de_aiming STATIC
+    engine/src/aiming.cpp
+)
+add_library(IC2DE::Aiming ALIAS ic2de_aiming)
+target_include_directories(ic2de_aiming PUBLIC engine/include)
+target_compile_features(ic2de_aiming PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_aiming)
+
+add_library(ic2de_interaction STATIC
+    engine/src/interaction.cpp
+)
+add_library(IC2DE::Interaction ALIAS ic2de_interaction)
+target_include_directories(ic2de_interaction PUBLIC engine/include)
+target_compile_features(ic2de_interaction PUBLIC cxx_std_20)
+ic2de_set_project_warnings(ic2de_interaction)
+
 add_library(ic2de_render STATIC
     engine/src/projection25d.cpp
     engine/src/render2d.cpp
@@ -298,7 +322,7 @@ add_library(ic2de_scene STATIC
 add_library(IC2DE::Scene ALIAS ic2de_scene)
 target_include_directories(ic2de_scene PUBLIC engine/include)
 target_link_libraries(ic2de_scene
-    PUBLIC IC2DE::Animation IC2DE::Flow IC2DE::Ground IC2DE::Jobs IC2DE::Locomotion IC2DE::Physics IC2DE::World
+    PUBLIC IC2DE::Animation IC2DE::Flow IC2DE::Ground IC2DE::Interaction IC2DE::Jobs IC2DE::Locomotion IC2DE::Physics IC2DE::World
     PRIVATE IC2DE::Aseprite IC2DE::Assets IC2DE::Render
 )
 target_compile_features(ic2de_scene PUBLIC cxx_std_20)
@@ -335,7 +359,7 @@ if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
     target_include_directories(ic2de_editor PUBLIC engine/include)
     target_include_directories(ic2de_editor PRIVATE engine/src)
     target_link_libraries(ic2de_editor
-        PUBLIC IC2DE::Debug IC2DE::Render IC2DE::Scene
+        PUBLIC IC2DE::ActorDebug IC2DE::Aiming IC2DE::Debug IC2DE::Interaction IC2DE::Render IC2DE::Scene
         PRIVATE IC2DE::Combat IC2DE::Core IC2DE::EnemyIntent IC2DE::Health IC2DE::Input IC2DE::NavAgent IC2DE::NavPathfinding IC2DE::Projectiles ic2de_imgui raylib
     )
     target_compile_features(ic2de_editor PUBLIC cxx_std_20)
@@ -355,7 +379,7 @@ target_include_directories(ic2de_runtime PUBLIC engine/include)
 target_include_directories(ic2de_runtime PRIVATE engine/src)
 target_link_libraries(ic2de_runtime
     PUBLIC IC2DE::Core
-    PRIVATE IC2DE::Assets IC2DE::Combat IC2DE::Crowd IC2DE::Debug IC2DE::FlowField IC2DE::EnemyIntent IC2DE::GameplayState IC2DE::Ground IC2DE::Health IC2DE::Input IC2DE::Jobs IC2DE::NavAgent IC2DE::NavGrid IC2DE::NavPathfinding IC2DE::Physics IC2DE::Presentation IC2DE::Project IC2DE::Projectiles IC2DE::Render IC2DE::Scene IC2DE::World raylib
+    PRIVATE IC2DE::ActorDebug IC2DE::Aiming IC2DE::Assets IC2DE::Combat IC2DE::Crowd IC2DE::Interaction IC2DE::Debug IC2DE::FlowField IC2DE::EnemyIntent IC2DE::GameplayState IC2DE::Ground IC2DE::Health IC2DE::Input IC2DE::Jobs IC2DE::NavAgent IC2DE::NavGrid IC2DE::NavPathfinding IC2DE::Physics IC2DE::Presentation IC2DE::Project IC2DE::Projectiles IC2DE::Render IC2DE::Scene IC2DE::World raylib
 )
 if(IC2DE_ENABLE_DEVELOPMENT_TOOLS)
     target_link_libraries(ic2de_runtime PRIVATE IC2DE::Editor)
@@ -509,6 +533,14 @@ if(IC2DE_BUILD_TESTS)
     target_compile_features(ic2de_projectile_tests PRIVATE cxx_std_20)
     ic2de_set_project_warnings(ic2de_projectile_tests)
     add_test(NAME ic2de.projectiles COMMAND ic2de_projectile_tests)
+
+    add_executable(ic2de_actor_debug_tests
+        tests/unit/actor_debug_tests.cpp
+    )
+    target_link_libraries(ic2de_actor_debug_tests PRIVATE IC2DE::ActorDebug)
+    target_compile_features(ic2de_actor_debug_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_actor_debug_tests)
+    add_test(NAME ic2de.actor_debug COMMAND ic2de_actor_debug_tests)
 
     add_executable(ic2de_health_tests
         tests/unit/health_tests.cpp
@@ -675,6 +707,22 @@ if(IC2DE_BUILD_TESTS)
     ic2de_set_project_warnings(ic2de_debug_tests)
     add_test(NAME ic2de.debug COMMAND ic2de_debug_tests)
 
+    add_executable(ic2de_aiming_tests
+        tests/unit/aiming_tests.cpp
+    )
+    target_link_libraries(ic2de_aiming_tests PRIVATE IC2DE::Aiming)
+    target_compile_features(ic2de_aiming_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_aiming_tests)
+    add_test(NAME ic2de.aiming COMMAND ic2de_aiming_tests)
+
+    add_executable(ic2de_interaction_tests
+        tests/unit/interaction_tests.cpp
+    )
+    target_link_libraries(ic2de_interaction_tests PRIVATE IC2DE::Combat IC2DE::Interaction)
+    target_compile_features(ic2de_interaction_tests PRIVATE cxx_std_20)
+    ic2de_set_project_warnings(ic2de_interaction_tests)
+    add_test(NAME ic2de.interaction COMMAND ic2de_interaction_tests)
+
     add_executable(ic2de_render_tests
         tests/unit/projection25d_tests.cpp
         tests/unit/render2d_tests.cpp
@@ -697,6 +745,15 @@ if(IC2DE_BUILD_TESTS)
     if(TARGET ic2de_editor_app)
         add_test(NAME ic2de.crowd_kill COMMAND ic2de_editor_app --smoke-crowd-kill)
         set_tests_properties(ic2de.crowd_kill PROPERTIES
+            WORKING_DIRECTORY "$<TARGET_FILE_DIR:ic2de_editor_app>"
+        )
+
+        # Reviving a retired actor has to restore everything it needs to be
+        # shot again, not only its presentation. That is only observable across
+        # a restart, so it needs a real scene and a second kill.
+        add_test(NAME ic2de.restart_recovery
+                 COMMAND ic2de_editor_app --smoke-restart-recovery)
+        set_tests_properties(ic2de.restart_recovery PROPERTIES
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:ic2de_editor_app>"
         )
     endif()

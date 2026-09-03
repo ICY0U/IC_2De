@@ -1,0 +1,241 @@
+﻿{
+    "frames":  [
+                   {
+                       "filename":  "player-v3-dodge-roll-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_events":  [
+                                           "dodge_launch"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-2",
+                       "frame":  {
+                                     "x":  48,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-3",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-4",
+                       "frame":  {
+                                     "x":  144,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-5",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-6",
+                       "frame":  {
+                                     "x":  240,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-7",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_events":  [
+                                           "dodge_recover"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-8",
+                       "frame":  {
+                                     "x":  336,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-mirror-1",
+                       "frame":  {
+                                     "x":  0,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "dodge_launch"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-mirror-2",
+                       "frame":  {
+                                     "x":  48,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-mirror-3",
+                       "frame":  {
+                                     "x":  96,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-mirror-4",
+                       "frame":  {
+                                     "x":  144,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-mirror-5",
+                       "frame":  {
+                                     "x":  192,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-mirror-6",
+                       "frame":  {
+                                     "x":  240,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  33,
+                       "ic2d_flip_x":  true
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-mirror-7",
+                       "frame":  {
+                                     "x":  288,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true,
+                       "ic2d_events":  [
+                                           "dodge_recover"
+                                       ]
+                   },
+                   {
+                       "filename":  "player-v3-dodge-roll-mirror-8",
+                       "frame":  {
+                                     "x":  336,
+                                     "y":  0,
+                                     "w":  48,
+                                     "h":  48
+                                 },
+                       "rotated":  false,
+                       "trimmed":  false,
+                       "duration":  17,
+                       "ic2d_flip_x":  true
+                   }
+               ],
+    "meta":  {
+                 "app":  "IC_2DE player V3 native-grid importer",
+                 "version":  "1.0",
+                 "image":  "player-v3-dodge-roll.png",
+                 "format":  "RGBA8888",
+                 "size":  {
+                              "w":  384,
+                              "h":  48
+                          },
+                 "scale":  "1",
+                 "frameTags":  [
+                                   {
+                                       "name":  "player-v3-dodge-roll-east",
+                                       "from":  0,
+                                       "to":  7,
+                                       "direction":  "forward"
+                                   },
+                                   {
+                                       "name":  "player-v3-dodge-roll-west",
+                                       "from":  8,
+                                       "to":  15,
+                                       "direction":  "forward"
+                                   }
+                               ]
+             }
+}

@@ -130,6 +130,18 @@ entity=id|uuid|name|physics_binding|x|y|z|width|height|origin_x|origin_y|r|g|b|a
 
 `uuid` is a non-zero, scene-unique 64-bit integer that remains stable when the entity is copied into a runtime World or captured in a World snapshot. The textual `id` remains the human-authored cross-reference used by physics and animation records; renaming the display `name` does not change identity. Use `-` for no physics binding or no texture. A physics-bound entity must begin at its body's X/Z center; its authored Y and any offset become its maintained render offset. Multiple entities can bind to one body, allowing a sprite and shadow to synchronize without application-side entity IDs. Schema 10 optionally appends a non-negative `depth_span`; omitting it preserves the former zero-span behavior.
 
+### Parenting
+
+```text
+parent=child_entity_id|parent_entity_id
+```
+
+An optional record, added in schema 12, naming the placement a placement belongs to. Both ends are textual entity or prefab-instance ids that must already exist. A child may name at most one parent, an entity may not parent itself, and a cycle is rejected, so the hierarchy is always a forest that can be walked to an end.
+
+Parenting is an ownership link, not a transform link. A parent owns its children's lifetime: taking a parent out of play takes its whole subtree with it, which is what lets a used pickup remove the shadow it casts instead of leaving it on the ground. A child that has to follow a moving parent still shares its `physics_binding`, exactly as it did before, so the two concerns stay separate.
+
+`SceneDefinition::load()` resolves each record onto the child's `parent` field as the parent's UUID, so runtime and tools read identity rather than the textual id space. Unparented placements carry a zero parent. The editor's Hierarchy panel draws the resulting tree, and `RuntimeScene::retire_entity()` walks it.
+
 ### Prefabs and instances
 
 A prefab is a reusable sprite template with its own persistent identity. An instance places that template in the scene and may override individual sprite fields.
@@ -163,11 +175,15 @@ animation_binding=entity_id|locomotion_state|clip_id|initial
 
 An animated entity must be physics-bound and declare exactly one `initial=true` record. Every locomotion map supplies all sixteen core states: idle and move variants for `south`, `southwest`, `west`, `northwest`, `north`, `northeast`, `east`, and `southeast`. For example, `idle_northwest` and `move_northwest` are separate records. Several states may intentionally reference the same clip, as the placeholder enemy currently does.
 
-Dodge presentation is optional. An entity that declares any `dodge_<direction>` record must declare all eight compass directions. RuntimeScene selects those clips only while the generic player-motion command has `dodging=true`; authoritative displacement, invulnerability, duration, and cooldown remain owned by Combat. The player V2 dodge clips total exactly twelve fixed ticks, matching the authored gameplay action.
+Dodge presentation is optional. An entity that declares any `dodge_<direction>` record must declare all eight compass directions. RuntimeScene selects those clips only while the generic player-motion command has `dodging=true`; authoritative displacement, invulnerability, duration, and cooldown remain owned by Combat. The player V3 dodge clips total exactly twelve fixed ticks, matching the authored gameplay action. Its authored variants are assigned by compass sector: south back-hop, southwest/southeast slide, west/east sidestep, northwest/northeast roll, and north forward dodge.
+
+Seated idle presentation is optional and forms a complete two-state group: `seated_south` and `seated_north`. A stationary player facing north or south enters the appropriate seated loop after 180 fixed ticks. Movement, dodge, shooting, or changing to another facing cancels the delay or leaves the seated state. The current V3 art begins directly at the seated loop because the approved source set contains no sit-down or stand-up transition strip.
+
+Shooting presentation is optional and forms a complete four-state group: `shoot_south`, `shoot_west`, `shoot_north`, and `shoot_east`. RuntimeScene selects the nearest authored cardinal view from the eight-way aim direction. A monotonic successful-shot sequence starts or restarts the nine-fixed-tick shooting strip for every projectile actually spawned, so held fire retriggers recoil without coupling rendering to input polling.
 
 Runtime facing divides the X/Z movement vector into eight equal 45-degree sectors. Cardinal directions own a 45-degree cone centered on their axis, with boundaries 22.5 degrees from the axis. When movement stops or is obstructed, the last idle-facing variant is retained.
 
-Switching between directional clips preserves the normalized cycle phase rather than restarting, so a character that turns while walking keeps its gait instead of snapping back to the first frame. Clips that play once fall back to a restart.
+Switching between ordinary directional locomotion clips preserves the normalized cycle phase rather than restarting, so a character that turns while walking keeps its gait instead of snapping back to the first frame. Dodge, seated, and shooting action transitions restart from their first frame; clips that play once fall back to a restart.
 
 ### Automatic animations
 
@@ -185,6 +201,6 @@ A deterministic looping clip for entities that animate independently of physics 
 
 After graphics startup, `RuntimeScene` consumes the validated definition and owns its World, GroundMap, PhysicsWorld, texture handles, role lookup, animation players, reset state, fixed-tick synchronization, trigger state, and interpolated render snapshots. The application supplies copied movement requests addressed by stable actor UUID. `RuntimeScene` validates that each requested actor is an active non-player kinematic body, resolves movement through GroundMap and Physics2D, and returns copied resolved-motion results; the caller never identifies animation clips or private physics handles.
 
-`SceneDefinition::load()` remains strict and accepts only the current schema. Tools must explicitly call `SceneDocument::migrate_to_current()` before loading older authored data. Schema 5 migrates by deriving deterministic, non-zero, scene-unique UUIDs from the scene and entity textual IDs. Schemas 6 through 9 then migrate by version alone: schema 7 added optional prefab records, schema 8 added optional automatic-animation records, schema 9 added the optional `attacker` physics role, and schema 10 adds the optional entity depth span. Every path is idempotent; migration never invents attacker records or depth spans.
+`SceneDefinition::load()` remains strict and accepts only the current schema. Tools must explicitly call `SceneDocument::migrate_to_current()` before loading older authored data. Schema 5 migrates by deriving deterministic, non-zero, scene-unique UUIDs from the scene and entity textual IDs. Schemas 6 through 11 then migrate by version alone: schema 7 added optional prefab records, schema 8 added optional automatic-animation records, schema 9 added the optional `attacker` physics role, schema 10 added the optional entity depth span, schema 11 added optional interactable records, and schema 12 adds optional parent records. Every path is idempotent; migration never invents attacker records, depth spans, or parent links.
 
-`SceneDocument` edits supported entity and prefab-instance fields by UUID while preserving comments and untouched records. It also creates prefab instances with deterministic identity derived from the scene and instance ids, and removes an instance together with the overrides that address it. A removal is refused while an animation binding still names the instance. `runtime_copy()` validates and materializes unsaved edits without changing the source file. `save_atomic()` writes a sibling temporary candidate, validates the complete scene through `SceneDefinition`, and replaces the destination only after validation succeeds. A malformed candidate leaves the previous destination bytes intact and removes the temporary file.
+`SceneDocument` edits supported entity and prefab-instance fields by UUID while preserving comments and untouched records. It also creates prefab instances with deterministic identity derived from the scene and instance ids, and removes an instance together with the overrides and the parent record that address it. A removal is refused while an animation binding still names the instance, or while another placement is still parented to it. `runtime_copy()` validates and materializes unsaved edits without changing the source file. `save_atomic()` writes a sibling temporary candidate, validates the complete scene through `SceneDefinition`, and replaces the destination only after validation succeeds. A malformed candidate leaves the previous destination bytes intact and removes the temporary file.

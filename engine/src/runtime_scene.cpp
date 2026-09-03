@@ -16,6 +16,9 @@
 namespace ic2d {
 namespace {
 
+constexpr std::uint32_t player_seated_idle_delay_ticks = 180;
+constexpr std::uint32_t player_shoot_presentation_ticks = 9;
+
 struct SegmentBoxHit {
     Vec2 point{};
     Vec2 normal{};
@@ -128,6 +131,32 @@ struct RuntimeScene::Impl {
         Vec3 offset{};
     };
 
+    // Entities taken out of play by gameplay, such as a used pickup. They are
+    // hidden rather than destroyed so reset() can bring them back, and are
+    // keyed by stable UUID because a World identity is transient.
+    std::unordered_set<std::uint64_t> retired_entities;
+
+    [[nodiscard]] bool is_retired_entity(const EntityId entity) const noexcept {
+        if (retired_entities.empty()) {
+            return false;
+        }
+        const std::optional<EntityUuid> uuid = world.uuid(entity);
+        return uuid && retired_entities.contains(uuid->value);
+    }
+
+    // Whether the entity is drawn this frame: neither retired itself, nor
+    // bound to a body that has been taken out of play. Render collection and
+    // every editor decoration ask this one question, so what the viewport
+    // shows stays exactly what the pointer can reach and the outline can find.
+    [[nodiscard]] bool is_presented(const EntityId entity) const noexcept {
+        if (is_retired_entity(entity)) {
+            return false;
+        }
+        const auto found = entity_bindings.find(entity.value);
+        return found == entity_bindings.end() ||
+               body_bindings[found->second.body_index].presentation_active;
+    }
+
     struct BodyBinding {
         std::string authored_id;
         ScenePhysicsRole role{ScenePhysicsRole::generic};
@@ -138,12 +167,19 @@ struct RuntimeScene::Impl {
         Vec3 current_position{};
         std::vector<BoundEntity> entities;
         bool active{true};
+        bool presentation_active{true};
+        bool hold_presentation_until_terminal{false};
         // Runtime crowd copies carry no rigid body. Their movement is already
         // decided by ground sliding and steering, and a kinematic body neither
         // collides with other kinematic bodies nor contributes anything the
         // simulation reads back, so stepping thousands of them is pure cost.
         // Segment casts reach them through the actor index instead.
         bool physics_backed{true};
+        // The direction the actor asked to move this tick, as distinct from
+        // the one it managed to. Presentation reads this: an actor held by a
+        // wall still slides a little along it, and the direction of that
+        // scraping says nothing about where the actor is trying to go.
+        Vec2 requested_direction{};
     };
 
     struct EntityBindingLookup {
@@ -161,6 +197,8 @@ struct RuntimeScene::Impl {
         LocomotionState facing_state{LocomotionState::idle_south};
         LocomotionState current_state{LocomotionState::idle_south};
         std::array<std::string, locomotion_state_count> state_clips;
+        std::optional<LocomotionState> reaction_state;
+        bool terminal_sequence{false};
         AnimationPlayer player;
     };
 
@@ -454,6 +492,43 @@ struct RuntimeScene::Impl {
         };
     }
 
+    [[nodiscard]] AnimatedEntity* animated_actor(const EntityUuid actor) noexcept {
+        const std::optional<EntityId> entity = world.find(actor);
+        if (!entity) {
+            return nullptr;
+        }
+        const auto animation = animation_indices.find(entity->value);
+        return animation == animation_indices.end()
+                   ? nullptr
+                   : &animated_entities[animation->second];
+    }
+
+    [[nodiscard]] bool play_actor_reaction(
+        const EntityUuid actor,
+        const LocomotionState state,
+        const bool terminal
+    ) {
+        AnimatedEntity* const animation = animated_actor(actor);
+        if (animation == nullptr || !animation->body_index) {
+            return false;
+        }
+        BodyBinding& body = body_bindings[*animation->body_index];
+        if (!body.active || animation->terminal_sequence) {
+            return false;
+        }
+        const std::string& clip_id = animation->state_clips[static_cast<std::size_t>(state)];
+        if (clip_id.empty()) {
+            return false;
+        }
+        static_cast<void>(animation->player.play(clip_id, true));
+        animation->reaction_state = state;
+        animation->terminal_sequence = terminal;
+        if (terminal) {
+            body.hold_presentation_until_terminal = true;
+        }
+        return true;
+    }
+
     [[nodiscard]] std::vector<EntityUuid> spawn_actor_copies(
         const ScenePhysicsRole role,
         const std::vector<Vec2>& ground_positions
@@ -610,36 +685,82 @@ struct RuntimeScene::Impl {
 
     void advance_animations(RuntimeSceneTickResult& result) {
         for (AnimatedEntity& animation : animated_entities) {
-            if (animation.body_index) {
+            if (animation.body_index && !animation.reaction_state) {
                 const BodyBinding& body = body_bindings[*animation.body_index];
                 const Vec2 delta{
                     body.current_position.x - body.previous_position.x,
                     body.current_position.z - body.previous_position.z,
                 };
                 const bool moving = std::abs(delta.x) > 0.01F || std::abs(delta.y) > 0.01F;
+                // Actors face where they were steering, the way the player
+                // faces where the camera says rather than where collision let
+                // it go. A blocked actor keeps looking at what it is walking
+                // into instead of turning to follow the scrape along the wall.
+                const Vec2 steered_direction =
+                    body.requested_direction.x != 0.0F || body.requested_direction.y != 0.0F
+                        ? body.requested_direction
+                        : delta;
                 const Vec2 facing_direction =
-                    body.role == ScenePhysicsRole::player ? player_presentation_direction : delta;
+                    body.role == ScenePhysicsRole::player ? player_presentation_direction
+                                                          : steered_direction;
                 LocomotionState state =
                     locomotion_state(animation.facing_state, facing_direction, moving);
-                if (body.role == ScenePhysicsRole::player && player_dodging) {
-                    const LocomotionState dodge_state =
-                        dodging_locomotion(locomotion_facing(facing_direction));
-                    const std::string& dodge_clip =
-                        animation.state_clips[static_cast<std::size_t>(dodge_state)];
-                    if (!dodge_clip.empty()) {
-                        state = dodge_state;
+                bool force_restart = false;
+                if (body.role == ScenePhysicsRole::player) {
+                    const LocomotionState facing = idle_locomotion(state);
+                    const bool seated_facing = facing == LocomotionState::idle_south ||
+                                               facing == LocomotionState::idle_north;
+                    if (moving || player_dodging || player_shoot_ticks_remaining > 0 ||
+                        !seated_facing) {
+                        player_stationary_ticks = 0;
+                    } else if (player_stationary_ticks <
+                               std::numeric_limits<std::uint32_t>::max()) {
+                        ++player_stationary_ticks;
+                    }
+
+                    if (player_dodging) {
+                        const LocomotionState dodge_state =
+                            dodging_locomotion(locomotion_facing(facing_direction));
+                        const std::string& dodge_clip =
+                            animation.state_clips[static_cast<std::size_t>(dodge_state)];
+                        if (!dodge_clip.empty()) {
+                            state = dodge_state;
+                        }
+                    } else if (player_shoot_ticks_remaining > 0) {
+                        const LocomotionState shoot_state = shooting_locomotion(facing);
+                        const std::string& shoot_clip =
+                            animation.state_clips[static_cast<std::size_t>(shoot_state)];
+                        if (!shoot_clip.empty()) {
+                            state = shoot_state;
+                            force_restart = player_shot_restarted;
+                        }
+                    } else if (player_stationary_ticks >= player_seated_idle_delay_ticks) {
+                        const LocomotionState seated_state = seated_locomotion(facing);
+                        const std::string& seated_clip =
+                            animation.state_clips[static_cast<std::size_t>(seated_state)];
+                        if (!seated_clip.empty()) {
+                            state = seated_state;
+                        }
                     }
                 }
                 animation.facing_state = idle_locomotion(state);
-                if (state != animation.current_state) {
+                if (state != animation.current_state || force_restart) {
                     const std::string& clip_id =
                         animation.state_clips[static_cast<std::size_t>(state)];
+                    const bool action_transition =
+                        is_dodging_locomotion(state) ||
+                        is_seated_locomotion(state) ||
+                        is_shooting_locomotion(state) ||
+                        is_dodging_locomotion(animation.current_state) ||
+                        is_seated_locomotion(animation.current_state) ||
+                        is_shooting_locomotion(animation.current_state);
                     const AnimationTransitionMode transition =
-                        is_dodging_locomotion(state)
+                        action_transition
                             ? AnimationTransitionMode::restart
                             : AnimationTransitionMode::preserve_cycle_phase;
-                    static_cast<void>(animation.player.play(
-                        clip_id, transition));
+                    static_cast<void>(force_restart
+                                          ? animation.player.play(clip_id, true)
+                                          : animation.player.play(clip_id, transition));
                     animation.current_state = state;
                 }
             }
@@ -652,7 +773,39 @@ struct RuntimeScene::Impl {
                     .frame_index = event.frame_index,
                 });
             }
+            if (!animation.reaction_state || !animation.player.sample().finished ||
+                !animation.body_index) {
+                continue;
+            }
+
+            BodyBinding& body = body_bindings[*animation.body_index];
+            if (*animation.reaction_state == LocomotionState::hurt_south) {
+                animation.reaction_state.reset();
+                static_cast<void>(animation.player.play(
+                    animation.state_clips[static_cast<std::size_t>(animation.current_state)],
+                    AnimationTransitionMode::restart));
+                continue;
+            }
+            if (*animation.reaction_state == LocomotionState::death_south) {
+                const std::string& explosion = animation.state_clips[
+                    static_cast<std::size_t>(LocomotionState::explode_south)];
+                if (!explosion.empty()) {
+                    static_cast<void>(animation.player.play(explosion, true));
+                    animation.reaction_state = LocomotionState::explode_south;
+                    continue;
+                }
+            }
+
+            animation.reaction_state.reset();
+            animation.terminal_sequence = false;
+            body.hold_presentation_until_terminal = false;
+            body.presentation_active = false;
+            ++completed_actor_terminal_animations;
         }
+        if (player_shoot_ticks_remaining > 0) {
+            --player_shoot_ticks_remaining;
+        }
+        player_shot_restarted = false;
     }
 
     void synchronize_binding(const std::size_t index) {
@@ -749,6 +902,14 @@ struct RuntimeScene::Impl {
     void register_body_index(const std::size_t index) {
         body_index_by_physics_body.emplace(
             physics_body_key(body_bindings[index].physics_body), index);
+    }
+
+    // A destroyed body's key must not stay in the lookup: the backend is free
+    // to hand the same identifier to the next body it creates, and a stale
+    // entry would then resolve contacts and casts to the wrong actor.
+    void forget_body_index(const std::size_t index) {
+        body_index_by_physics_body.erase(
+            physics_body_key(body_bindings[index].physics_body));
     }
 
     [[nodiscard]] PhysicsBodyId body_for(const EntityUuid entity_uuid) const noexcept {
@@ -849,9 +1010,14 @@ struct RuntimeScene::Impl {
     std::optional<std::uint32_t> active_trigger;
     Vec2 player_presentation_direction{};
     bool player_dodging{false};
+    std::uint64_t player_shot_sequence{0};
+    std::uint32_t player_shoot_ticks_remaining{0};
+    std::uint32_t player_stationary_ticks{0};
+    bool player_shot_restarted{false};
     std::uint64_t next_runtime_uuid{1};
     std::uint64_t runtime_spawn_sequence{0};
     bool simulation_started{false};
+    std::uint64_t completed_actor_terminal_animations{0};
 };
 
 RuntimeScene::RuntimeScene(SceneDefinition definition, TextureAssets& textures)
@@ -877,6 +1043,7 @@ void RuntimeScene::reset() {
             body.active = true;
         } else if (!body.active) {
             body.physics_body = impl_->physics.create_box(body.definition);
+            impl_->register_body_index(index);
             body.active = true;
             ++impl_->physics_body_count;
         } else {
@@ -884,6 +1051,8 @@ void RuntimeScene::reset() {
                 body.physics_body, {body.start_position.x, body.start_position.z},
                 body.definition.rotation_radians));
         }
+        body.presentation_active = true;
+        body.hold_presentation_until_terminal = false;
         if (body.physics_backed &&
             body.definition.motion != PhysicsMotionType::static_body) {
             static_cast<void>(impl_->physics.set_linear_velocity(body.physics_body, {}));
@@ -897,10 +1066,18 @@ void RuntimeScene::reset() {
         if (animation.body_index) {
             animation.facing_state = idle_locomotion(animation.initial_state);
             animation.current_state = animation.initial_state;
+            animation.reaction_state.reset();
+            animation.terminal_sequence = false;
         }
     }
+    impl_->retired_entities.clear();
     impl_->active_trigger.reset();
     impl_->player_dodging = false;
+    impl_->player_shot_sequence = 0;
+    impl_->player_shoot_ticks_remaining = 0;
+    impl_->player_stationary_ticks = 0;
+    impl_->player_shot_restarted = false;
+    impl_->completed_actor_terminal_animations = 0;
 }
 
 RuntimeSceneTickResult RuntimeScene::tick(
@@ -951,9 +1128,19 @@ RuntimeSceneTickResult RuntimeScene::tick(
     }
     impl_->player_presentation_direction = player_motion.presentation_direction;
     impl_->player_dodging = player_motion.dodging;
+    impl_->player_shot_restarted = false;
+    if (player_motion.shot_sequence > impl_->player_shot_sequence) {
+        impl_->player_shoot_ticks_remaining = player_shoot_presentation_ticks;
+        impl_->player_shot_restarted = true;
+    }
+    impl_->player_shot_sequence = player_motion.shot_sequence;
 
-    for (Impl::BodyBinding& body : impl_->body_bindings) {
+    for (std::size_t body_index = 0; body_index < impl_->body_bindings.size(); ++body_index) {
+        Impl::BodyBinding& body = impl_->body_bindings[body_index];
         body.previous_position = body.current_position;
+        const RuntimeSceneActorMotion* const requested = actor_motion_by_body[body_index];
+        body.requested_direction =
+            requested != nullptr && requested->speed > 0.0F ? requested->world_direction : Vec2{};
     }
     Impl::BodyBinding& player = impl_->body_bindings[impl_->player_index];
     const float movement_speed = impl_->definition.simulation().player_speed *
@@ -1216,13 +1403,65 @@ bool RuntimeScene::retire_actor(const EntityUuid actor) noexcept {
         if (!impl_->physics.destroy_body(body.physics_body)) {
             return false;
         }
+        impl_->forget_body_index(binding->second.body_index);
         body.physics_body = {};
         --impl_->physics_body_count;
     }
     body.active = false;
+    body.presentation_active = body.hold_presentation_until_terminal;
     impl_->actor_index.dirty = true;
     return true;
 }
+
+bool RuntimeScene::play_actor_hurt(const EntityUuid actor) {
+    return impl_->play_actor_reaction(actor, LocomotionState::hurt_south, false);
+}
+
+bool RuntimeScene::begin_actor_death(const EntityUuid actor) {
+    return impl_->play_actor_reaction(actor, LocomotionState::death_south, true);
+}
+
+std::uint64_t RuntimeScene::completed_actor_terminal_animation_count() const noexcept {
+    return impl_->completed_actor_terminal_animations;
+}
+bool RuntimeScene::retire_entity(const EntityUuid entity) noexcept {
+    if (!entity || entity == player_uuid()) {
+        return false;
+    }
+    if (!impl_->world.find(entity)) {
+        return false;
+    }
+    // Hidden, not destroyed. Destroying it would free the World identity for
+    // reuse while bindings and animation indices still name it, and reset()
+    // rebuilds bodies rather than entities, so a used item could never come
+    // back. Hiding keeps retirement reversible by exactly the same rule that
+    // makes a retired actor come back.
+    if (!impl_->retired_entities.insert(entity.value).second) {
+        return false;
+    }
+    // A parent owns its children's lifetime, so a used pickup takes its shadow
+    // with it instead of leaving it lying on the ground. The walk is iterative
+    // and bounded by the authored set, and authoring already rejects cycles.
+    std::vector<EntityUuid> pending{entity};
+    while (!pending.empty()) {
+        const EntityUuid owner = pending.back();
+        pending.pop_back();
+        for (const SceneEntityDefinition& authored : impl_->definition.entities()) {
+            if (authored.parent != owner || !authored.uuid) {
+                continue;
+            }
+            // The player is never retired, so a child of the player is not
+            // either; anything else joins the walk once.
+            if (authored.uuid == player_uuid() ||
+                !impl_->retired_entities.insert(authored.uuid.value).second) {
+                continue;
+            }
+            pending.push_back(authored.uuid);
+        }
+    }
+    return true;
+}
+
 std::optional<RuntimeSceneSegmentHit> RuntimeScene::cast_segment(
     const Vec2& start,
     const Vec2& end,
@@ -1329,6 +1568,11 @@ std::optional<RuntimeSceneSegmentHit> RuntimeScene::cast_segment(
 }
 WorldSnapshot RuntimeScene::world_snapshot() const { return impl_->world.snapshot(); }
 
+bool RuntimeScene::is_entity_presented(const EntityUuid entity) const noexcept {
+    const std::optional<EntityId> found = impl_->world.find(entity);
+    return found && impl_->is_presented(*found);
+}
+
 std::vector<RenderItem2D> RuntimeScene::collect_render_items(
     const float interpolation_alpha,
     const std::optional<RectXZ> region
@@ -1339,9 +1583,7 @@ std::vector<RenderItem2D> RuntimeScene::collect_render_items(
     const float alpha = std::clamp(interpolation_alpha, 0.0F, 1.0F);
     std::vector<RenderItem2D> items = impl_->world.collect_render_items(region);
     std::erase_if(items, [this](const RenderItem2D& item) {
-        const auto found = impl_->entity_bindings.find(item.entity.value);
-        return found != impl_->entity_bindings.end() &&
-               !impl_->body_bindings[found->second.body_index].active;
+        return !impl_->is_presented(item.entity);
     });
     for (RenderItem2D& item : items) {
         const auto found = impl_->entity_bindings.find(item.entity.value);

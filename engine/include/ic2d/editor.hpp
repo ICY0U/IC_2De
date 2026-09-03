@@ -1,10 +1,13 @@
 #pragma once
 
+#include "ic2d/actor_debug.hpp"
+#include "ic2d/aiming.hpp"
 #include "ic2d/debug_visuals.hpp"
 #include "ic2d/combat.hpp"
 #include "ic2d/enemy_intent.hpp"
 #include "ic2d/gameplay_state.hpp"
 #include "ic2d/health.hpp"
+#include "ic2d/interaction.hpp"
 #include "ic2d/identity.hpp"
 #include "ic2d/input.hpp"
 #include "ic2d/nav_grid.hpp"
@@ -31,6 +34,52 @@ namespace ic2d {
     bool item_active,
     bool gizmo_active
 ) noexcept;
+
+// Whether the scene in front of an author is being edited or played.
+//
+// Editing is not a pause. A paused run is a run that has already happened and
+// is waiting to continue; editing is the authored scene, untouched, exactly as
+// the document describes it. An editor that opened onto a paused run would be
+// showing a state no document records, which is why the two are named apart
+// rather than sharing one flag.
+enum class EditorRunState : std::uint8_t {
+    editing,
+    running,
+    paused,
+};
+
+// True when fixed ticks are advancing.
+[[nodiscard]] constexpr bool simulating(const EditorRunState state) noexcept {
+    return state == EditorRunState::running;
+}
+
+// What a pointer held on the editor's own window chrome is doing to it. The
+// shell hit-tests and names the gesture; the application owns the window and is
+// the only thing that may move or size it.
+enum class EditorWindowDrag : std::uint8_t {
+    none,
+    move,
+    resize_left,
+    resize_right,
+    resize_top,
+    resize_bottom,
+    resize_top_left,
+    resize_top_right,
+    resize_bottom_left,
+    resize_bottom_right,
+};
+
+struct EditorWindowActions {
+    bool minimize{false};
+    bool toggle_maximize{false};
+    bool close{false};
+    // What is being held right now, and whether this frame is the one the hold
+    // began on. The application anchors the window rect and the pointer once at
+    // the start and resolves every later frame against that anchor, so a window
+    // that moves under the pointer cannot chase itself across the desktop.
+    EditorWindowDrag drag{EditorWindowDrag::none};
+    bool drag_started{false};
+};
 
 // Read-only runtime figures the shell reports. The editor never reaches into
 // the running scene for them, so it cannot disturb simulation state.
@@ -61,6 +110,8 @@ struct EditorStats {
     NavPathResult navigation_path{};
     NavAgentSnapshot navigation_agents{};
     InputFrame input{};
+    AimingSnapshot aim{};
+    InteractionSnapshot interaction{};
     CombatSnapshot combat{};
     std::uint64_t observed_combat_intents{0};
     std::optional<CombatIntentEvent> last_combat_intent;
@@ -86,7 +137,17 @@ struct EditorStats {
     bool post_process_active{false};
     bool post_process_available{false};
     bool texture_hot_reload_enabled{false};
-    bool paused{false};
+    EditorRunState run_state{EditorRunState::editing};
+    // True when the application made an undecorated window and expects the
+    // shell to supply the title bar it removed. False leaves every chrome
+    // control and hit zone out, so a decorated window is untouched.
+    bool custom_window_chrome{false};
+    bool window_maximized{false};
+    // Which runtime actor is which. The document knows placements, not roles,
+    // so the shell learns from the running scene whether the selection is the
+    // player, an attacker, or scenery, and offers only what suits it.
+    EntityUuid player_uuid{};
+    ActorDebugSnapshot actor_debug{};
     // True while the editor view is looking somewhere other than the gameplay
     // camera, so the shell can offer the way back.
     bool camera_detached{false};
@@ -112,10 +173,26 @@ struct EditorStats {
 struct EditorActions {
     bool apply_document_to_running_scene{false};
     bool reset_running_scene{false};
-    bool toggle_pause{false};
+    // Present means put the scene into this state. Play, Pause and the pause
+    // key all name the state they want rather than asking for a toggle, so two
+    // of them pressed in the same frame cannot cancel out.
+    std::optional<EditorRunState> set_run_state;
     // Present means rebuild the unsaved running scene with this many total
     // Runner actors. Zero restores only the authored actors.
     std::optional<std::size_t> enemy_stress_target_count;
+    // Development overrides an author toggled this frame, in click order. A
+    // vector rather than one request because nothing stops an author from
+    // hitting two checkboxes before the frame ends.
+    struct ActorDebugRequest {
+        EntityUuid actor{};
+        ActorDebugFlag flag{ActorDebugFlag::frozen};
+        bool enabled{false};
+    };
+    std::vector<ActorDebugRequest> actor_debug_requests;
+    // Present means damage this actor to death. Killing is an event with a
+    // consequence the health module owns, not a state the editor holds, so it
+    // is a request rather than a flag.
+    std::optional<EntityUuid> kill_actor;
     // Present means load this authored scene and restart the running copy.
     std::optional<std::filesystem::path> load_scene_path;
     // A Ctrl+left click inside the viewport, in canvas pixels. The application owns
@@ -134,6 +211,8 @@ struct EditorActions {
         bool snap{false};
     };
     std::optional<GizmoDrag> gizmo_drag;
+
+    EditorWindowActions window;
 
     // Editor camera intents. They are expressed in canvas pixels and wheel
     // notches so the shell never needs the world camera, and the application
